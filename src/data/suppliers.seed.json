@@ -1,0 +1,7 @@
+[
+  { "supplierCode": "SUP-001", "name": "Demo Fabrics Pvt Ltd", "contactEmail": "sales@demofabrics.local", "phone": "+91-9876543210", "leadTimeDays": 7 },
+  { "supplierCode": "SUP-002", "name": "Metro Trims & Accessories", "contactEmail": "orders@metrotrims.local", "phone": "+91-9876543211", "leadTimeDays": 5 },
+  { "supplierCode": "SUP-003", "name": "Global Yarn Suppliers", "contactEmail": "supply@globalyarn.local", "phone": "+91-9876543212", "leadTimeDays": 10 },
+  { "supplierCode": "SUP-004", "name": "PackRight Solutions", "contactEmail": "info@packright.local", "phone": "+91-9876543213", "leadTimeDays": 3 },
+  { "supplierCode": "SUP-005", "name": "Southern Textile Mills", "contactEmail": "mill@southerntextile.local", "phone": "+91-9876543214", "leadTimeDays": 14 }
+]

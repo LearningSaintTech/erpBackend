@@ -1,0 +1,20 @@
+[
+  { "materialCode": "FAB-COT-001", "name": "Cotton Fabric White", "category": "FABRIC", "unit": "METERS", "unitCost": 120, "receiptQty": 500 },
+  { "materialCode": "BTN-001", "name": "Plastic Buttons 12mm", "category": "ACCESSORY", "unit": "PIECES", "unitCost": 2, "receiptQty": 2000 },
+  { "materialCode": "FAB-COT-002", "name": "Cotton Poplin Navy", "category": "FABRIC", "unit": "METERS", "unitCost": 135, "receiptQty": 400 },
+  { "materialCode": "FAB-LIN-001", "name": "Linen Blend Natural", "category": "FABRIC", "unit": "METERS", "unitCost": 180, "receiptQty": 300 },
+  { "materialCode": "FAB-POL-001", "name": "Polyester Microfiber", "category": "FABRIC", "unit": "METERS", "unitCost": 95, "receiptQty": 600 },
+  { "materialCode": "FAB-DEN-001", "name": "Denim Indigo 12oz", "category": "FABRIC", "unit": "METERS", "unitCost": 210, "receiptQty": 250 },
+  { "materialCode": "THR-POL-001", "name": "Polyester Thread 120s", "category": "THREAD", "unit": "CONES", "unitCost": 45, "receiptQty": 100 },
+  { "materialCode": "ZIP-YKK-001", "name": "YKK Zipper 6 inch", "category": "ZIPPER", "unit": "PIECES", "unitCost": 12, "receiptQty": 800 },
+  { "materialCode": "LBL-WOV-001", "name": "Woven Brand Label", "category": "LABEL", "unit": "PIECES", "unitCost": 3, "receiptQty": 5000 },
+  { "materialCode": "ELA-001", "name": "Elastic Band 1 inch", "category": "ACCESSORY", "unit": "METERS", "unitCost": 8, "receiptQty": 400 },
+  { "materialCode": "INT-FUS-001", "name": "Fusible Interlining", "category": "FABRIC", "unit": "METERS", "unitCost": 55, "receiptQty": 350 },
+  { "materialCode": "PKG-PB-001", "name": "Poly Bag Medium", "category": "PACKAGING", "unit": "PIECES", "unitCost": 1.5, "receiptQty": 3000 },
+  { "materialCode": "PKG-HT-001", "name": "Hang Tag with String", "category": "PACKAGING", "unit": "PIECES", "unitCost": 2, "receiptQty": 2500 },
+  { "materialCode": "BTN-MET-001", "name": "Metal Shank Button 24L", "category": "BUTTON", "unit": "PIECES", "unitCost": 4, "receiptQty": 1500 },
+  { "materialCode": "RIB-COT-001", "name": "Cotton Rib 1x1", "category": "FABRIC", "unit": "METERS", "unitCost": 140, "receiptQty": 200 },
+  { "materialCode": "SNP-PRE-001", "name": "Snap Button Set", "category": "BUTTON", "unit": "PIECES", "unitCost": 6, "receiptQty": 600 },
+  { "materialCode": "VEL-001", "name": "Hook and Loop Tape", "category": "ACCESSORY", "unit": "METERS", "unitCost": 15, "receiptQty": 150 },
+  { "materialCode": "FAB-CHK-001", "name": "Cotton Check Fabric", "category": "FABRIC", "unit": "METERS", "unitCost": 155, "receiptQty": 280 }
+]

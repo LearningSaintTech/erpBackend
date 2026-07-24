@@ -1,0 +1,12 @@
+[
+  { "code": "STITCH", "name": "Stitching Defect", "severity": "MAJOR" },
+  { "code": "COLOR", "name": "Color Shade Variation", "severity": "MAJOR" },
+  { "code": "MEASURE", "name": "Measurement Out of Tolerance", "severity": "CRITICAL" },
+  { "code": "FABRIC", "name": "Fabric Defect", "severity": "MAJOR" },
+  { "code": "STAIN", "name": "Stain or Spot", "severity": "MINOR" },
+  { "code": "BUTTON", "name": "Button Attachment Issue", "severity": "MAJOR" },
+  { "code": "ZIP", "name": "Zipper Malfunction", "severity": "MAJOR" },
+  { "code": "LABEL", "name": "Label Placement Error", "severity": "MINOR" },
+  { "code": "PACK", "name": "Packing Defect", "severity": "MINOR" },
+  { "code": "HANDFEEL", "name": "Hand Feel Issue", "severity": "MINOR" }
+]

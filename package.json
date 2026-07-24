@@ -1,0 +1,41 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "dev:mem": "node src/scripts/dev-memory.js",
+    "start": "node src/index.js",
+    "seed": "node src/scripts/seed.js",
+    "seed:rbac": "node src/scripts/seed-rbac.js",
+    "seed:demo": "node src/scripts/seed-demo.js",
+    "seed:light": "node src/scripts/seed-light.js",
+    "seed:verify": "node src/scripts/seed-verify.js",
+    "db:purge": "node src/scripts/purge-transactional.js",
+    "smoke-test": "node src/scripts/smoke-test.js",
+    "rbac-test": "node src/scripts/rbac-test.js",
+    "panel-audit-test": "node src/scripts/panel-audit-test.js",
+    "walkthrough": "node src/scripts/print-walkthrough.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "ioredis": "^5.4.2",
+    "joi": "^17.13.3",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.3",
+    "morgan": "^1.10.0",
+    "nodemailer": "^6.9.16",
+    "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "mongodb-memory-server": "^10.1.3",
+    "nodemon": "^3.1.14"
+  }
+}

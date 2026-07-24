@@ -1,0 +1,1322 @@
+[
+  {
+    "type": "CATEGORY",
+    "code": "TW-CT",
+    "name": "Crop Top",
+    "sortOrder": 6,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "BW-SK",
+    "name": "Skirt",
+    "sortOrder": 26,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "BW-PLZ",
+    "name": "Palazzo",
+    "sortOrder": 28,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "BW-CDB",
+    "name": "Co-ord Bottom",
+    "sortOrder": 32,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "DR-MN",
+    "name": "Mini Dress",
+    "sortOrder": 40,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "DR-MX",
+    "name": "Maxi Dress",
+    "sortOrder": 42,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "DR-GW",
+    "name": "Gown",
+    "sortOrder": 48,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "OW-OC",
+    "name": "Overcoat",
+    "sortOrder": 61,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "OW-TC",
+    "name": "Trench Coat",
+    "sortOrder": 62,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "OW-BM",
+    "name": "Bomber Jacket",
+    "sortOrder": 64,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "OW-LJ",
+    "name": "Leather Jacket",
+    "sortOrder": 65,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "AW-TP",
+    "name": "Track Pants",
+    "sortOrder": 81,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "AW-SH",
+    "name": "Shorts",
+    "sortOrder": 82,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "LW-NS",
+    "name": "Night Suit",
+    "sortOrder": 90,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "IW-BX",
+    "name": "Boxers",
+    "sortOrder": 101,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "IW-BA",
+    "name": "Bra",
+    "sortOrder": 102,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "AC-GL",
+    "name": "Gloves",
+    "sortOrder": 113,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FIT",
+    "code": "FL",
+    "name": "Flared",
+    "sortOrder": 8,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FIT",
+    "code": "EM",
+    "name": "Empire Waist",
+    "sortOrder": 11,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FIT",
+    "code": "SH",
+    "name": "Shift",
+    "sortOrder": 12,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FIT",
+    "code": "SK",
+    "name": "Skinny Fit",
+    "sortOrder": 14,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FIT",
+    "code": "BT",
+    "name": "Bootcut",
+    "sortOrder": 17,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FIT",
+    "code": "TL",
+    "name": "Tailored",
+    "sortOrder": 18,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "BLK",
+    "name": "Black",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "BLU",
+    "name": "Blue",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "TAN",
+    "name": "Tan",
+    "sortOrder": 12,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "OLV",
+    "name": "Olive",
+    "sortOrder": 14,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "WNE",
+    "name": "Wine",
+    "sortOrder": 22,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "BUR",
+    "name": "Burgundy",
+    "sortOrder": 23,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "NAV",
+    "name": "Navy",
+    "sortOrder": 24,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "PLM",
+    "name": "Plum",
+    "sortOrder": 27,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "LPK",
+    "name": "Light Pink",
+    "sortOrder": 28,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "MNT",
+    "name": "Mint",
+    "sortOrder": 32,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "LYL",
+    "name": "Lilac",
+    "sortOrder": 35,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "RYL",
+    "name": "Royal Blue",
+    "sortOrder": 37,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "RST",
+    "name": "Rust",
+    "sortOrder": 47,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "IND",
+    "name": "Indigo",
+    "sortOrder": 50,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "MLT",
+    "name": "Multicolor",
+    "sortOrder": 51,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "PRT",
+    "name": "Printed",
+    "sortOrder": 52,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SECTION",
+    "code": "LW",
+    "name": "Lounge & Sleepwear",
+    "sortOrder": 50,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SECTION",
+    "code": "IW",
+    "name": "Innerwear",
+    "sortOrder": 60,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SECTION",
+    "code": "AC",
+    "name": "Accessories",
+    "sortOrder": 70,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "TW-KU",
+    "name": "Kurta",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "TW-BL",
+    "name": "Blouse",
+    "sortOrder": 8,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "TW-HD",
+    "name": "Hoodie",
+    "sortOrder": 9,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "TW-SW",
+    "name": "Sweatshirt",
+    "sortOrder": 10,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "TW-JK",
+    "name": "Jacket (Lightweight)",
+    "sortOrder": 11,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "TW-BZ",
+    "name": "Blazer",
+    "sortOrder": 13,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "TW-CDT",
+    "name": "Co-ord Top",
+    "sortOrder": 15,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "BW-TR",
+    "name": "Trousers (Formal)",
+    "sortOrder": 21,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "BW-JG",
+    "name": "Joggers",
+    "sortOrder": 24,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "BW-SH",
+    "name": "Shorts",
+    "sortOrder": 25,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "BW-CL",
+    "name": "Culottes",
+    "sortOrder": 30,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "BW-DH",
+    "name": "Dhoti Pants",
+    "sortOrder": 31,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "DR-WR",
+    "name": "Wrap Dress",
+    "sortOrder": 45,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "DR-SD",
+    "name": "Shirt Dress",
+    "sortOrder": 46,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "DR-PS",
+    "name": "Playsuit",
+    "sortOrder": 51,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "OW-CP",
+    "name": "Cape",
+    "sortOrder": 67,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "ET-BL",
+    "name": "Blouse (Ethnic)",
+    "sortOrder": 75,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "ET-DP",
+    "name": "Dupatta",
+    "sortOrder": 76,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "AW-SB",
+    "name": "Sports Bra",
+    "sortOrder": 83,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "AW-YP",
+    "name": "Yoga Pants",
+    "sortOrder": 85,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "LW-RB",
+    "name": "Robe",
+    "sortOrder": 92,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "LW-LP",
+    "name": "Lounge Pants",
+    "sortOrder": 93,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "LW-LT",
+    "name": "Lounge T-Shirt",
+    "sortOrder": 94,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "IW-BR",
+    "name": "Briefs",
+    "sortOrder": 100,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "IW-CM",
+    "name": "Camisole",
+    "sortOrder": 103,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FIT",
+    "code": "RF",
+    "name": "Regular Fit",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FIT",
+    "code": "OV",
+    "name": "Oversized",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FIT",
+    "code": "BF",
+    "name": "Body Fit",
+    "sortOrder": 6,
+    "isActive": true,
+    "remarks": "Sheet also uses BF for Bodycon Fit (e.g. Hoodie). Adjust label in admin if needed."
+  },
+  {
+    "type": "FIT",
+    "code": "ST",
+    "name": "Straight Fit",
+    "sortOrder": 13,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FIT",
+    "code": "WD",
+    "name": "Wide Leg",
+    "sortOrder": 15,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FIT",
+    "code": "TP",
+    "name": "Tapered",
+    "sortOrder": 16,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "ORG",
+    "name": "Orange",
+    "sortOrder": 8,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "BEG",
+    "name": "Beige",
+    "sortOrder": 11,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "MRN",
+    "name": "Maroon",
+    "sortOrder": 21,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "BLP",
+    "name": "Blush Pink",
+    "sortOrder": 29,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "SKY",
+    "name": "Sky Blue",
+    "sortOrder": 31,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "PCH",
+    "name": "Peach",
+    "sortOrder": 34,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "SUN",
+    "name": "Sunshine Yellow",
+    "sortOrder": 41,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "NEY",
+    "name": "Neon Yellow",
+    "sortOrder": 43,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "GLD",
+    "name": "Gold",
+    "sortOrder": 44,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "DNM",
+    "name": "Denim",
+    "sortOrder": 49,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FIT",
+    "code": "REF",
+    "name": "Regular",
+    "sortOrder": 0,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "VEST",
+    "name": "vest",
+    "sortOrder": 0,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "CRDSET",
+    "name": "Cord Set",
+    "sortOrder": 0,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FIT",
+    "code": "BAGY",
+    "name": "Baggy",
+    "sortOrder": 0,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "ICBLU",
+    "name": "Ice Blue",
+    "sortOrder": 0,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SECTION",
+    "code": "OW",
+    "name": "Outerwear",
+    "sortOrder": 20,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SECTION",
+    "code": "ET",
+    "name": "Ethnic Wear",
+    "sortOrder": 30,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "TW-TS",
+    "name": "T-Shirt",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "TW-SH",
+    "name": "Shirt",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "TW-PL",
+    "name": "Polo T-Shirt",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "TW-TN",
+    "name": "Tunic",
+    "sortOrder": 5,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "TW-DJ",
+    "name": "Denim Jacket",
+    "sortOrder": 12,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "TW-WC",
+    "name": "Waistcoat / Vest (Formal)",
+    "sortOrder": 14,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "BW-CG",
+    "name": "Cargo Pants",
+    "sortOrder": 23,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "DR-AL",
+    "name": "A-Line Dress",
+    "sortOrder": 44,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "DR-SP",
+    "name": "Slip Dress",
+    "sortOrder": 47,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "DR-KF",
+    "name": "Kaftan",
+    "sortOrder": 49,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "DR-JS",
+    "name": "Jumpsuit",
+    "sortOrder": 50,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "OW-PF",
+    "name": "Puffer Jacket",
+    "sortOrder": 63,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "OW-SR",
+    "name": "Shrug",
+    "sortOrder": 66,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "ET-KU",
+    "name": "Kurta",
+    "sortOrder": 71,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "ET-LH",
+    "name": "Lehenga",
+    "sortOrder": 73,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "ET-SR",
+    "name": "Saree",
+    "sortOrder": 74,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "ET-IW",
+    "name": "Indo-Western",
+    "sortOrder": 78,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "AW-AJ",
+    "name": "Active Jacket",
+    "sortOrder": 84,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "IW-SW",
+    "name": "Shapewear",
+    "sortOrder": 104,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "AC-CP",
+    "name": "Cap",
+    "sortOrder": 112,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FIT",
+    "code": "CR",
+    "name": "Cropped",
+    "sortOrder": 5,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FIT",
+    "code": "WR",
+    "name": "Wrap",
+    "sortOrder": 9,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FIT",
+    "code": "SL",
+    "name": "Slip Fit",
+    "sortOrder": 10,
+    "isActive": true,
+    "remarks": "Sheet also maps SL to Slim Fit (e.g. formal trousers). Adjust in admin if you split codes."
+  },
+  {
+    "type": "COLOR",
+    "code": "RED",
+    "name": "Red",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "GRN",
+    "name": "Green",
+    "sortOrder": 5,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "BRN",
+    "name": "Brown",
+    "sortOrder": 9,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "GRY",
+    "name": "Grey",
+    "sortOrder": 10,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "KHA",
+    "name": "Khaki",
+    "sortOrder": 13,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "IVR",
+    "name": "Ivory",
+    "sortOrder": 18,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "STN",
+    "name": "Stone",
+    "sortOrder": 20,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "CHC",
+    "name": "Charcoal",
+    "sortOrder": 25,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "EMR",
+    "name": "Emerald",
+    "sortOrder": 38,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "COR",
+    "name": "Coral",
+    "sortOrder": 40,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "NEP",
+    "name": "Neon Pink",
+    "sortOrder": 42,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "SLV",
+    "name": "Silver",
+    "sortOrder": 45,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "BRZ",
+    "name": "Bronze",
+    "sortOrder": 46,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "LIMYEL",
+    "name": "Lime Yellow",
+    "sortOrder": 0,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SECTION",
+    "code": "DR",
+    "name": "Dresses & One-Piece",
+    "sortOrder": 10,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SECTION",
+    "code": "AW",
+    "name": "Activewear",
+    "sortOrder": 40,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "TW-TT",
+    "name": "Tank Top / Vest",
+    "sortOrder": 7,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "BW-JN",
+    "name": "Jeans",
+    "sortOrder": 20,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "BW-PT",
+    "name": "Pants (Casual)",
+    "sortOrder": 22,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "BW-SR",
+    "name": "Sharara",
+    "sortOrder": 27,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "BW-LG",
+    "name": "Leggings",
+    "sortOrder": 29,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "DR-MD",
+    "name": "Midi Dress",
+    "sortOrder": 41,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "DR-BC",
+    "name": "Bodycon Dress",
+    "sortOrder": 43,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "OW-CT",
+    "name": "Coat",
+    "sortOrder": 60,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "ET-KS",
+    "name": "Kurta Set",
+    "sortOrder": 70,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "ET-SW",
+    "name": "Sherwani",
+    "sortOrder": 72,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "ET-AN",
+    "name": "Anarkali",
+    "sortOrder": 77,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "AW-GT",
+    "name": "Gym T-Shirt",
+    "sortOrder": 80,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "LW-PS",
+    "name": "Pyjama Set",
+    "sortOrder": 91,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "AC-SC",
+    "name": "Scarf",
+    "sortOrder": 110,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "AC-BT",
+    "name": "Belt",
+    "sortOrder": 111,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FIT",
+    "code": "SF",
+    "name": "Slim Fit",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FIT",
+    "code": "BX",
+    "name": "Boxy Fit",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FIT",
+    "code": "AL",
+    "name": "A-Line",
+    "sortOrder": 7,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FIT",
+    "code": "RL",
+    "name": "Relaxed",
+    "sortOrder": 19,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "WHT",
+    "name": "White",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "YLW",
+    "name": "Yellow",
+    "sortOrder": 6,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "PNK",
+    "name": "Pink",
+    "sortOrder": 7,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "MOC",
+    "name": "Mocha",
+    "sortOrder": 15,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "CAM",
+    "name": "Camel",
+    "sortOrder": 16,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "CRL",
+    "name": "Cream",
+    "sortOrder": 17,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "NUD",
+    "name": "Nude",
+    "sortOrder": 19,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "ESP",
+    "name": "Espresso",
+    "sortOrder": 26,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "LBL",
+    "name": "Light Blue",
+    "sortOrder": 30,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "LAV",
+    "name": "Lavender",
+    "sortOrder": 33,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "FUS",
+    "name": "Fuchsia",
+    "sortOrder": 36,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "TQS",
+    "name": "Turquoise",
+    "sortOrder": 39,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "TER",
+    "name": "Terracotta",
+    "sortOrder": 48,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLOR",
+    "code": "NAVBLU",
+    "name": "Navy Blue",
+    "sortOrder": 0,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "PEPTP",
+    "name": "Peplum Top",
+    "sortOrder": 0,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FIT",
+    "code": "BDYFIT",
+    "name": "Body Fitted",
+    "sortOrder": 0,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CATEGORY",
+    "code": "TP",
+    "name": "TOP",
+    "sortOrder": 0,
+    "isActive": true,
+    "remarks": ""
+  }
+]

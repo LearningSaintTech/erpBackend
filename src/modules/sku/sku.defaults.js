@@ -1,0 +1,3 @@
+export const SKU_STATUS_LIST = ['DRAFT', 'ACTIVE', 'DISCONTINUED'];
+
+export const SKU_SAMPLE_TYPE_HINTS = ['PROTOTYPE', 'FIT', 'PP', 'TOP'];

@@ -1,0 +1,67 @@
+export const NOTIFICATION_STATUS_LIST = ['UNREAD', 'READ'];
+
+export const NOTIFICATION_CHANNELS = ['IN_APP', 'EMAIL', 'SMS'];
+
+export const EVENT_TYPES = [
+  'design.approved',
+  'design.rejected',
+  'design.revision_requested',
+  'design.released',
+  'design.submitted',
+  'pattern.assigned',
+  'pattern.completed',
+  'pattern.fit_revision',
+  'pr.submitted',
+  'production.materials_ready',
+  'production.reserve_failed',
+  'production.partial_stock',
+  'batch.completed',
+  'sample.revision_requested',
+  'sample.created',
+  'sample.material_pending',
+  'sample.qc_pending',
+  'sample.approved',
+  'approval.pending',
+  'approval.approved',
+  'approval.rejected',
+  'chat.message',
+];
+
+export const REFERENCE_ROUTE_MAP = {
+  DESIGN: '/designs',
+  PRODUCTION_ORDER: '/production',
+  PRODUCTION_BATCH: '/production',
+  PURCHASE_REQUISITION: '/purchase',
+  PURCHASE_ORDER: '/purchase',
+  SAMPLE: '/samples',
+  PATTERN: '/pattern',
+  APPROVAL: '/approvals',
+  QUALITY_INSPECTION: '/quality/inspections',
+  CAPA: '/quality/capa',
+  CHAT_ROOM: '/chat',
+};
+
+export const EVENT_TYPE_LABELS = {
+  'design.approved': 'Design approved',
+  'design.rejected': 'Design rejected',
+  'design.revision_requested': 'Design revision requested',
+  'design.released': 'Design released',
+  'design.submitted': 'Design submitted',
+  'pattern.assigned': 'Pattern assigned',
+  'pattern.completed': 'Pattern ready for sampling',
+  'pattern.fit_revision': 'Pattern fit revision',
+  'pr.submitted': 'PR submitted',
+  'production.materials_ready': 'Materials ready',
+  'production.reserve_failed': 'Reserve failed',
+  'production.partial_stock': 'Partial stock',
+  'batch.completed': 'Batch completed',
+  'sample.revision_requested': 'Sample revision requested',
+  'sample.created': 'Sample created',
+  'sample.material_pending': 'Sample material approval',
+  'sample.qc_pending': 'Sample QC pending',
+  'sample.approved': 'Sample approved',
+  'approval.pending': 'Approval pending',
+  'approval.approved': 'Approval approved',
+  'approval.rejected': 'Approval rejected',
+  'chat.message': 'Chat message',
+};
