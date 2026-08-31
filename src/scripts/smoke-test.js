@@ -1,6 +1,10 @@
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import app from '../app.js';
+
+// A full-pipeline pass makes far more than 100 requests/min — skip throttling here.
+process.env.DISABLE_RATE_LIMIT = 'true';
+
 import { Permission } from '../modules/user/permission.model.js';
 import { Role } from '../modules/user/role.model.js';
 import { User } from '../modules/user/user.model.js';
@@ -123,6 +127,35 @@ async function smokeTest() {
     assignedBy: superAdmin._id,
   });
 
+  // Pattern master owns the production tech pack — factory admin cannot edit patterns.
+  const patternRole = await Role.create({
+    organizationId: org._id,
+    code: 'PATTERN_MASTER',
+    name: 'Pattern Master',
+    permissions: [
+      'pattern.read', 'pattern.create', 'pattern.update', 'pattern.approve', 'design.read',
+      'sampling.read', 'sampling.create', 'sampling.update',
+    ],
+    isSystem: true,
+  });
+
+  const patternMaster = await User.create({
+    organizationId: org._id,
+    email: 'pattern@demo.com',
+    passwordHash: await User.hashPassword('Test@12345'),
+    firstName: 'Pattern',
+    lastName: 'Master',
+    status: 'ACTIVE',
+  });
+
+  await UserRoleAssignment.create({
+    organizationId: org._id,
+    userId: patternMaster._id,
+    roleId: patternRole._id,
+    factoryId: factory._id,
+    assignedBy: superAdmin._id,
+  });
+
   const server = app.listen(0);
   const port = server.address().port;
   const base = `http://127.0.0.1:${port}`;
@@ -140,6 +173,20 @@ async function smokeTest() {
     const factoryId = login.factories[0]._id;
     const adminUserId = login.user._id;
     const opts = { token, factoryId };
+
+    const patternLogin = assertApi('Pattern master login', await api(base, '/api/v1/auth/login', {
+      method: 'POST',
+      body: { email: 'pattern@demo.com', password: 'Test@12345' },
+    }));
+    const patternUserId = patternLogin.user._id;
+    const patternOpts = { token: patternLogin.accessToken, factoryId };
+
+    // A distinct approver — segregation of duties blocks self-approval at level 1.
+    const workerLogin = assertApi('Approver login', await api(base, '/api/v1/auth/login', {
+      method: 'POST',
+      body: { email: 'worker@demo.com', password: 'Test@12345' },
+    }));
+    const approverOpts = { token: workerLogin.accessToken, factoryId };
 
     // Chat module
     assertApi('Chat catalog', await api(base, '/api/v1/chat/catalog', opts));
@@ -199,19 +246,7 @@ async function smokeTest() {
       body: {
         title: 'Summer Shirt',
         collectionId,
-        fabricConsumption: [{
-          materialId: fabricId,
-          consumption: 2.5,
-          unit: 'METERS',
-          wastagePercent: 5,
-          fabricCost: 120,
-        }],
-        accessories: [{
-          accessoryType: 'BUTTON',
-          materialId: buttonId,
-          consumption: 6,
-          unit: 'PIECES',
-        }],
+        sizeChartData: { unit: 'INCHES', sizeLabels: ['S', 'M', 'L'] },
         colorVariants: [{ name: 'Navy', code: 'NVY' }],
       },
     }));
@@ -237,13 +272,49 @@ async function smokeTest() {
     // Pattern development
     assertApi('Pattern assign', await api(base, '/api/v1/pattern-developments/assign', {
       method: 'POST', ...opts,
-      body: { designId, patternMasterId: adminUserId },
+      body: { designId, patternMasterId: patternUserId },
+    }));
+    assertApi('Pattern tech pack', await api(base, `/api/v1/pattern-developments/${designId}`, {
+      method: 'PUT', ...patternOpts,
+      body: {
+        sizeChartData: {
+          unit: 'INCHES',
+          sizeLabels: ['S', 'M', 'L'],
+          rows: [{ measurementName: 'Chest', values: { S: 38, M: 40, L: 42 } }],
+        },
+        fabricConsumption: [{
+          materialId: fabricId,
+          consumption: 2.5,
+          unit: 'METERS',
+          wastagePercent: 5,
+          fabricCost: 120,
+        }],
+        bomLines: [
+          { materialId: fabricId, quantity: 2.6, unit: 'METERS', category: 'FABRIC' },
+          { materialId: buttonId, quantity: 6, unit: 'PIECES', category: 'BUTTON' },
+        ],
+        accessories: [{
+          accessoryType: 'BUTTON',
+          materialId: buttonId,
+          consumption: 6,
+          unit: 'PIECES',
+          unitCost: 2,
+        }],
+        fabricSpecs: { fabricGsm: 180, fabricWidth: '58"', fabricFinish: 'Bio wash' },
+        qualityNotes: { measurementTolerance: '±0.5 inch', checklist: [{ item: 'Color match', required: true }] },
+        manufacturingNotes: { specialStitch: 'Double needle hem' },
+        costing: { laborCost: 120, packingCost: 15, overhead: 30 },
+        productionInfo: { sampleRequired: true, expectedProductionQty: 500, productionPriority: 'NORMAL' },
+        marker: { length: 2.4, piecesPerMarker: 12, efficiencyPercent: 82 },
+        calculatedConsumption: { wastagePercent: 5, derivedFromMarker: true },
+        grading: { baseSize: 'M', gradedSizes: ['S', 'M', 'L'] },
+      },
     }));
     assertApi('Pattern verify', await api(base, `/api/v1/pattern-developments/${designId}`, {
-      method: 'PUT', ...opts,
+      method: 'PUT', ...patternOpts,
       body: { sizeChartVerified: true, consumptionVerified: true, sampleBomVerified: true },
     }));
-    const patternDone = assertApi('Pattern complete', await api(base, `/api/v1/pattern-developments/${designId}/complete`, { method: 'POST', ...opts }));
+    const patternDone = assertApi('Pattern complete', await api(base, `/api/v1/pattern-developments/${designId}/complete`, { method: 'POST', ...patternOpts }));
     if (patternDone.status !== 'COMPLETED') throw new Error('Pattern complete failed');
 
     // Sample → material request → reserve → issue → complete → QC → approve
@@ -253,7 +324,7 @@ async function smokeTest() {
     }));
     const sampleId = sample._id;
 
-    const pendingMr = assertApi('Submit material request', await api(base, `/api/v1/samples/${sampleId}/submit-material-request`, { method: 'POST', ...opts }));
+    const pendingMr = assertApi('Submit material request', await api(base, `/api/v1/samples/${sampleId}/submit-material-request`, { method: 'POST', ...patternOpts }));
     if (pendingMr.status !== 'MATERIAL_REQUEST_PENDING') throw new Error('Submit material request failed');
 
     const approvedMr = assertApi('Approve material request', await api(base, `/api/v1/samples/${sampleId}/approve-material-request`, { method: 'POST', ...opts }));
@@ -263,14 +334,23 @@ async function smokeTest() {
     if (reserved.status !== 'MATERIAL_RESERVED') throw new Error('Reserve materials failed');
 
     const issued = assertApi('Issue materials', await api(base, `/api/v1/samples/${sampleId}/issue-materials`, { method: 'POST', ...opts }));
-    if (issued.status !== 'IN_PROGRESS') throw new Error('Issue materials failed');
+    if (issued.status !== 'CUTTING') throw new Error('Issue materials failed');
 
-    assertApi('Complete sample', await api(base, `/api/v1/samples/${sampleId}/complete`, { method: 'POST', ...opts }));
+    const cutDone = assertApi('Complete cutting', await api(base, `/api/v1/samples/${sampleId}/complete-cutting`, { method: 'POST', ...patternOpts }));
+    if (cutDone.status !== 'IN_PROGRESS') throw new Error('Complete cutting failed');
+
+    assertApi('Complete sample', await api(base, `/api/v1/samples/${sampleId}/complete`, { method: 'POST', ...patternOpts }));
     const qcPassed = assertApi('Sample QC pass', await api(base, `/api/v1/samples/${sampleId}/qc-pass`, {
       method: 'POST', ...opts,
       body: { comments: 'Smoke test QC pass' },
     }));
-    if (qcPassed.status !== 'PENDING_APPROVAL') throw new Error('Sample QC pass failed');
+    if (qcPassed.status !== 'FIT_TRIAL') throw new Error('Sample QC pass failed');
+
+    const fitDone = assertApi('Complete fit trial', await api(base, `/api/v1/samples/${sampleId}/complete-fit-trial`, {
+      method: 'POST', ...patternOpts,
+      body: { comments: 'Fit session passed on base size', fitAnalysis: { overallResult: 'PASS' } },
+    }));
+    if (fitDone.status !== 'PENDING_APPROVAL') throw new Error('Complete fit trial failed');
 
     const approvedSample = assertApi('Approve sample', await api(base, `/api/v1/samples/${sampleId}/approve`, { method: 'POST', ...opts }));
     if (approvedSample.status !== 'APPROVED') throw new Error('Sample approve failed');
@@ -330,7 +410,7 @@ async function smokeTest() {
     if (!prData.success) throw new Error('Create PR failed');
     const prId = prData.data._id;
     await api(base, `/api/v1/purchase-requisitions/${prId}/submit`, { method: 'POST', ...opts });
-    await api(base, `/api/v1/purchase-requisitions/${prId}/approve`, { method: 'POST', ...opts });
+    await api(base, `/api/v1/purchase-requisitions/${prId}/approve`, { method: 'POST', ...approverOpts });
 
     const { data: poData } = await api(base, '/api/v1/purchase-orders', {
       method: 'POST', ...opts,
@@ -338,7 +418,7 @@ async function smokeTest() {
     });
     if (!poData.success) throw new Error('Create PO failed');
     const poId = poData.data._id;
-    await api(base, `/api/v1/purchase-orders/${poId}/approve`, { method: 'POST', ...opts });
+    await api(base, `/api/v1/purchase-orders/${poId}/approve`, { method: 'POST', ...approverOpts });
     await api(base, `/api/v1/purchase-orders/${poId}/send`, { method: 'POST', ...opts });
 
     const { data: grnData } = await api(base, '/api/v1/goods-receipts', {
@@ -364,7 +444,7 @@ async function smokeTest() {
     await api(base, `/api/v1/production-orders/${prodId}/mrp`, { method: 'POST', ...opts });
     await api(base, `/api/v1/production-orders/${prodId}/reserve`, { method: 'POST', ...opts });
     assertApi('Submit production for approval', await api(base, `/api/v1/production-orders/${prodId}/submit-approval`, { method: 'POST', ...opts }));
-    const approvedProd = assertApi('Approve production order', await api(base, `/api/v1/production-orders/${prodId}/approve`, { method: 'POST', ...opts }));
+    const approvedProd = assertApi('Approve production order', await api(base, `/api/v1/production-orders/${prodId}/approve`, { method: 'POST', ...approverOpts }));
     if (approvedProd.status !== 'APPROVED') throw new Error('Production approve failed');
 
     const { data: batchData } = await api(base, `/api/v1/production-orders/${prodId}/batches`, {
@@ -430,9 +510,16 @@ async function smokeTest() {
     const rmWarehouse = whList.data.find((w) => w.type === 'RAW_MATERIAL');
     if (!rmWarehouse) throw new Error('RM warehouse missing');
 
+    const { data: zoneData } = await api(base, `/api/v1/warehouses/${rmWarehouse._id}/zones`, {
+      method: 'POST', ...opts,
+      body: { zoneCode: 'A', name: 'Zone A' },
+    });
+    if (!zoneData.success) throw new Error('Create warehouse zone failed');
+    const zoneId = zoneData.data._id;
+
     const { data: binData } = await api(base, `/api/v1/warehouses/${rmWarehouse._id}/bins`, {
       method: 'POST', ...opts,
-      body: { zoneCode: 'A', binCode: 'A-01' },
+      body: { zoneId, zoneCode: 'A', binCode: 'A-01' },
     });
     if (!binData.success) throw new Error('Create storage bin failed');
     const binId = binData.data._id;
@@ -452,7 +539,7 @@ async function smokeTest() {
     if (!pr2Data.success) throw new Error('Create PR2 failed');
     const pr2Id = pr2Data.data._id;
     await api(base, `/api/v1/purchase-requisitions/${pr2Id}/submit`, { method: 'POST', ...opts });
-    await api(base, `/api/v1/purchase-requisitions/${pr2Id}/approve`, { method: 'POST', ...opts });
+    await api(base, `/api/v1/purchase-requisitions/${pr2Id}/approve`, { method: 'POST', ...approverOpts });
 
     const { data: rfqData } = await api(base, '/api/v1/rfqs/from-pr', {
       method: 'POST', ...opts,

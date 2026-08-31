@@ -1,0 +1,4329 @@
+[
+  {
+    "styleCode": "KHP067",
+    "productName": "Scarlet Flow Yellow Dress",
+    "skuNumbers": [
+      "KHP067F-DR-MX-FL-YLW-XS",
+      "KHP067F-DR-MX-FL-YLW-S",
+      "KHP067F-DR-MX-FL-YLW-M",
+      "KHP067F-DR-MX-FL-YLW-L",
+      "KHP067F-DR-MX-FL-YLW-XL",
+      "KHP067F-DR-MX-FL-YLW-XXL"
+    ],
+    "quantities": {
+      "XS": 23,
+      "S": 5,
+      "M": 0,
+      "L": 42,
+      "XL": 38,
+      "XXL": 74,
+      "XXXL": 0
+    },
+    "total": 182,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-19",
+          "shelf": "S-4",
+          "raw": "R-19-S-4"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-2",
+          "shelf": "S-2",
+          "raw": "R-2-S-2"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-19",
+          "shelf": "S-3",
+          "raw": "R-19-S-3"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-1",
+          "shelf": "S-1",
+          "raw": "R-1-S-1"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-2",
+          "shelf": "S-4",
+          "raw": "R-2-S-4"
+        }
+      ]
+    },
+    "date": "15/6/2026"
+  },
+  {
+    "styleCode": "KHP067",
+    "productName": "Scarlet Flow brown Dress",
+    "skuNumbers": [
+      "KHP067F-DR-MX-FL-BRN-XS",
+      "KHP067F-DR-MX-FL-BRN-S",
+      "KHP067F-DR-MX-FL-BRN-M",
+      "KHP067F-DR-MX-FL-BRN-L",
+      "KHP067F-DR-MX-FL-BRN-XL",
+      "KHP067F-DR-MX-FL-BRN-XXL"
+    ],
+    "quantities": {
+      "XS": 34,
+      "S": 8,
+      "M": 33,
+      "L": 28,
+      "XL": 45,
+      "XXL": 48,
+      "XXXL": 0
+    },
+    "total": 196,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-4",
+          "shelf": "S-4",
+          "raw": "R-4-S-4"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-4",
+          "shelf": "S-4",
+          "raw": "R-4-S-4"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-4",
+          "shelf": "S-4",
+          "raw": "R-4-S-4"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-4",
+          "shelf": "S-3",
+          "raw": "R-4-S-3"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-4",
+          "shelf": "S-3",
+          "raw": "R-4-S-3"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-4",
+          "shelf": "S-3",
+          "raw": "R-4-S-3"
+        },
+        {
+          "rack": "",
+          "shelf": "",
+          "raw": "S-2"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP067",
+    "productName": "Scarlet Flow Black Dress",
+    "skuNumbers": [
+      "KHP067F-DR-MX-FL-BLK-XS",
+      "KHP067F-DR-MX-FL-BLK-S",
+      "KHP067F-DR-MX-FL-BLK-M",
+      "KHP067F-DR-MX-FL-BLK-L",
+      "KHP067F-DR-MX-FL-BLK-XL",
+      "KHP067F-DR-MX-FL-BLK-XXL"
+    ],
+    "quantities": {
+      "XS": 30,
+      "S": 25,
+      "M": 13,
+      "L": 33,
+      "XL": 22,
+      "XXL": 32,
+      "XXXL": 0
+    },
+    "total": 155,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-4",
+          "shelf": "S-2",
+          "raw": "R-4-S-2"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-4",
+          "shelf": "S-2",
+          "raw": "R-4-S-2"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-6",
+          "shelf": "S-5",
+          "raw": "R-6-S5"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-4",
+          "shelf": "S-1",
+          "raw": "R-4-S1"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-6",
+          "shelf": "S-5",
+          "raw": "R-6-S5"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-4",
+          "shelf": "S-5",
+          "raw": "R-4-S-5"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP067",
+    "productName": "Scarlet Flow Red Dress",
+    "skuNumbers": [
+      "KHP067F-DR-MX-FL-RED-XS",
+      "KHP067F-DR-MX-FL-RED-S",
+      "KHP067F-DR-MX-FL-RED-M",
+      "KHP067F-DR-MX-FL-RED-L",
+      "KHP067F-DR-MX-FL-RED-XL",
+      "KHP067F-DR-MX-FL-RED-XXL"
+    ],
+    "quantities": {
+      "XS": 20,
+      "S": 28,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 7,
+      "XXXL": 0
+    },
+    "total": 55,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-2",
+          "shelf": "S-1",
+          "raw": "R-2-S-1"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-2",
+          "shelf": "S-1",
+          "raw": "R-2-S-1"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-2",
+          "shelf": "S-1",
+          "raw": "R-2-S-1"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP099",
+    "productName": "Gingham Veranda maxi Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 51,
+      "S": 40,
+      "M": 44,
+      "L": 63,
+      "XL": 54,
+      "XXL": 33,
+      "XXXL": 0
+    },
+    "total": 285,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-16",
+          "shelf": "S-4",
+          "raw": "R-16-S-4"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-16",
+          "shelf": "S-4",
+          "raw": "R-16-S-4"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-16",
+          "shelf": "S-4",
+          "raw": "R-16-S4"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-16",
+          "shelf": "S-3",
+          "raw": "R-16-S3"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-16",
+          "shelf": "S-3",
+          "raw": "R-16-S3"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-16",
+          "shelf": "S-3",
+          "raw": "R-16-S3"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP093",
+    "productName": "Merlot Gingham Tie-Back Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 50,
+      "S": 50,
+      "M": 3,
+      "L": 37,
+      "XL": 53,
+      "XXL": 17,
+      "XXXL": 0
+    },
+    "total": 210,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-3",
+          "shelf": "S-2",
+          "raw": "R-3-S-2"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-3",
+          "shelf": "S-2",
+          "raw": "R-3-S-2"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-3",
+          "shelf": "S-2",
+          "raw": "R-3-S-2"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-2",
+          "shelf": "S-1",
+          "raw": "R-2-S-1"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-3",
+          "shelf": "S-1",
+          "raw": "R-3-S-1"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-3",
+          "shelf": "S-1",
+          "raw": "R-3-S-1"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP092-S1",
+    "productName": "Juliet Smocked Mini Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 29,
+      "S": 27,
+      "M": 31,
+      "L": 29,
+      "XL": 31,
+      "XXL": 18,
+      "XXXL": 0
+    },
+    "total": 165,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-14",
+          "shelf": "S-2",
+          "raw": "R-14-S-2"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-14",
+          "shelf": "S-2",
+          "raw": "R-14-S-2"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-14",
+          "shelf": "S-2",
+          "raw": "R-14-S-2"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-14",
+          "shelf": "S-1",
+          "raw": "R-14-S-1"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-14",
+          "shelf": "S-1",
+          "raw": "R-14-S-1"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-14",
+          "shelf": "S-1",
+          "raw": "R-14-S-1"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP096",
+    "productName": "Twilight Open-Back Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 3,
+      "S": 2,
+      "M": 11,
+      "L": 9,
+      "XL": 7,
+      "XXL": 2,
+      "XXXL": 0
+    },
+    "total": 34,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-6",
+          "shelf": "S-2",
+          "raw": "R-6-S-2"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-6",
+          "shelf": "S-2",
+          "raw": "R-6-S-2"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-6",
+          "shelf": "S-2",
+          "raw": "R-6-S-2"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-6",
+          "shelf": "S-1",
+          "raw": "R-6-S1"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-6",
+          "shelf": "S-1",
+          "raw": "R-6-S1"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-6",
+          "shelf": "S-1",
+          "raw": "R-6-S1"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP104",
+    "productName": "Polka-Dot Slit Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 17,
+      "S": 11,
+      "M": 8,
+      "L": 10,
+      "XL": 4,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 50,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-5",
+          "shelf": "S-2",
+          "raw": "R-5-S-2"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-5",
+          "shelf": "S-2",
+          "raw": "R-5-S-2"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-5",
+          "shelf": "S-2",
+          "raw": "R-5-S-2"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-5",
+          "shelf": "S-1",
+          "raw": "R-5-S-1"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-5",
+          "shelf": "S-1",
+          "raw": "R-5-S-1"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP080",
+    "productName": "Origami A-Line Maroon Dress",
+    "skuNumbers": [
+      "KHP080F-DR-MD-AL-MRN-XS",
+      "KHP080F-DR-MD-AL-MRN-S",
+      "KHP080F-DR-MD-AL-MRN-M",
+      "KHP080F-DR-MD-AL-MRN-L",
+      "KHP080F-DR-MD-AL-MRN-XL",
+      "KHP080F-DR-MD-AL-MRN-2XL"
+    ],
+    "quantities": {
+      "XS": 9,
+      "S": 3,
+      "M": 0,
+      "L": 11,
+      "XL": 11,
+      "XXL": 14,
+      "XXXL": 0
+    },
+    "total": 48,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-6",
+          "shelf": "S-4",
+          "raw": "R-6-S4"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-6",
+          "shelf": "S-4",
+          "raw": "R-6-S4"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-6",
+          "shelf": "S-4",
+          "raw": "R-6-S4"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-6",
+          "shelf": "S-5",
+          "raw": "R-6-S-5"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-6",
+          "shelf": "S-5",
+          "raw": "R-6-S-5"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP080-S4",
+    "productName": "Origami A-Line Dress",
+    "skuNumbers": [
+      "\"KHP080F-DR-MD-AL-WHT-XS",
+      "KHP080F-DR-MD-AL-WHT-S",
+      "KHP080F-DR-MD-AL-WHT-M",
+      "KHP080F-DR-MD-AL-WHT-L",
+      "KHP080F-DR-MD-AL-WHT-XL",
+      "KHP080F-DR-MD-AL-WHT-2XL\""
+    ],
+    "quantities": {
+      "XS": 10,
+      "S": 8,
+      "M": 9,
+      "L": 9,
+      "XL": 10,
+      "XXL": 10,
+      "XXXL": 0
+    },
+    "total": 56,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-6",
+          "shelf": "S-3",
+          "raw": "R-6-S3"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-6",
+          "shelf": "S-3",
+          "raw": "R-6-S3"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-6",
+          "shelf": "S-3",
+          "raw": "R-6-S3"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-6",
+          "shelf": "S-3",
+          "raw": "R-6-S3"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-6",
+          "shelf": "S-3",
+          "raw": "R-6-S3"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-6",
+          "shelf": "S-3",
+          "raw": "R-6-S3"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP092",
+    "productName": "Juliet Smocked Mini Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 44,
+      "S": 42,
+      "M": 44,
+      "L": 42,
+      "XL": 41,
+      "XXL": 31,
+      "XXXL": 0
+    },
+    "total": 244,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-5",
+          "shelf": "S-4",
+          "raw": "R-5-S4"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-5",
+          "shelf": "S-4",
+          "raw": "R-5-S4"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-5",
+          "shelf": "S-4",
+          "raw": "R-5-S4"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-5",
+          "shelf": "S-3",
+          "raw": "R-5-S-3"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-5",
+          "shelf": "S-3",
+          "raw": "R-5-S-3"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-5",
+          "shelf": "S-3",
+          "raw": "R-5-S-3"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP003-S1",
+    "productName": "Golden Hour Midi Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 4,
+      "S": 3,
+      "M": 3,
+      "L": 2,
+      "XL": 4,
+      "XXL": 3,
+      "XXXL": 0
+    },
+    "total": 19,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-15",
+          "shelf": "S-1",
+          "raw": "R-15-S-1"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-15",
+          "shelf": "S-1",
+          "raw": "R-15-S-1"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-15",
+          "shelf": "S-1",
+          "raw": "R-15-S-1"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-15",
+          "shelf": "S-1",
+          "raw": "R-15-S-1"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-15",
+          "shelf": "S-1",
+          "raw": "R-15-S-1"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-15",
+          "shelf": "S-1",
+          "raw": "R-15-S-1"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP003-S2",
+    "productName": "Golden Hour yellow Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 5,
+      "S": 2,
+      "M": 3,
+      "L": 3,
+      "XL": 2,
+      "XXL": 4,
+      "XXXL": 0
+    },
+    "total": 19,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-15",
+          "shelf": "S-1",
+          "raw": "R-15-S-1"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-15",
+          "shelf": "S-1",
+          "raw": "R-15-S-1"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-15",
+          "shelf": "S-1",
+          "raw": "R-15-S-1"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-15",
+          "shelf": "S-1",
+          "raw": "R-15-S-1"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-15",
+          "shelf": "S-1",
+          "raw": "R-15-S-1"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-15",
+          "shelf": "S-1",
+          "raw": "R-15-S-1"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP080-s1",
+    "productName": "Origami A-Line Olive Dress",
+    "skuNumbers": [
+      "\"KHP080F-DR-MD-AL-OLV-XS",
+      "KHP080F-DR-MD-AL-OLV-S",
+      "KHP080F-DR-MD-AL-OLV-M",
+      "KHP080F-DR-MD-AL-OLV-L",
+      "KHP080F-DR-MD-AL-OLV-XL",
+      "KHP080F-DR-MD-AL-OLV-2XL\""
+    ],
+    "quantities": {
+      "XS": 2,
+      "S": 3,
+      "M": 2,
+      "L": 5,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 12,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-5",
+          "shelf": "S-5",
+          "raw": "R-5-S-5"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-5",
+          "shelf": "S-5",
+          "raw": "R-5-S-5"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-5",
+          "shelf": "S-5",
+          "raw": "R-5-S-5"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-5",
+          "shelf": "S-5",
+          "raw": "R-5-S-5"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP028-S1",
+    "productName": "CORSET PEPLUM TOP",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 4,
+      "S": 0,
+      "M": 6,
+      "L": 24,
+      "XL": 6,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 40,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-7",
+          "shelf": "S-2",
+          "raw": "R-7-S2"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-7",
+          "shelf": "S-2",
+          "raw": "R-7-S2"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-7",
+          "shelf": "S-2",
+          "raw": "R-7-S2"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-7",
+          "shelf": "S-2",
+          "raw": "R-7-S2"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP083-S2",
+    "productName": "Primrose Ruffle Maroon Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 1,
+      "M": 0,
+      "L": 0,
+      "XL": 1,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 2,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "R-1",
+          "shelf": "S-4",
+          "raw": "R-1-S-4"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-1",
+          "shelf": "S-4",
+          "raw": "R-1-S-4"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP083-S1",
+    "productName": "Aurelia Ruffle Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 1,
+      "S": 5,
+      "M": 0,
+      "L": 2,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 8,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-15",
+          "shelf": "S-1",
+          "raw": "R-15-S-1"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-15",
+          "shelf": "S-1",
+          "raw": "R-15-S-1"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-15",
+          "shelf": "S-1",
+          "raw": "R-15-S-1"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP200-S1",
+    "productName": "Amour Panelled Wine Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 5,
+      "S": 7,
+      "M": 1,
+      "L": 4,
+      "XL": 5,
+      "XXL": 4,
+      "XXXL": 0
+    },
+    "total": 26,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-9",
+          "shelf": "S-4",
+          "raw": "R-9-S4"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-9",
+          "shelf": "S-4",
+          "raw": "R-9-S4"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-9",
+          "shelf": "S-4",
+          "raw": "R-9-S4"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-9",
+          "shelf": "S-4",
+          "raw": "R-9-S4"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-9",
+          "shelf": "S-4",
+          "raw": "R-9-S4"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-9",
+          "shelf": "S-4",
+          "raw": "R-9-S4"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP100",
+    "productName": "Parisian Sunday Wrap Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 0,
+      "M": 1,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 1,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "M": [
+        {
+          "rack": "R-1",
+          "shelf": "S-4",
+          "raw": "R-1-S-4"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP095",
+    "productName": "Garnet Gingham Mini Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 4,
+      "S": 2,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 6,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-20",
+          "shelf": "S-1",
+          "raw": "R-20-S-1"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-20",
+          "shelf": "S-1",
+          "raw": "R-20-S-1"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP097",
+    "productName": "Checkmate Ruffle Cami top",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 1,
+      "S": 3,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 4,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-20",
+          "shelf": "S-1",
+          "raw": "R-20-S-1"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-20",
+          "shelf": "S-1",
+          "raw": "R-20-S-1"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP097-S1",
+    "productName": "Checkmate Ruffle Cami top",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 41,
+      "S": 43,
+      "M": 30,
+      "L": 44,
+      "XL": 30,
+      "XXL": 13,
+      "XXXL": 0
+    },
+    "total": 201,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-14",
+          "shelf": "S-4",
+          "raw": "R-14-S-4"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-14",
+          "shelf": "S-4",
+          "raw": "R-14-S-4"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-14",
+          "shelf": "S-4",
+          "raw": "R-14-S-4"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-14",
+          "shelf": "S-3",
+          "raw": "R-14-S-3"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-14",
+          "shelf": "S-3",
+          "raw": "R-14-S-3"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-14",
+          "shelf": "S-3",
+          "raw": "R-14-S-3"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP027-S2",
+    "productName": "URBAN DENIM SHIRT(BLUE)",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 49,
+      "S": 36,
+      "M": 33,
+      "L": 36,
+      "XL": 37,
+      "XXL": 40,
+      "XXXL": 0
+    },
+    "total": 231,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-10",
+          "shelf": "S-4",
+          "raw": "R-10-S-4"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-10",
+          "shelf": "S-4",
+          "raw": "R-10-S-4"
+        },
+        {
+          "rack": "",
+          "shelf": "",
+          "raw": "S-1"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-10",
+          "shelf": "S-3",
+          "raw": "R-10-S-3"
+        },
+        {
+          "rack": "",
+          "shelf": "",
+          "raw": "S-2"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-10",
+          "shelf": "S-3",
+          "raw": "R-10-S-3"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-10",
+          "shelf": "S-2",
+          "raw": "R-10-S-2"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-10",
+          "shelf": "S-1",
+          "raw": "R-10-S-1"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP025-S3",
+    "productName": "Pinstripe Formal Shirt",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 10,
+      "M": 10,
+      "L": 9,
+      "XL": 7,
+      "XXL": 9,
+      "XXXL": 0
+    },
+    "total": 45,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "R-12",
+          "shelf": "S-4",
+          "raw": "R-12-S4"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-12",
+          "shelf": "S-4",
+          "raw": "R-12-S4"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-12",
+          "shelf": "S-4",
+          "raw": "R-12-S4"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-12",
+          "shelf": "S-3",
+          "raw": "R-12-S3"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-12",
+          "shelf": "S-3",
+          "raw": "R-12-S3"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP025-S1",
+    "productName": "Pinstripe Formal Shirt",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 11,
+      "M": 7,
+      "L": 8,
+      "XL": 9,
+      "XXL": 7,
+      "XXXL": 0
+    },
+    "total": 42,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "R-13",
+          "shelf": "S-4",
+          "raw": "R-13-S-4"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-13",
+          "shelf": "S-4",
+          "raw": "R-13-S-4"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-13",
+          "shelf": "S-4",
+          "raw": "R-13-S-4"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-13",
+          "shelf": "S-4",
+          "raw": "R-13-S-4"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-13",
+          "shelf": "S-3",
+          "raw": "R-13-S-3"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP025-S5",
+    "productName": "REFINED PLAID SHIRT",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 9,
+      "M": 9,
+      "L": 8,
+      "XL": 10,
+      "XXL": 10,
+      "XXXL": 0
+    },
+    "total": 46,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "",
+          "shelf": "",
+          "raw": "R-9 -S3"
+        }
+      ],
+      "M": [
+        {
+          "rack": "",
+          "shelf": "",
+          "raw": "R-9 -S3"
+        }
+      ],
+      "L": [
+        {
+          "rack": "",
+          "shelf": "",
+          "raw": "R-9 -S3"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "",
+          "shelf": "",
+          "raw": "R-9 -S3"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "",
+          "shelf": "",
+          "raw": "R-9 -S3"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP081-S2",
+    "productName": "Crimson Petal Pleated Top",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 35,
+      "S": 37,
+      "M": 37,
+      "L": 32,
+      "XL": 31,
+      "XXL": 10,
+      "XXXL": 0
+    },
+    "total": 182,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-1",
+          "shelf": "S-3",
+          "raw": "R-1-S-3"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-1",
+          "shelf": "S-3",
+          "raw": "R-1-S-3"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-1",
+          "shelf": "S-3",
+          "raw": "R-1-S-3"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-1",
+          "shelf": "S-3",
+          "raw": "R-1-S-3"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-1",
+          "shelf": "S-3",
+          "raw": "R-1-S-3"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-1",
+          "shelf": "S-3",
+          "raw": "R-1-S-3"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP024- S1",
+    "productName": "Classic Pinstripe Crop Shirt",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 8,
+      "S": 5,
+      "M": 6,
+      "L": 8,
+      "XL": 9,
+      "XXL": 7,
+      "XXXL": 0
+    },
+    "total": 43,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-7",
+          "shelf": "S-4",
+          "raw": "R-7-S4"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-7",
+          "shelf": "S-4",
+          "raw": "R-7-S4"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-7",
+          "shelf": "S-4",
+          "raw": "R-7-S4"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-7",
+          "shelf": "S-4",
+          "raw": "R-7-S4"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-7",
+          "shelf": "S-4",
+          "raw": "R-7-S4"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-7",
+          "shelf": "S-4",
+          "raw": "R-7-S4"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP024-S2",
+    "productName": "Classic Pinstripe Crop Shirt",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 7,
+      "S": 9,
+      "M": 1,
+      "L": 4,
+      "XL": 5,
+      "XXL": 9,
+      "XXXL": 0
+    },
+    "total": 35,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-7",
+          "shelf": "S-4",
+          "raw": "R-7-S4"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-7",
+          "shelf": "S-4",
+          "raw": "R-7-S4"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-7",
+          "shelf": "S-4",
+          "raw": "R-7-S4"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-7",
+          "shelf": "S-4",
+          "raw": "R-7-S4"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-7",
+          "shelf": "S-4",
+          "raw": "R-7-S4"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-7",
+          "shelf": "S-4",
+          "raw": "R-7-S4"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP024-S5",
+    "productName": "Aero Stripe Crop Shirt",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 6,
+      "S": 9,
+      "M": 6,
+      "L": 6,
+      "XL": 7,
+      "XXL": 9,
+      "XXXL": 0
+    },
+    "total": 43,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-7",
+          "shelf": "S-4",
+          "raw": "R-7-S4"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-7",
+          "shelf": "S-4",
+          "raw": "R-7-S4"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-7",
+          "shelf": "S-4",
+          "raw": "R-7-S4"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-7",
+          "shelf": "S-4",
+          "raw": "R-7-S4"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-7",
+          "shelf": "S-4",
+          "raw": "R-7-S4"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-7",
+          "shelf": "S-4",
+          "raw": "R-7-S4"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP087",
+    "productName": "Raw-Cut Metro Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 54,
+      "S": 26,
+      "M": 37,
+      "L": 42,
+      "XL": 21,
+      "XXL": 16,
+      "XXXL": 0
+    },
+    "total": 196,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-8",
+          "shelf": "S-3",
+          "raw": "R-8-S-3"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-8",
+          "shelf": "S-3",
+          "raw": "R-8-S-3"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-8",
+          "shelf": "S-2",
+          "raw": "R-8-S-2"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-8",
+          "shelf": "S-1",
+          "raw": "R-8-S-1"
+        },
+        {
+          "rack": "",
+          "shelf": "",
+          "raw": "S-2"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-8",
+          "shelf": "S-1",
+          "raw": "R-8-S-1"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-8",
+          "shelf": "S-1",
+          "raw": "R-8-S-1"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP025-S4",
+    "productName": "Refined Black Formal Shirt",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 0,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 0,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {},
+    "date": null
+  },
+  {
+    "styleCode": "KHP025-S2",
+    "productName": "Denim Collar Check Shirt",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 1,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 1,
+      "XXXL": 0
+    },
+    "total": 2,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "",
+          "shelf": "",
+          "raw": "R-12- S3"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "",
+          "shelf": "",
+          "raw": "R-12- S3"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP028-S2",
+    "productName": "Blue ash Peplum Top",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 6,
+      "S": 6,
+      "M": 7,
+      "L": 8,
+      "XL": 1,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 28,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-7",
+          "shelf": "S-3",
+          "raw": "R-7-S-3"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-7",
+          "shelf": "S-3",
+          "raw": "R-7-S-3"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-7",
+          "shelf": "S-3",
+          "raw": "R-7-S-3"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-7",
+          "shelf": "S-3",
+          "raw": "R-7-S-3"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-7",
+          "shelf": "S-3",
+          "raw": "R-7-S3"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP108",
+    "productName": "DRAWSTRING PLAID TOP",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 3,
+      "M": 2,
+      "L": 0,
+      "XL": 2,
+      "XXL": 2,
+      "XXXL": 0
+    },
+    "total": 9,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "R-7",
+          "shelf": "S-1",
+          "raw": "R-7-S-1"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-7",
+          "shelf": "S-1",
+          "raw": "R-7-S-1"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-7",
+          "shelf": "S-1",
+          "raw": "R-7-S-1"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-7",
+          "shelf": "S-1",
+          "raw": "R-7-S-1"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP018-S1",
+    "productName": "Petal Glow Midi dress(Blue)",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 0,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 0,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {},
+    "date": null
+  },
+  {
+    "styleCode": "KHP081-S1",
+    "productName": "Crimson Petal Top",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 5,
+      "S": 4,
+      "M": 2,
+      "L": 6,
+      "XL": 5,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 22,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-7",
+          "shelf": "S-1",
+          "raw": "R-7-S-1"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-7",
+          "shelf": "S-1",
+          "raw": "R-7-S-1"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-7",
+          "shelf": "S-1",
+          "raw": "R-7-S-1"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-7",
+          "shelf": "S-1",
+          "raw": "R-7-S-1"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-7",
+          "shelf": "S-1",
+          "raw": "R-7-S-1"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP082",
+    "productName": "Cresta Pintuck Top",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 21,
+      "S": 17,
+      "M": 25,
+      "L": 30,
+      "XL": 30,
+      "XXL": 14,
+      "XXXL": 0
+    },
+    "total": 137,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-1",
+          "shelf": "S-2",
+          "raw": "R-1-S-2"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-1",
+          "shelf": "S-2",
+          "raw": "R-1-S-2"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-1",
+          "shelf": "S-2",
+          "raw": "R-1-S-2"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-1",
+          "shelf": "S-2",
+          "raw": "R-1-S-2"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-1",
+          "shelf": "S-2",
+          "raw": "R-1-S-2"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-1",
+          "shelf": "S-2",
+          "raw": "R-1-S-2"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP041-S1",
+    "productName": "Structured Pleat Crop Shirt",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 1,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 1,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "R-1",
+          "shelf": "S-4",
+          "raw": "R-1-S-4"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP093",
+    "productName": "Merlot Gingham Red Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 31,
+      "S": 37,
+      "M": 25,
+      "L": 52,
+      "XL": 29,
+      "XXL": 8,
+      "XXXL": 0
+    },
+    "total": 178,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-9",
+          "shelf": "S-3",
+          "raw": "R-9-S3"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-9",
+          "shelf": "S-3",
+          "raw": "R-9-S3"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-9",
+          "shelf": "S-3",
+          "raw": "R-9-S3"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-9",
+          "shelf": "S-2",
+          "raw": "R-9-S2"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-9",
+          "shelf": "S-2",
+          "raw": "R-9-S2"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-9",
+          "shelf": "S-2",
+          "raw": "R-9-S2"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP094",
+    "productName": "Gingham Flounce Mini Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 1,
+      "M": 0,
+      "L": 1,
+      "XL": 3,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 5,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "R-20",
+          "shelf": "S-1",
+          "raw": "R-20-S-1"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-20",
+          "shelf": "S-1",
+          "raw": "R-20-S-1"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP066-S2",
+    "productName": "Cactus Stripe Shirt",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 1,
+      "M": 0,
+      "L": 1,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 2,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "R-10",
+          "shelf": "S-5",
+          "raw": "R-10-S-5"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-10",
+          "shelf": "S-5",
+          "raw": "R-10-S-5"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP031-S1",
+    "productName": "Mens pannelled Baggy Pants",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 2,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 2,
+      "XXXL": 0
+    },
+    "total": 4,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "R-11",
+          "shelf": "S-4",
+          "raw": "R-11-S-4"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-11",
+          "shelf": "S-4",
+          "raw": "R-11-S-4"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "",
+    "productName": "Urban Denim skirt",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 0,
+      "M": 1,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 1,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "M": [
+        {
+          "rack": "R-10",
+          "shelf": "S-4",
+          "raw": "R-10-S-4"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "",
+    "productName": "White lower",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 10,
+      "S": 15,
+      "M": 1,
+      "L": 7,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 33,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "",
+          "shelf": "",
+          "raw": "R-8- S-3"
+        }
+      ],
+      "S": [
+        {
+          "rack": "",
+          "shelf": "",
+          "raw": "R-8- S-3"
+        }
+      ],
+      "M": [
+        {
+          "rack": "",
+          "shelf": "",
+          "raw": "R-8- S-3"
+        }
+      ],
+      "L": [
+        {
+          "rack": "",
+          "shelf": "",
+          "raw": "R-8- S-3"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP068",
+    "productName": "Sculpted Black Flare pant",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 1,
+      "S": 2,
+      "M": 0,
+      "L": 2,
+      "XL": 2,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 7,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-9",
+          "shelf": "S-1",
+          "raw": "R-9-S-1"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-9",
+          "shelf": "S-1",
+          "raw": "R-9-S-1"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-9",
+          "shelf": "S-1",
+          "raw": "R-9-S-1"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-9",
+          "shelf": "S-1",
+          "raw": "R-9-S-1"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP068-S1",
+    "productName": "Sculpted Brown Flare pant",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 0,
+      "M": 1,
+      "L": 0,
+      "XL": 1,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 2,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "M": [
+        {
+          "rack": "R-7",
+          "shelf": "S-5",
+          "raw": "R-7-S-5"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-7",
+          "shelf": "S-5",
+          "raw": "R-7-S-5"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP155",
+    "productName": "VINTAGE POLKA TOP",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 1,
+      "S": 0,
+      "M": 1,
+      "L": 0,
+      "XL": 0,
+      "XXL": 1,
+      "XXXL": 0
+    },
+    "total": 3,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-1",
+          "shelf": "S-4",
+          "raw": "R-1-S-4"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-1",
+          "shelf": "S-4",
+          "raw": "R-1-S-4"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-1",
+          "shelf": "S-4",
+          "raw": "R-1-S-4"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP137",
+    "productName": "Cross-Over Denim Detail Pant",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 6,
+      "S": 0,
+      "M": 0,
+      "L": 2,
+      "XL": 6,
+      "XXL": 6,
+      "XXXL": 0
+    },
+    "total": 20,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-8",
+          "shelf": "S-4",
+          "raw": "R-8-S-4"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-8",
+          "shelf": "S-4",
+          "raw": "R-8-S-4"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-8",
+          "shelf": "S-4",
+          "raw": "R-8-S-4"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-8",
+          "shelf": "S-4",
+          "raw": "R-8-S-4"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP205-S2",
+    "productName": "Lumia Pintuck Blue Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 2,
+      "S": 2,
+      "M": 2,
+      "L": 2,
+      "XL": 6,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 14,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-17",
+          "shelf": "S-3",
+          "raw": "R-17-S-3"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-17",
+          "shelf": "S-3",
+          "raw": "R-17-S-3"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-17",
+          "shelf": "S-3",
+          "raw": "R-17-S-3"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-17",
+          "shelf": "S-3",
+          "raw": "R-17-S-3"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-17",
+          "shelf": "S-3",
+          "raw": "R-17-S-3"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP205-S1",
+    "productName": "Lumia Pintuck Pink Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 19,
+      "S": 17,
+      "M": 9,
+      "L": 18,
+      "XL": 32,
+      "XXL": 7,
+      "XXXL": 0
+    },
+    "total": 102,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-17",
+          "shelf": "S-4",
+          "raw": "R-17-S-4"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-17",
+          "shelf": "S-3",
+          "raw": "R-17-S-3"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-17",
+          "shelf": "S-4",
+          "raw": "R-17-S-4"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-15",
+          "shelf": "S-2",
+          "raw": "R-15-S-2"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-15",
+          "shelf": "S-2",
+          "raw": "R-15-S-2"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-15",
+          "shelf": "S-2",
+          "raw": "R-15-S-2"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP205",
+    "productName": "Lumia Pintuck Yellow Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 17,
+      "S": 14,
+      "M": 30,
+      "L": 10,
+      "XL": 23,
+      "XXL": 5,
+      "XXXL": 0
+    },
+    "total": 99,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-17",
+          "shelf": "S-2",
+          "raw": "R-17-S-2"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-17",
+          "shelf": "S-2",
+          "raw": "R-17-S-2"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-17",
+          "shelf": "S-2",
+          "raw": "R-17-S-2"
+        },
+        {
+          "rack": "",
+          "shelf": "",
+          "raw": "S-1"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-17",
+          "shelf": "S-1",
+          "raw": "R-17-S-1"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-15",
+          "shelf": "S-1",
+          "raw": "R-15-S-1"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-15",
+          "shelf": "S-1",
+          "raw": "R-15-S-1"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP023",
+    "productName": "Blazer denim dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 0,
+      "M": 3,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 3,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "M": [
+        {
+          "rack": "R-9",
+          "shelf": "S-1",
+          "raw": "R-9-S-1"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP026-S1",
+    "productName": "BLUE SIDE CINCH SHIRT",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 0,
+      "M": 0,
+      "L": 0,
+      "XL": 1,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 1,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XL": [
+        {
+          "rack": "R-1",
+          "shelf": "S-4",
+          "raw": "R-1-S-4"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP026-S2",
+    "productName": "YELLOW SIDE CINCH SHIRT",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 0,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 0,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {},
+    "date": null
+  },
+  {
+    "styleCode": "KHP028-S3",
+    "productName": "Pin-Stripe Peplum Top",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 6,
+      "S": 6,
+      "M": 0,
+      "L": 6,
+      "XL": 3,
+      "XXL": 3,
+      "XXXL": 0
+    },
+    "total": 24,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-7",
+          "shelf": "S-3",
+          "raw": "R-7-S3"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-7",
+          "shelf": "S-3",
+          "raw": "R-7-S3"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-7",
+          "shelf": "S-3",
+          "raw": "R-7-S3"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-7",
+          "shelf": "S-3",
+          "raw": "R-7-S3"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-7",
+          "shelf": "S-3",
+          "raw": "R-7-S3"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP189",
+    "productName": "Light Pink Poplin Midi Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 1,
+      "S": 0,
+      "M": 0,
+      "L": 2,
+      "XL": 0,
+      "XXL": 2,
+      "XXXL": 0
+    },
+    "total": 5,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-15",
+          "shelf": "S-5",
+          "raw": "R-15-S-5"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-15",
+          "shelf": "S-5",
+          "raw": "R-15-S-5"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-15",
+          "shelf": "S-5",
+          "raw": "R-15-S-5"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP209-S1",
+    "productName": "CINCH & FLOW DRESS",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 0,
+      "M": 1,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 1,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "M": [
+        {
+          "rack": "R-17",
+          "shelf": "S-5",
+          "raw": "R-17-S-5"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP208",
+    "productName": "CONTOUR CURVE DRESS",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 18,
+      "S": 6,
+      "M": 1,
+      "L": 3,
+      "XL": 7,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 35,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-15",
+          "shelf": "S-4",
+          "raw": "R-15-S-4"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-15",
+          "shelf": "S-4",
+          "raw": "R-15-S-4"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-15",
+          "shelf": "S-4",
+          "raw": "R-15-S-4"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-15",
+          "shelf": "S-4",
+          "raw": "R-15-S-4"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-15",
+          "shelf": "S-4",
+          "raw": "R-15-S-4"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP045",
+    "productName": "Elevated pleated pants",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 1,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 1,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "R-7",
+          "shelf": "S-5",
+          "raw": "R-7-S-5"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP077-S1",
+    "productName": "Everyday Shirt Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 1,
+      "S": 0,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 1,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-17",
+          "shelf": "S-5",
+          "raw": "R-17-S-5"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "",
+    "productName": "The Devil Crop Top",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 1,
+      "S": 0,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 1,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-17",
+          "shelf": "S-5",
+          "raw": "R-17-S-5"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP144 - S1",
+    "productName": "Ruby Peplum Top",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 53,
+      "S": 51,
+      "M": 49,
+      "L": 54,
+      "XL": 45,
+      "XXL": 11,
+      "XXXL": 0
+    },
+    "total": 263,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-3",
+          "shelf": "S-4",
+          "raw": "R-3-S-4"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-3",
+          "shelf": "S-4",
+          "raw": "R-3-S-4"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-3",
+          "shelf": "S-4",
+          "raw": "R-3-S-4"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-3",
+          "shelf": "S-3",
+          "raw": "R-3-S-3"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-3",
+          "shelf": "S-3",
+          "raw": "R-3-S-3"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-3",
+          "shelf": "S-3",
+          "raw": "R-3-S-3"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP065",
+    "productName": "Boss Babe CO-ORD",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 1,
+      "M": 2,
+      "L": 1,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 4,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "R-17",
+          "shelf": "S-5",
+          "raw": "R-17-S-5"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-17",
+          "shelf": "S-5",
+          "raw": "R-17-S-5"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-17",
+          "shelf": "S-5",
+          "raw": "R-17-S-5"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP138-S2",
+    "productName": "ButterYellow Muse Top",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 46,
+      "S": 20,
+      "M": 50,
+      "L": 43,
+      "XL": 46,
+      "XXL": 17,
+      "XXXL": 0
+    },
+    "total": 222,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-15",
+          "shelf": "S-3",
+          "raw": "R-15-S-3"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-15",
+          "shelf": "S-3",
+          "raw": "R-15-S-3"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-15",
+          "shelf": "S-3",
+          "raw": "R-15-S-3"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-15",
+          "shelf": "S-2",
+          "raw": "R-15-S-2"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-15",
+          "shelf": "S-2",
+          "raw": "R-15-S-2"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-15",
+          "shelf": "S-2",
+          "raw": "R-15-S-2"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP109",
+    "productName": "Chill Street Denim Overshirt",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 0,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 0,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {},
+    "date": null
+  },
+  {
+    "styleCode": "KHP084-S1",
+    "productName": "Oversized Stripe Patch shirt",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 0,
+      "M": 1,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 1,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "M": [
+        {
+          "rack": "R-11",
+          "shelf": "S-5",
+          "raw": "R-11-S-5"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP032 -S29",
+    "productName": "Dark Blossom Oversized T-Shirt",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 0,
+      "M": 0,
+      "L": 0,
+      "XL": 1,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 1,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XL": [
+        {
+          "rack": "R-11",
+          "shelf": "S-5",
+          "raw": "R-11-S-5"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP018-S1",
+    "productName": "Petal Glow Midi Dress(Pink)",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 1,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 1,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "R-1",
+          "shelf": "S-4",
+          "raw": "R-1-S-4"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP032 -S19",
+    "productName": "Serpent  Sigil Oversized Tee",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 0,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 0,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {},
+    "date": null
+  },
+  {
+    "styleCode": "KHP088",
+    "productName": "Inkwell Panelled Denim Dress(Blue)",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 0,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 0,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {},
+    "date": null
+  },
+  {
+    "styleCode": "KHP088-S1",
+    "productName": "Inkwell Panelled Denim Dress(Black)",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 5,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 5,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "R-9",
+          "shelf": "S-1",
+          "raw": "R-9-S-1"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP020",
+    "productName": "Elevated Wrap Vest Coat",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 4,
+      "S": 0,
+      "M": 1,
+      "L": 0,
+      "XL": 3,
+      "XXL": 4,
+      "XXXL": 0
+    },
+    "total": 12,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-14",
+          "shelf": "S-5",
+          "raw": "R-14-S-5"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-14",
+          "shelf": "S-5",
+          "raw": "R-14-S-5"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-14",
+          "shelf": "S-5",
+          "raw": "R-14-S-5"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-14",
+          "shelf": "S-5",
+          "raw": "R-14-S-5"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP098",
+    "productName": "Wisteria Lane Gingham Cami  (brown)",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 7,
+      "S": 9,
+      "M": 14,
+      "L": 15,
+      "XL": 8,
+      "XXL": 2,
+      "XXXL": 0
+    },
+    "total": 55,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-19",
+          "shelf": "S-2",
+          "raw": "R-19-S-2"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-19",
+          "shelf": "S-2",
+          "raw": "R-19-S-2"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-19",
+          "shelf": "S-2",
+          "raw": "R-19-S-2"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-19",
+          "shelf": "S-1",
+          "raw": "R-19-S-1"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-19",
+          "shelf": "S-1",
+          "raw": "R-19-S-1"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-19",
+          "shelf": "S-1",
+          "raw": "R-19-S-1"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP098-S1",
+    "productName": "Wisteria Lane Gingham Cami (Purple)",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 0,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 0,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {},
+    "date": null
+  },
+  {
+    "styleCode": "KHP105",
+    "productName": "Brezzy Floral Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 0,
+      "M": 2,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 2,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "M": [
+        {
+          "rack": "R-1",
+          "shelf": "S-4",
+          "raw": "R-1-S-4"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP204",
+    "productName": "Dualist Panel Slip Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 0,
+      "M": 0,
+      "L": 0,
+      "XL": 1,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 1,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XL": [
+        {
+          "rack": "R-17",
+          "shelf": "S-5",
+          "raw": "R-17-S-5"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP116",
+    "productName": "Mocha Leaf Blouse",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 0,
+      "M": 0,
+      "L": 6,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 6,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "L": [
+        {
+          "rack": "R-5",
+          "shelf": "S-1",
+          "raw": "R-5-S-1"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP044",
+    "productName": "Blue Volume Jeans",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 1,
+      "M": 0,
+      "L": 2,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 3,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "R-11",
+          "shelf": "S-4",
+          "raw": "R-11-S-4"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-11",
+          "shelf": "S-4",
+          "raw": "R-11-S-4"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP041 -S2",
+    "productName": "Structured Stripe Crop Shirt",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 0,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 0,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {},
+    "date": null
+  },
+  {
+    "styleCode": "",
+    "productName": "White Plane T-shirt",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 6,
+      "M": 5,
+      "L": 7,
+      "XL": 1,
+      "XXL": 3,
+      "XXXL": 0
+    },
+    "total": 22,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "R-13",
+          "shelf": "S-1",
+          "raw": "R-13-S-1"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-13",
+          "shelf": "S-1",
+          "raw": "R-13-S-1"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-13",
+          "shelf": "S-1",
+          "raw": "R-13-S-1"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-13",
+          "shelf": "S-1",
+          "raw": "R-13-S-1"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-12",
+          "shelf": "S-1",
+          "raw": "R-12-S-1"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "",
+    "productName": "Brown Plane T-Shirt",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 2,
+      "M": 0,
+      "L": 5,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 7,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "R-11",
+          "shelf": "S-1",
+          "raw": "R-11-S-1"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-11",
+          "shelf": "S-1",
+          "raw": "R-11-S-1"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "",
+    "productName": "Black Plane T-Shirt",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 5,
+      "M": 5,
+      "L": 6,
+      "XL": 0,
+      "XXL": 5,
+      "XXXL": 0
+    },
+    "total": 21,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "R-11",
+          "shelf": "S-3",
+          "raw": "R-11-S-3"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-11",
+          "shelf": "S-3",
+          "raw": "R-11-S-3"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-11",
+          "shelf": "S-3",
+          "raw": "R-11-S-3"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-11",
+          "shelf": "S-3",
+          "raw": "R-11-S-3"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "",
+    "productName": "Purple Plane T-shirt",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 1,
+      "M": 5,
+      "L": 0,
+      "XL": 3,
+      "XXL": 5,
+      "XXXL": 0
+    },
+    "total": 14,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "R-12",
+          "shelf": "S-1",
+          "raw": "R-12-S-1"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-12",
+          "shelf": "S-1",
+          "raw": "R-12-S-1"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-12",
+          "shelf": "S-1",
+          "raw": "R-12-S-1"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-12",
+          "shelf": "S-1",
+          "raw": "R-12-S-1"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "",
+    "productName": "Yellow Plane T-Shirt",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 3,
+      "M": 3,
+      "L": 3,
+      "XL": 5,
+      "XXL": 8,
+      "XXXL": 0
+    },
+    "total": 22,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "R-11",
+          "shelf": "S-2",
+          "raw": "R-11-S-2"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-11",
+          "shelf": "S-2",
+          "raw": "R-11-S-2"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-11",
+          "shelf": "S-2",
+          "raw": "R-11-S-2"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-11",
+          "shelf": "S-2",
+          "raw": "R-11-S-2"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-11",
+          "shelf": "S-2",
+          "raw": "R-11-S-2"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP066",
+    "productName": "Yellow Sun-Stripe Shirt",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 1,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 1,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "R-1",
+          "shelf": "S-4",
+          "raw": "R-1-S-4"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP065",
+    "productName": "Boss Babe Top",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 1,
+      "M": 0,
+      "L": 1,
+      "XL": 4,
+      "XXL": 3,
+      "XXXL": 0
+    },
+    "total": 9,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "R-17",
+          "shelf": "S-5",
+          "raw": "R-17-S-5"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-17",
+          "shelf": "S-5",
+          "raw": "R-17-S-5"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-17",
+          "shelf": "S-5",
+          "raw": "R-17-S-5"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-17",
+          "shelf": "S-5",
+          "raw": "R-17-S-5"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP003-S3",
+    "productName": "Golden  Hour polka Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 0,
+      "M": 0,
+      "L": 1,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 1,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "L": [
+        {
+          "rack": "R-1",
+          "shelf": "S-4",
+          "raw": "R-1-S-4"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "",
+    "productName": "Black Plane Lower",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 7,
+      "M": 7,
+      "L": 11,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 25,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "R-10",
+          "shelf": "S-5",
+          "raw": "R-10-S-5"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-10",
+          "shelf": "S-5",
+          "raw": "R-10-S-5"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-10",
+          "shelf": "S-5",
+          "raw": "R-10-S-5"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP160",
+    "productName": "Moonveil Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 0,
+      "M": 0,
+      "L": 1,
+      "XL": 0,
+      "XXL": 1,
+      "XXXL": 0
+    },
+    "total": 2,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "L": [
+        {
+          "rack": "R-1",
+          "shelf": "S-4",
+          "raw": "R-1-S-4"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-1",
+          "shelf": "S-4",
+          "raw": "R-1-S-4"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "KHP002",
+    "productName": "Earthline Wrap Co-ord",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 0,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 1,
+      "XXXL": 0
+    },
+    "total": 1,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XXL": [
+        {
+          "rack": "R-1",
+          "shelf": "S-4",
+          "raw": "R-1-S-4"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "",
+    "productName": "Easy Take Knitted Cordset",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 0,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 0,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {},
+    "date": null
+  },
+  {
+    "styleCode": "",
+    "productName": "Love Language knitted Cordset",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 1,
+      "S": 0,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 1,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-11",
+          "shelf": "S-4",
+          "raw": "R-11-S-4"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "",
+    "productName": "Printed Puple T-shirt( women)",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 0,
+      "M": 0,
+      "L": 0,
+      "XL": 1,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 1,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XL": [
+        {
+          "rack": "R-11",
+          "shelf": "S-4",
+          "raw": "R-11-S-4"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "",
+    "productName": "Retro Revival Starpless Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 1,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 1,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "R-1",
+          "shelf": "S-4",
+          "raw": "R-1-S-4"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "",
+    "productName": "Choco Charm Polka Dress",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 1,
+      "M": 0,
+      "L": 0,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 1,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "R-1",
+          "shelf": "S-4",
+          "raw": "R-1-S-4"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "",
+    "productName": "Sculpted Wine Flare pant",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 0,
+      "S": 1,
+      "M": 0,
+      "L": 1,
+      "XL": 0,
+      "XXL": 0,
+      "XXXL": 0
+    },
+    "total": 2,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "S": [
+        {
+          "rack": "R-7",
+          "shelf": "S-5",
+          "raw": "R-7-S-5"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-7",
+          "shelf": "S-5",
+          "raw": "R-7-S-5"
+        }
+      ]
+    },
+    "date": null
+  },
+  {
+    "styleCode": "",
+    "productName": "BlueBell Checked Top",
+    "skuNumbers": [],
+    "quantities": {
+      "XS": 37,
+      "S": 32,
+      "M": 15,
+      "L": 44,
+      "XL": 35,
+      "XXL": 15,
+      "XXXL": 0
+    },
+    "total": 178,
+    "zoneCode": "ZONE1",
+    "defaultLocation": null,
+    "sizeLocations": {
+      "XS": [
+        {
+          "rack": "R-20",
+          "shelf": "S-4",
+          "raw": "R-20-S-4"
+        }
+      ],
+      "S": [
+        {
+          "rack": "R-20",
+          "shelf": "S-4",
+          "raw": "R-20-S-4"
+        }
+      ],
+      "M": [
+        {
+          "rack": "R-20",
+          "shelf": "S-4",
+          "raw": "R-20-S-4"
+        }
+      ],
+      "L": [
+        {
+          "rack": "R-20",
+          "shelf": "S-3",
+          "raw": "R-20-S-3"
+        }
+      ],
+      "XL": [
+        {
+          "rack": "R-20",
+          "shelf": "S-3",
+          "raw": "R-20-S-3"
+        }
+      ],
+      "XXL": [
+        {
+          "rack": "R-20",
+          "shelf": "S-3",
+          "raw": "R-20-S-3"
+        }
+      ]
+    },
+    "date": null
+  }
+]

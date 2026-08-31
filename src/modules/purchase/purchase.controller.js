@@ -21,8 +21,11 @@ export const createSupplierSchema = Joi.object({
   body: Joi.object({
     supplierCode: Joi.string().trim().min(2).required(),
     name: Joi.string().trim().min(2).required(),
+    contactPerson: Joi.string().allow(''),
     contactEmail: Joi.string().email().allow(''),
     phone: Joi.string().allow(''),
+    gstNumber: Joi.string().allow(''),
+    materialsSupplied: Joi.string().allow(''),
     leadTimeDays: Joi.number().integer().min(0),
     paymentTerms: Joi.string().allow(''),
   }),
@@ -31,8 +34,11 @@ export const createSupplierSchema = Joi.object({
 export const updateSupplierSchema = Joi.object({
   body: Joi.object({
     name: Joi.string().trim().min(2),
+    contactPerson: Joi.string().allow(''),
     contactEmail: Joi.string().email().allow(''),
     phone: Joi.string().allow(''),
+    gstNumber: Joi.string().allow(''),
+    materialsSupplied: Joi.string().allow(''),
     leadTimeDays: Joi.number().integer().min(0),
     paymentTerms: Joi.string().allow(''),
     status: Joi.string().valid(...SUPPLIER_STATUS_LIST),

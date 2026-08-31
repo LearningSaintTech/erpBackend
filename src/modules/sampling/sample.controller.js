@@ -5,7 +5,10 @@ import {
   SAMPLE_STATUS_LIST, SAMPLE_TYPE_LIST, SAMPLE_WORKFLOW_PHASES,
 } from './sample.defaults.js';
 
-const superAdminFlag = (req) => ({ isSuperAdmin: !!req.user?.isSuperAdmin });
+const superAdminFlag = (req) => ({
+  isSuperAdmin: !!req.user?.isSuperAdmin,
+  permissions: req.permissions || [],
+});
 
 const materialLineSchema = Joi.object({
   materialId: Joi.string().required(),
@@ -148,7 +151,7 @@ export async function updateMaterials(req, res, next) {
 
 export async function refreshMaterials(req, res, next) {
   try {
-    success(res, await sampleService.refreshMaterialsFromDesign(
+    success(res, await sampleService.refreshMaterialsFromPattern(
       req.params.id,
       req.factoryId,
       req.user._id,

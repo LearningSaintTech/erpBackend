@@ -271,7 +271,7 @@ export async function assignRole({
   return assignment;
 }
 
-export async function listUsers(organizationId, { page, limit, skip, status, search }) {
+export async function listUsers(organizationId, { page, limit, skip, status, search, factoryId }) {
   const filter = { organizationId, isDeleted: false };
   if (status) filter.status = status;
   if (search?.trim()) {
@@ -282,7 +282,36 @@ export async function listUsers(organizationId, { page, limit, skip, status, sea
     User.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),
     User.countDocuments(filter),
   ]);
-  return { items, total };
+
+  const userIds = items.map((u) => u._id);
+  const assignFilter = { userId: { $in: userIds }, organizationId };
+  if (factoryId) assignFilter.factoryId = factoryId;
+
+  const assignments = userIds.length
+    ? await UserRoleAssignment.find(assignFilter).populate('roleId', 'code name')
+    : [];
+
+  const rolesByUser = new Map();
+  for (const a of assignments) {
+    if (!isAssignmentActive(a)) continue;
+    const uid = String(a.userId);
+    if (!rolesByUser.has(uid)) rolesByUser.set(uid, []);
+    const role = a.roleId;
+    if (role && typeof role === 'object' && role.code) {
+      const list = rolesByUser.get(uid);
+      if (!list.some((r) => r.code === role.code)) {
+        list.push({ code: role.code, name: role.name || role.code });
+      }
+    }
+  }
+
+  return {
+    items: items.map((u) => {
+      const obj = u.toObject ? u.toObject() : { ...u };
+      return { ...obj, roles: rolesByUser.get(String(u._id)) || [] };
+    }),
+    total,
+  };
 }
 
 export async function listUserAssignments(userId, organizationId) {

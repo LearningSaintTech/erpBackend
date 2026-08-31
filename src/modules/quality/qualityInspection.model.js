@@ -12,12 +12,12 @@ const qualityInspectionSchema = new mongoose.Schema({
   inspectionNumber: { type: String, required: true },
   inspectionType: {
     type: String,
-    enum: ['INCOMING', 'IN_PROCESS', 'FINAL'],
+    enum: ['INCOMING', 'IN_PROCESS', 'FINAL', 'SAMPLING'],
     required: true,
   },
   referenceType: {
     type: String,
-    enum: ['GOODS_RECEIPT', 'PRODUCTION_BATCH'],
+    enum: ['GOODS_RECEIPT', 'PRODUCTION_BATCH', 'SAMPLE'],
     required: true,
   },
   referenceId: { type: mongoose.Schema.Types.ObjectId, required: true },

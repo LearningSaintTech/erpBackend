@@ -126,8 +126,11 @@ export async function updateSupplier(id, factoryId, data, userId) {
   const supplier = await Supplier.findOne(applySoftDeleteFilter({ _id: id, factoryId }));
   if (!supplier) throw new NotFoundError('Supplier not found');
   if (data.name?.trim()) supplier.name = data.name.trim();
+  if (data.contactPerson != null) supplier.contactPerson = data.contactPerson;
   if (data.contactEmail != null) supplier.contactEmail = data.contactEmail;
   if (data.phone != null) supplier.phone = data.phone;
+  if (data.gstNumber != null) supplier.gstNumber = data.gstNumber;
+  if (data.materialsSupplied != null) supplier.materialsSupplied = data.materialsSupplied;
   if (data.leadTimeDays != null) supplier.leadTimeDays = data.leadTimeDays;
   if (data.paymentTerms != null) supplier.paymentTerms = data.paymentTerms;
   if (data.status) supplier.status = data.status;
@@ -141,7 +144,15 @@ export async function listSuppliers(factoryId, { page, limit, skip, search, stat
   if (status) filter.status = status;
   if (search?.trim()) {
     const re = new RegExp(escapeRegex(search.trim()), 'i');
-    filter.$or = [{ supplierCode: re }, { name: re }, { contactEmail: re }];
+    filter.$or = [
+      { supplierCode: re },
+      { name: re },
+      { contactEmail: re },
+      { contactPerson: re },
+      { gstNumber: re },
+      { materialsSupplied: re },
+      { phone: re },
+    ];
   }
   const [items, total] = await Promise.all([
     Supplier.find(filter).skip(skip).limit(limit).sort({ name: 1 }),

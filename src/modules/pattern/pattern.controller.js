@@ -32,6 +32,99 @@ const calculatedConsumptionSchema = Joi.object({
   notes: Joi.string().allow(''),
 });
 
+const sizeChartDataSchema = Joi.object({
+  unit: Joi.string().allow(''),
+  sizeLabels: Joi.array().items(Joi.string()),
+  rows: Joi.array().items(Joi.object({
+    measurementName: Joi.string().required(),
+    values: Joi.object().pattern(Joi.string(), Joi.number()),
+  })),
+});
+
+const fabricConsumptionSchema = Joi.object({
+  materialId: Joi.string().required(),
+  color: Joi.string().allow(''),
+  gsm: Joi.number().min(0).allow(null),
+  consumption: Joi.number().min(0),
+  unit: Joi.string().allow(''),
+  wastagePercent: Joi.number().min(0).max(100),
+  supplierName: Joi.string().allow(''),
+  fabricCost: Joi.number().min(0),
+  leadTimeDays: Joi.number().min(0).allow(null),
+  minOrderQty: Joi.number().min(0).allow(null),
+  approvedVendor: Joi.boolean(),
+});
+
+const bomLineSchema = Joi.object({
+  materialId: Joi.string().allow(''),
+  materialName: Joi.string().allow(''),
+  quantity: Joi.number().min(0),
+  unit: Joi.string().allow(''),
+  category: Joi.string().allow(''),
+  notes: Joi.string().allow(''),
+});
+
+const accessorySchema = Joi.object({
+  accessoryType: Joi.string().allow(''),
+  materialId: Joi.string().allow(''),
+  color: Joi.string().allow(''),
+  size: Joi.string().allow(''),
+  supplierName: Joi.string().allow(''),
+  consumption: Joi.number().min(0),
+  unit: Joi.string().allow(''),
+  unitCost: Joi.number().min(0),
+  approved: Joi.boolean(),
+});
+
+const fabricSpecsSchema = Joi.object({
+  fabricGsm: Joi.number().min(0).allow(null),
+  fabricWidth: Joi.string().allow(''),
+  fabricFinish: Joi.string().allow(''),
+  shrinkagePercent: Joi.number().min(0).allow(null),
+});
+
+const qualityNotesSchema = Joi.object({
+  allowedDefects: Joi.string().allow(''),
+  colorTolerance: Joi.string().allow(''),
+  shrinkagePercent: Joi.number().min(0).allow(null),
+  measurementTolerance: Joi.string().allow(''),
+  checklist: Joi.array().items(Joi.object({
+    item: Joi.string().allow(''),
+    required: Joi.boolean(),
+  })),
+});
+
+const manufacturingNotesSchema = Joi.object({
+  specialStitch: Joi.string().allow(''),
+  needleType: Joi.string().allow(''),
+  machineType: Joi.string().allow(''),
+  threadColor: Joi.string().allow(''),
+  packingInstructions: Joi.string().allow(''),
+  foldingInstructions: Joi.string().allow(''),
+  ironInstructions: Joi.string().allow(''),
+  barcodePosition: Joi.string().allow(''),
+  labelPosition: Joi.string().allow(''),
+});
+
+const costingSchema = Joi.object({
+  fabricCost: Joi.number().min(0),
+  accessoriesCost: Joi.number().min(0),
+  printingCost: Joi.number().min(0),
+  embroideryCost: Joi.number().min(0),
+  laborCost: Joi.number().min(0),
+  packingCost: Joi.number().min(0),
+  overhead: Joi.number().min(0),
+  actualCost: Joi.number().min(0),
+});
+
+const productionInfoSchema = Joi.object({
+  sampleRequired: Joi.boolean(),
+  sampleDeadline: Joi.string().allow('', null),
+  expectedProductionQty: Joi.number().min(0).allow(null),
+  productionPriority: Joi.string().allow(''),
+  remarks: Joi.string().allow(''),
+});
+
 export const assignSchema = Joi.object({
   body: Joi.object({
     designId: Joi.string().required(),
@@ -45,6 +138,15 @@ export const updateSchema = Joi.object({
     patternNotes: Joi.string().allow(''),
     grading: gradingSchema,
     calculatedConsumption: calculatedConsumptionSchema,
+    sizeChartData: sizeChartDataSchema,
+    fabricConsumption: Joi.array().items(fabricConsumptionSchema),
+    bomLines: Joi.array().items(bomLineSchema),
+    accessories: Joi.array().items(accessorySchema),
+    fabricSpecs: fabricSpecsSchema,
+    qualityNotes: qualityNotesSchema,
+    manufacturingNotes: manufacturingNotesSchema,
+    costing: costingSchema,
+    productionInfo: productionInfoSchema,
     sizeChartVerified: Joi.boolean(),
     consumptionVerified: Joi.boolean(),
     sampleBomVerified: Joi.boolean(),
@@ -65,6 +167,16 @@ export const reopenForFitSchema = Joi.object({
     reason: Joi.string().trim().min(3).required(),
   }),
 });
+
+export async function listMasters(req, res, next) {
+  try {
+    const users = await patternService.listPatternMasters({
+      factoryId: req.factoryId,
+      organizationId: req.organizationId,
+    });
+    success(res, users);
+  } catch (e) { next(e); }
+}
 
 export async function assign(req, res, next) {
   try {
@@ -111,6 +223,13 @@ export async function evidence(req, res, next) {
 export async function techPack(req, res, next) {
   try {
     success(res, await patternService.getTechPackForPattern(req.params.designId, req.factoryId));
+  } catch (e) { next(e); }
+}
+
+export async function materialOptions(req, res, next) {
+  try {
+    const { listMaterialOptions } = await import('../design/design.service.js');
+    success(res, await listMaterialOptions(req.factoryId));
   } catch (e) { next(e); }
 }
 

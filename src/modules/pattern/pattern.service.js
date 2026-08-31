@@ -3,6 +3,7 @@ import { Design } from '../design/design.model.js';
 import { DesignAsset } from '../design/designAsset.model.js';
 import { User } from '../user/user.model.js';
 import { UserRoleAssignment } from '../user/userRoleAssignment.model.js';
+import { Role } from '../user/role.model.js';
 import { Factory } from '../organization/factory.model.js';
 import { Material } from '../inventory/material.model.js';
 import { NotFoundError, ConflictError, ValidationError, ForbiddenError } from '../../shared/errors/AppError.js';
@@ -58,28 +59,92 @@ async function notifyUsersWithPermission({
   }
 }
 
+function plainSizeChart(sizeChartData) {
+  if (!sizeChartData) return undefined;
+  const obj = sizeChartData.toObject?.() ?? sizeChartData;
+  return { ...obj, rows: mapSizeChartRows(obj) };
+}
+
+function plainLines(lines) {
+  return (lines || []).map((l) => l.toObject?.() ?? l);
+}
+
+/**
+ * Production tech pack owned by the pattern master. Legacy designs that still carry
+ * the fields inline fall back to the design copy until a pattern master saves their own.
+ */
+const TECH_PACK_SECTIONS = 'sizeChartData fabricConsumption bomLines accessories '
+  + 'fabricSpecs qualityNotes manufacturingNotes costing productionInfo';
+
+function plainSection(section) {
+  return section?.toObject?.() ?? section ?? undefined;
+}
+
+export async function getPatternTechPack(designId, factoryId) {
+  const pd = await PatternDevelopment.findOne(applySoftDeleteFilter({ designId, factoryId }))
+    .select(`${TECH_PACK_SECTIONS} status`);
+  if (pd && (pd.sizeChartData?.rows?.length || pd.fabricConsumption?.length || pd.bomLines?.length)) {
+    return {
+      source: 'pattern',
+      patternStatus: pd.status,
+      sizeChartData: plainSizeChart(pd.sizeChartData),
+      fabricConsumption: plainLines(pd.fabricConsumption),
+      bomLines: plainLines(pd.bomLines),
+      accessories: plainLines(pd.accessories),
+      fabricSpecs: plainSection(pd.fabricSpecs),
+      qualityNotes: plainSection(pd.qualityNotes),
+      manufacturingNotes: plainSection(pd.manufacturingNotes),
+      costing: plainSection(pd.costing),
+      productionInfo: plainSection(pd.productionInfo),
+    };
+  }
+  const design = await Design.findOne(applySoftDeleteFilter({ _id: designId, factoryId }))
+    .select(`${TECH_PACK_SECTIONS} productSpecs`);
+  const specs = plainSection(design?.productSpecs);
+  return {
+    source: design ? 'design_legacy' : 'none',
+    patternStatus: pd?.status,
+    sizeChartData: plainSizeChart(design?.sizeChartData),
+    fabricConsumption: plainLines(design?.fabricConsumption),
+    bomLines: plainLines(design?.bomLines),
+    accessories: plainLines(design?.accessories),
+    fabricSpecs: specs && {
+      fabricGsm: specs.fabricGsm,
+      fabricWidth: specs.fabricWidth,
+      fabricFinish: specs.fabricFinish,
+      shrinkagePercent: specs.shrinkagePercent,
+    },
+    qualityNotes: plainSection(design?.qualityNotes),
+    manufacturingNotes: plainSection(design?.manufacturingNotes),
+    costing: plainSection(design?.costing),
+    productionInfo: plainSection(design?.productionInfo),
+  };
+}
+
 export async function getDesignVerificationEvidence(designId, factoryId) {
   const design = await Design.findOne(applySoftDeleteFilter({ _id: designId, factoryId }))
-    .select('designCode title sizeChartData fabricConsumption bomLines status');
+    .select('designCode title status');
   if (!design) throw new NotFoundError('Design not found');
 
+  const techPack = await getPatternTechPack(designId, factoryId);
   const hasSizeChart = !!(
-    design.sizeChartData?.sizeLabels?.length && design.sizeChartData?.rows?.length
+    techPack.sizeChartData?.sizeLabels?.length && techPack.sizeChartData?.rows?.length
   );
-  const hasConsumption = !!(design.fabricConsumption?.length);
-  const hasBom = !!(design.bomLines?.length);
+  const hasConsumption = !!(techPack.fabricConsumption?.length);
+  const hasBom = !!(techPack.bomLines?.length);
 
   return {
     designId: design._id,
     designCode: design.designCode,
     title: design.title,
     designStatus: design.status,
+    source: techPack.source,
     hasSizeChart,
     hasConsumption,
     hasBom,
-    sizeChartRowCount: design.sizeChartData?.rows?.length ?? 0,
-    consumptionLineCount: design.fabricConsumption?.length ?? 0,
-    bomLineCount: design.bomLines?.length ?? 0,
+    sizeChartRowCount: techPack.sizeChartData?.rows?.length ?? 0,
+    consumptionLineCount: techPack.fabricConsumption?.length ?? 0,
+    bomLineCount: techPack.bomLines?.length ?? 0,
     readyForSampling: false,
   };
 }
@@ -96,19 +161,26 @@ export async function getTechPackForPattern(designId, factoryId) {
   const design = await Design.findOne(applySoftDeleteFilter({ _id: designId, factoryId }))
     .select(
       'designCode title styleNumber status category subCategory gender ageGroup fit sleeveType neckType pattern occasion '
-      + 'sizeChartData fabricConsumption bomLines qualityNotes productSpecs targetPrice currency releasedVersion currentVersion',
+      + 'sizeChartData accessories colorVariants qualityNotes productSpecs targetPrice currency releasedVersion currentVersion',
     )
     .lean();
   if (!design) throw new NotFoundError('Design not found');
 
+  const techPack = await getPatternTechPack(designId, factoryId);
+
   const materialIds = [
-    ...(design.fabricConsumption || []).map((l) => l.materialId).filter(Boolean),
-    ...(design.bomLines || []).map((l) => l.materialId).filter(Boolean),
+    ...techPack.fabricConsumption.map((l) => l.materialId).filter(Boolean),
+    ...techPack.bomLines.map((l) => l.materialId).filter(Boolean),
+    ...(techPack.accessories || []).map((l) => l.materialId).filter(Boolean),
   ];
   const materials = materialIds.length
     ? await Material.find({ _id: { $in: materialIds } }).select('materialCode name unit category').lean()
     : [];
   const materialMap = Object.fromEntries(materials.map((m) => [String(m._id), m]));
+  const withMaterial = (line) => ({
+    ...line,
+    material: line.materialId ? materialMap[String(line.materialId)] : undefined,
+  });
 
   const assets = await DesignAsset.find(applySoftDeleteFilter({ designId, factoryId }))
     .select('assetType fileName mimeType url createdAt')
@@ -116,26 +188,31 @@ export async function getTechPackForPattern(designId, factoryId) {
     .lean();
 
   const evidence = await getDesignVerificationEvidence(designId, factoryId);
-
-  const pd = await PatternDevelopment.findOne(applySoftDeleteFilter({ designId, factoryId }))
-    .select('status sizeChartVerified consumptionVerified sampleBomVerified')
-    .lean();
-  evidence.readyForSampling = pd?.status === 'COMPLETED';
+  evidence.readyForSampling = techPack.patternStatus === 'COMPLETED';
 
   return {
     design: {
       ...design,
+      // Designer size range only — the graded chart below belongs to the pattern master.
       sizeChartData: design.sizeChartData
         ? { ...design.sizeChartData, rows: mapSizeChartRows(design.sizeChartData) }
         : undefined,
-      fabricConsumption: (design.fabricConsumption || []).map((line) => ({
-        ...line,
-        material: line.materialId ? materialMap[String(line.materialId)] : undefined,
-      })),
-      bomLines: (design.bomLines || []).map((line) => ({
-        ...line,
-        material: line.materialId ? materialMap[String(line.materialId)] : undefined,
-      })),
+      // Kept for older UI reads; authoritative copies live on `techPack`.
+      accessories: (techPack.accessories || []).map(withMaterial),
+      fabricConsumption: techPack.fabricConsumption.map(withMaterial),
+      bomLines: techPack.bomLines.map(withMaterial),
+    },
+    techPack: {
+      source: techPack.source,
+      sizeChartData: techPack.sizeChartData,
+      fabricConsumption: techPack.fabricConsumption.map(withMaterial),
+      bomLines: techPack.bomLines.map(withMaterial),
+      accessories: (techPack.accessories || []).map(withMaterial),
+      fabricSpecs: techPack.fabricSpecs,
+      qualityNotes: techPack.qualityNotes,
+      manufacturingNotes: techPack.manufacturingNotes,
+      costing: techPack.costing,
+      productionInfo: techPack.productionInfo,
     },
     assets,
     cadAssets: assets.filter((a) => CAD_ASSET_TYPES.includes(a.assetType)),
@@ -200,15 +277,84 @@ export async function uploadPatternMarker(
 async function assertVerificationEvidence(designId, factoryId, data) {
   const evidence = await getDesignVerificationEvidence(designId, factoryId);
   if (data.sizeChartVerified && !evidence.hasSizeChart) {
-    throw new ValidationError('Design has no size chart data — complete the Size Chart tab first');
+    throw new ValidationError('No graded size chart yet — fill the Size chart step first');
   }
   if (data.consumptionVerified && !evidence.hasConsumption) {
-    throw new ValidationError('Design has no fabric consumption — complete the Fabric tab first');
+    throw new ValidationError('No fabric consumption yet — fill the Fabric step first');
   }
   if (data.sampleBomVerified && !evidence.hasBom) {
-    throw new ValidationError('Design has no BOM lines — complete the BOM tab first');
+    throw new ValidationError('No BOM lines yet — fill the BOM step first');
   }
   return evidence;
+}
+
+/**
+ * A new pattern record starts from the designer's size range plus anything a legacy
+ * design still carries inline, so the pattern master edits instead of retyping.
+ */
+function seedTechPackFromDesign(design) {
+  const seed = {};
+  const labels = design.sizeChartData?.sizeLabels || [];
+  const rows = design.sizeChartData?.rows || [];
+  if (labels.length || rows.length) {
+    seed.sizeChartData = {
+      unit: design.sizeChartData?.unit || 'INCHES',
+      sizeLabels: [...labels],
+      rows: mapSizeChartRows(design.sizeChartData),
+    };
+  }
+  if (design.fabricConsumption?.length) {
+    seed.fabricConsumption = design.fabricConsumption.map((l) => l.toObject?.() ?? l);
+  }
+  if (design.bomLines?.length) {
+    seed.bomLines = design.bomLines.map((l) => l.toObject?.() ?? l);
+  }
+  if (design.accessories?.length) {
+    seed.accessories = design.accessories.map((l) => l.toObject?.() ?? l);
+  }
+
+  // Fabric technicals started life on the designer's product specs.
+  const specs = design.productSpecs?.toObject?.() ?? design.productSpecs;
+  if (specs) {
+    const fabricSpecs = {
+      fabricGsm: specs.fabricGsm,
+      fabricWidth: specs.fabricWidth,
+      fabricFinish: specs.fabricFinish,
+      shrinkagePercent: specs.shrinkagePercent,
+    };
+    if (Object.values(fabricSpecs).some((v) => v != null && v !== '')) {
+      seed.fabricSpecs = fabricSpecs;
+    }
+  }
+
+  for (const key of ['qualityNotes', 'manufacturingNotes', 'costing', 'productionInfo']) {
+    const val = design[key]?.toObject?.() ?? design[key];
+    if (val && Object.values(val).some((v) => v != null && v !== '' && v !== 0 && v !== false)) {
+      seed[key] = val;
+    }
+  }
+  return seed;
+}
+
+/** Fabric + trim costs follow the pattern master's consumption figures. */
+function recomputePatternCosting(pd) {
+  const costing = pd.costing?.toObject?.() ?? pd.costing ?? {};
+
+  costing.fabricCost = (pd.fabricConsumption || []).reduce((sum, f) => {
+    const qty = (f.consumption || 0) * (1 + (f.wastagePercent || 0) / 100);
+    return sum + qty * (f.fabricCost || 0);
+  }, 0);
+  costing.accessoriesCost = (pd.accessories || []).reduce(
+    (sum, a) => sum + (a.consumption || 0) * (a.unitCost || 0),
+    0,
+  );
+
+  const total = (costing.fabricCost || 0) + (costing.accessoriesCost || 0)
+    + (costing.printingCost || 0) + (costing.embroideryCost || 0)
+    + (costing.laborCost || 0) + (costing.packingCost || 0) + (costing.overhead || 0);
+  costing.actualCost = Math.round(total * 100) / 100;
+
+  pd.costing = costing;
 }
 
 async function assertAssignee(patternMasterId) {
@@ -216,6 +362,35 @@ async function assertAssignee(patternMasterId) {
   if (!user) throw new NotFoundError('Pattern master user not found');
   if (user.status !== 'ACTIVE') throw new ConflictError('Pattern master must be an active user');
   return user;
+}
+
+/** Active users with PATTERN_MASTER on this factory — used by release modal and assign form. */
+export async function listPatternMasters({ factoryId, organizationId }) {
+  const role = await Role.findOne({ organizationId, code: 'PATTERN_MASTER' })
+    || await Role.findOne({ code: 'PATTERN_MASTER', organizationId: null, isSystem: true });
+  if (!role) return [];
+
+  const now = new Date();
+  const assignments = await UserRoleAssignment.find({
+    roleId: role._id,
+    factoryId,
+    organizationId,
+    $or: [{ expiresAt: { $exists: false } }, { expiresAt: null }, { expiresAt: { $gt: now } }],
+  })
+    .populate('userId', 'firstName lastName email status')
+    .sort({ assignedAt: -1 });
+
+  const seen = new Set();
+  const users = [];
+  for (const a of assignments) {
+    const u = a.userId;
+    if (!u || typeof u === 'string' || u.status === 'INACTIVE') continue;
+    const id = String(u._id);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    users.push(u);
+  }
+  return users;
 }
 
 export async function assignPatternMaster({ designId, factoryId, patternMasterId }, userId) {
@@ -255,6 +430,7 @@ export async function assignPatternMaster({ designId, factoryId, patternMasterId
       patternMasterId,
       status: 'ASSIGNED',
       assignedAt: new Date(),
+      ...seedTechPackFromDesign(design),
       createdBy: userId,
       updatedBy: userId,
     });
@@ -338,10 +514,16 @@ export async function updatePatternDevelopment(designId, factoryId, data, userId
 
   const allowed = [
     'marker', 'patternNotes', 'grading', 'calculatedConsumption',
+    'sizeChartData', 'fabricConsumption', 'bomLines', 'accessories',
+    'fabricSpecs', 'qualityNotes', 'manufacturingNotes', 'costing', 'productionInfo',
     'sizeChartVerified', 'consumptionVerified', 'sampleBomVerified',
   ];
   for (const key of allowed) {
     if (data[key] !== undefined) pd[key] = data[key];
+  }
+
+  if (data.costing !== undefined || data.accessories !== undefined || data.fabricConsumption !== undefined) {
+    recomputePatternCosting(pd);
   }
 
   if (data.marker && data.calculatedConsumption?.derivedFromMarker) {
@@ -356,6 +538,13 @@ export async function updatePatternDevelopment(designId, factoryId, data, userId
         metersPerGarment: meters,
         derivedFromMarker: true,
       };
+      const fabrics = (pd.fabricConsumption || []).map((l) => l.toObject?.() ?? l);
+      if (fabrics.length) {
+        fabrics[0].consumption = meters;
+        if (!fabrics[0].unit) fabrics[0].unit = 'm';
+        pd.fabricConsumption = fabrics;
+        recomputePatternCosting(pd);
+      }
     }
   }
   if (pd.status === 'ASSIGNED') pd.status = 'IN_PROGRESS';
@@ -372,7 +561,12 @@ export async function completePatternDevelopment(designId, factoryId, userId, { 
 
   const evidence = await getDesignVerificationEvidence(designId, factoryId);
   if (!evidence.hasSizeChart || !evidence.hasConsumption || !evidence.hasBom) {
-    throw new ConflictError('Design must have size chart, fabric consumption, and BOM before completion');
+    const missing = [
+      !evidence.hasSizeChart && 'graded size chart',
+      !evidence.hasConsumption && 'fabric consumption',
+      !evidence.hasBom && 'BOM',
+    ].filter(Boolean);
+    throw new ConflictError(`Pattern tech pack incomplete — fill ${missing.join(', ')} before completion`);
   }
   if (!pd.sizeChartVerified || !pd.consumptionVerified || !pd.sampleBomVerified) {
     throw new ConflictError('Size chart, consumption, and sample BOM must be verified before completion');

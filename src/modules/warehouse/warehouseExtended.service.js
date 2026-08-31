@@ -15,21 +15,28 @@ import { applySoftDeleteFilter } from '../../shared/utils/schema.js';
 import * as warehouseService from './warehouse.service.js';
 import { aggregateRmTotals } from '../inventory/inventoryStock.service.js';
 
-async function findRmBalancesForWarehouse(factoryId, warehouseId, warehouseDoc) {
+async function findBalancesForWarehouse(factoryId, warehouseId, warehouseDoc) {
   const wh = warehouseDoc || await warehouseService.getWarehouse(warehouseId, factoryId);
   const bins = await StorageBin.find(applySoftDeleteFilter({ factoryId, warehouseId })).select('_id');
   const binIds = bins.map((b) => b._id);
+  const invType = wh.type === 'FINISHED_GOODS' ? 'FINISHED_GOODS' : 'RAW_MATERIAL';
   const orClause = [{ storageBinId: { $in: binIds } }];
-  if (wh.type === 'RAW_MATERIAL') {
+  if (invType === 'RAW_MATERIAL') {
     orClause.push({ storageBinId: null });
   }
   return InventoryBalance.find({
     factoryId,
-    inventoryType: 'RAW_MATERIAL',
+    inventoryType: invType,
     onHand: { $gt: 0 },
     isDeleted: false,
     $or: orClause,
-  }).populate('materialId', 'materialCode name unit');
+  })
+    .populate('materialId', 'materialCode name unit')
+    .populate('skuId', 'skuCode name');
+}
+
+async function findRmBalancesForWarehouse(factoryId, warehouseId, warehouseDoc) {
+  return findBalancesForWarehouse(factoryId, warehouseId, warehouseDoc);
 }
 
 export async function createZone(data, userId) {
@@ -149,8 +156,43 @@ export async function lookupByBarcode(factoryId, barcode) {
   return contents;
 }
 
-export async function pickStock({ factoryId, organizationId, materialId, binId, quantity, userId }) {
+export async function pickStock({ factoryId, organizationId, materialId, skuId, binId, quantity, userId }) {
   if (!quantity || quantity <= 0) throw new ConflictError('Pick quantity required');
+
+  if (skuId) {
+    const filter = {
+      factoryId,
+      skuId,
+      inventoryType: 'FINISHED_GOODS',
+      isDeleted: false,
+      onHand: { $gt: 0 },
+    };
+    if (binId) filter.storageBinId = binId;
+    const balance = await InventoryBalance.findOne(filter);
+    if (!balance) throw new ConflictError('Finished goods not found in the selected location');
+    const unreserved = balance.onHand - (balance.reserved || 0);
+    if (unreserved < quantity) throw new ConflictError('Insufficient unreserved finished goods to pick');
+    balance.onHand -= quantity;
+    balance.available = balance.onHand - balance.reserved;
+    balance.updatedBy = userId;
+    await balance.save();
+    await InventoryTransaction.create({
+      organizationId,
+      factoryId,
+      type: 'ISSUE',
+      skuId,
+      quantity,
+      unit: balance.unit,
+      referenceType: 'PICK',
+      referenceId: binId,
+      performedBy: userId,
+      createdBy: userId,
+      updatedBy: userId,
+    });
+    return { skuId, quantity, binId };
+  }
+
+  if (!materialId) throw new ConflictError('materialId or skuId required');
 
   const totals = await aggregateRmTotals(factoryId, materialId);
   if (totals.available < quantity) throw new ConflictError('Insufficient unreserved stock to pick');
@@ -207,22 +249,27 @@ export async function createCycleCount({ factoryId, organizationId, warehouseId 
   const wh = await warehouseService.getWarehouse(warehouseId, factoryId);
   const factory = await Factory.findById(factoryId);
   const countNumber = await nextDocumentNumber(factoryId, 'CC', `CC-${factory.code}-`);
-  const balances = await findRmBalancesForWarehouse(factoryId, warehouseId, wh);
+  const balances = await findBalancesForWarehouse(factoryId, warehouseId, wh);
+  const isFg = wh.type === 'FINISHED_GOODS';
 
-  const byMaterial = new Map();
+  const byItem = new Map();
   for (const b of balances) {
-    const matId = (b.materialId?._id || b.materialId)?.toString();
-    if (!matId) continue;
-    const cur = byMaterial.get(matId) || {
-      materialId: b.materialId?._id || b.materialId,
+    const itemId = isFg
+      ? (b.skuId?._id || b.skuId)?.toString()
+      : (b.materialId?._id || b.materialId)?.toString();
+    if (!itemId) continue;
+    const cur = byItem.get(itemId) || {
+      materialId: isFg ? undefined : (b.materialId?._id || b.materialId),
+      skuId: isFg ? (b.skuId?._id || b.skuId) : undefined,
       systemQty: 0,
     };
     cur.systemQty += b.onHand || 0;
-    byMaterial.set(matId, cur);
+    byItem.set(itemId, cur);
   }
 
-  const lines = [...byMaterial.values()].map((row) => ({
+  const lines = [...byItem.values()].map((row) => ({
     materialId: row.materialId,
+    skuId: row.skuId,
     systemQty: row.systemQty,
     countedQty: row.systemQty,
     variance: 0,
@@ -243,8 +290,9 @@ export async function getCycleCount(id, factoryId) {
   const filter = applySoftDeleteFilter({ _id: id });
   if (factoryId) filter.factoryId = factoryId;
   const cc = await CycleCount.findOne(filter)
-    .populate('warehouseId', 'warehouseCode name')
-    .populate('lines.materialId', 'materialCode name unit');
+    .populate('warehouseId', 'warehouseCode name type')
+    .populate('lines.materialId', 'materialCode name unit')
+    .populate('lines.skuId', 'skuCode name');
   if (!cc) throw new NotFoundError('Cycle count not found');
   return cc;
 }
@@ -267,6 +315,7 @@ export async function completeCycleCount(id, { lines, applyAdjustments = false }
     const countedQty = l.countedQty ?? 0;
     return {
       materialId: l.materialId,
+      skuId: l.skuId,
       systemQty,
       countedQty,
       variance: countedQty - systemQty,
@@ -279,21 +328,26 @@ export async function completeCycleCount(id, { lines, applyAdjustments = false }
 
   if (applyAdjustments) {
     const wh = await warehouseService.getWarehouse(cc.warehouseId, cc.factoryId);
+    const isFg = wh.type === 'FINISHED_GOODS';
+    const invType = isFg ? 'FINISHED_GOODS' : 'RAW_MATERIAL';
     const bins = await StorageBin.find(applySoftDeleteFilter({ factoryId: cc.factoryId, warehouseId: cc.warehouseId })).select('_id');
     const binIdSet = new Set(bins.map((b) => b._id.toString()));
     const inScope = (balance) => {
-      if (!balance.storageBinId) return wh.type === 'RAW_MATERIAL';
+      if (!balance.storageBinId) return !isFg;
       return binIdSet.has(balance.storageBinId.toString());
     };
 
     for (const line of merged) {
       if (!line.variance) continue;
-      const balances = (await InventoryBalance.find({
+      const itemFilter = {
         factoryId: cc.factoryId,
-        materialId: line.materialId,
-        inventoryType: 'RAW_MATERIAL',
+        inventoryType: invType,
         isDeleted: false,
-      }).sort({ storageBinId: 1 })).filter(inScope);
+      };
+      if (isFg) itemFilter.skuId = line.skuId;
+      else itemFilter.materialId = line.materialId;
+
+      const balances = (await InventoryBalance.find(itemFilter).sort({ storageBinId: 1 })).filter(inScope);
       if (!balances.length) continue;
 
       const totalOnHand = balances.reduce((s, b) => s + (b.onHand || 0), 0);
@@ -326,7 +380,8 @@ export async function completeCycleCount(id, { lines, applyAdjustments = false }
         organizationId: cc.organizationId,
         factoryId: cc.factoryId,
         type: 'ADJUSTMENT',
-        materialId: line.materialId,
+        materialId: isFg ? undefined : line.materialId,
+        skuId: isFg ? line.skuId : undefined,
         quantity: Math.abs(line.variance),
         unit: balances[0].unit,
         referenceType: 'CYCLE_COUNT',

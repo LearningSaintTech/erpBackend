@@ -25,6 +25,11 @@ const productionOrderSchema = new mongoose.Schema({
   plannedEnd: Date,
   approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   approvedAt: Date,
+  /** Frozen BOM total × planned qty at order create. */
+  standardCostPerPiece: { type: Number, default: 0 },
+  standardMaterialCost: { type: Number, default: 0 },
+  /** Sum of store issues at batch start (qty × material master rate). */
+  actualMaterialCost: { type: Number, default: 0 },
   ...auditFields,
 });
 

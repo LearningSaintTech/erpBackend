@@ -142,6 +142,7 @@ export async function createProductionOrder({
   const factory = await Factory.findById(factoryId);
   const orderNumber = await nextDocumentNumber(factoryId, 'PROD', `PROD-${factory.code}-`);
 
+  const standardCostPerPiece = bom.totalCostPerPiece || 0;
   return ProductionOrder.create({
     organizationId,
     factoryId,
@@ -155,6 +156,9 @@ export async function createProductionOrder({
     plannedStart,
     plannedEnd,
     status: 'CREATED',
+    standardCostPerPiece,
+    standardMaterialCost: Math.round(standardCostPerPiece * plannedQuantity * 100) / 100,
+    actualMaterialCost: 0,
     createdBy: userId,
     updatedBy: userId,
   });
@@ -541,9 +545,21 @@ export async function startBatch(id, userId, factoryId) {
   if (!mrp) throw new NotFoundError('MRP not found');
 
   const qtyRatio = batch.plannedQuantity / order.plannedQuantity;
+  let actual = 0;
+  const issuedMaterials = [];
   for (const line of mrp.lines) {
     const mat = await Material.findById(line.materialId);
     const issueQty = line.requiredQty * qtyRatio;
+    const unitCost = mat?.unitCost || 0;
+    const extendedCost = Math.round(issueQty * unitCost * 100) / 100;
+    actual += extendedCost;
+    issuedMaterials.push({
+      materialId: line.materialId,
+      quantity: issueQty,
+      unit: line.unit || mat?.unit,
+      unitCost,
+      extendedCost,
+    });
     await inventoryService.issueMaterial({
       factoryId: order.factoryId,
       organizationId: order.organizationId,
@@ -559,9 +575,18 @@ export async function startBatch(id, userId, factoryId) {
   }
 
   batch.status = 'IN_PROGRESS';
+  batch.actualMaterialCost = Math.round(actual * 100) / 100;
+  batch.issuedMaterials = issuedMaterials;
   batch.stageHistory.push({ stage: batch.currentStage, startedAt: new Date() });
   batch.updatedBy = userId;
   await batch.save();
+
+  const orderDoc = await ProductionOrder.findById(order._id);
+  if (orderDoc) {
+    orderDoc.actualMaterialCost = Math.round(((orderDoc.actualMaterialCost || 0) + actual) * 100) / 100;
+    orderDoc.updatedBy = userId;
+    await orderDoc.save();
+  }
   return batch;
 }
 

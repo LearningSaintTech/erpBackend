@@ -1,0 +1,803 @@
+[
+  {
+    "materialCode": "FAB-001",
+    "name": "Light Gree White stripe",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 110,
+    "openingQty": 60.25,
+    "vendorName": "Gandhi Nagar"
+  },
+  {
+    "materialCode": "FAB-002",
+    "name": "Beige White Stripe Riyon",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 115,
+    "openingQty": 30,
+    "vendorName": "Gandhi Nagar"
+  },
+  {
+    "materialCode": "FAB-003",
+    "name": "Blue White Pin-stripe",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 90,
+    "openingQty": 109,
+    "vendorName": "Gandhi Nagar"
+  },
+  {
+    "materialCode": "FAB-004",
+    "name": "Green White Pin-stripe",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 90,
+    "openingQty": 125,
+    "vendorName": "Gandhi Nagar"
+  },
+  {
+    "materialCode": "FAB-005",
+    "name": "Blue White Black Stripe",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 100,
+    "openingQty": 104,
+    "vendorName": "Gandhi Nagar"
+  },
+  {
+    "materialCode": "FAB-006",
+    "name": "Pink white stripe",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 95,
+    "openingQty": 260,
+    "vendorName": "Sharma Brothers"
+  },
+  {
+    "materialCode": "FAB-007",
+    "name": "Yellow white stripe",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 85,
+    "openingQty": 50.5,
+    "vendorName": "Gandhi Nagar"
+  },
+  {
+    "materialCode": "FAB-008",
+    "name": "Black White Stripe",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 100,
+    "openingQty": 100,
+    "vendorName": "Sharma Brothers"
+  },
+  {
+    "materialCode": "FAB-009",
+    "name": "Dull Green white stripe",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 100,
+    "openingQty": 58,
+    "vendorName": "Gandhi Nagar"
+  },
+  {
+    "materialCode": "FAB-010",
+    "name": "Brown White Stripe",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 95,
+    "openingQty": 86,
+    "vendorName": "Gandhi Nagar"
+  },
+  {
+    "materialCode": "FAB-011",
+    "name": "Blue White Stripe",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 85,
+    "openingQty": 110.8,
+    "vendorName": "Gandhi Nagar"
+  },
+  {
+    "materialCode": "FAB-012",
+    "name": "wine white stripe",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 95,
+    "openingQty": 79,
+    "vendorName": "Gandhi Nagar"
+  },
+  {
+    "materialCode": "FAB-013",
+    "name": "Beige blue big stripe",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 80,
+    "openingQty": 76,
+    "vendorName": "Gandhi Nagar"
+  },
+  {
+    "materialCode": "FAB-014",
+    "name": "Brown white big stripe",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 85,
+    "openingQty": 42,
+    "vendorName": "Gandhi Nagar"
+  },
+  {
+    "materialCode": "FAB-015",
+    "name": "Rust White Blue stripe",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 100,
+    "openingQty": 64,
+    "vendorName": "Gandhi Nagar"
+  },
+  {
+    "materialCode": "FAB-016",
+    "name": "Green white small check",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 85,
+    "openingQty": 90,
+    "vendorName": "Sharma Brothers"
+  },
+  {
+    "materialCode": "FAB-017",
+    "name": "Blue Gray Big check",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 100,
+    "openingQty": 44,
+    "vendorName": "Gandhi Nagar"
+  },
+  {
+    "materialCode": "FAB-018",
+    "name": "Kora Thread embroidery",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 230,
+    "openingQty": 122.8,
+    "vendorName": "Gandhi Nagar"
+  },
+  {
+    "materialCode": "FAB-019",
+    "name": "Kora Camric Thread embroidery",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 230,
+    "openingQty": 85,
+    "vendorName": "Gandhi Nagar"
+  },
+  {
+    "materialCode": "FAB-020",
+    "name": "Kora Camric Thread Sfli",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 230,
+    "openingQty": 147,
+    "vendorName": "Gandhi Nagar"
+  },
+  {
+    "materialCode": "FAB-021",
+    "name": "Kora Camric sfli",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 230,
+    "openingQty": 120,
+    "vendorName": "Gandhi Nagar"
+  },
+  {
+    "materialCode": "FAB-022",
+    "name": "Kora Camric",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 60,
+    "openingQty": 100,
+    "vendorName": "Gandhi Nagar"
+  },
+  {
+    "materialCode": "FAB-023",
+    "name": "Cotton Voil",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 50,
+    "openingQty": 199,
+    "vendorName": "Gandhi Nagar"
+  },
+  {
+    "materialCode": "FAB-024",
+    "name": "Brown poplin",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 115,
+    "openingQty": 190,
+    "vendorName": "Agarwal Textile"
+  },
+  {
+    "materialCode": "FAB-025",
+    "name": "navy poplin",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 115,
+    "openingQty": 120,
+    "vendorName": "Agarwal Textile"
+  },
+  {
+    "materialCode": "FAB-026",
+    "name": "maroon poplin",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 115,
+    "openingQty": 180,
+    "vendorName": "Agarwal Textile"
+  },
+  {
+    "materialCode": "FAB-027",
+    "name": "Red poplin",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 100,
+    "openingQty": 180,
+    "vendorName": "Darshini enterprises"
+  },
+  {
+    "materialCode": "FAB-028",
+    "name": "Yellow poplin",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 100,
+    "openingQty": 2250,
+    "vendorName": "Darshini enterprises"
+  },
+  {
+    "materialCode": "FAB-029",
+    "name": "Black poplin",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 100,
+    "openingQty": 960,
+    "vendorName": "Darshini enterprises"
+  },
+  {
+    "materialCode": "FAB-030",
+    "name": "powder blue poplin",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 100,
+    "openingQty": 80,
+    "vendorName": "Darshini enterprises"
+  },
+  {
+    "materialCode": "FAB-031",
+    "name": "Navy Teary",
+    "category": "FABRIC",
+    "unit": "KG",
+    "unitCost": 450,
+    "openingQty": 51.65,
+    "vendorName": "GMR Hoisery"
+  },
+  {
+    "materialCode": "FAB-032",
+    "name": "Lilic Teary",
+    "category": "FABRIC",
+    "unit": "KG",
+    "unitCost": 450,
+    "openingQty": 38.2,
+    "vendorName": "GMR Hoisery"
+  },
+  {
+    "materialCode": "FAB-033",
+    "name": "Gold Teary",
+    "category": "FABRIC",
+    "unit": "KG",
+    "unitCost": 450,
+    "openingQty": 29.35,
+    "vendorName": "GMR Hoisery"
+  },
+  {
+    "materialCode": "FAB-034",
+    "name": "Brown Teary",
+    "category": "FABRIC",
+    "unit": "KG",
+    "unitCost": 450,
+    "openingQty": 46.2,
+    "vendorName": "GMR Hoisery"
+  },
+  {
+    "materialCode": "FAB-035",
+    "name": "Red Teary",
+    "category": "FABRIC",
+    "unit": "KG",
+    "unitCost": 450,
+    "openingQty": 56.15,
+    "vendorName": "GMR Hoisery"
+  },
+  {
+    "materialCode": "FAB-036",
+    "name": "white denim",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 210,
+    "openingQty": 75,
+    "vendorName": "Gandhi Nagar"
+  },
+  {
+    "materialCode": "FAB-037",
+    "name": "Black Denim",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 190,
+    "openingQty": 75,
+    "vendorName": "Gandhi Nagar"
+  },
+  {
+    "materialCode": "FAB-038",
+    "name": "Blue Lycra Denim",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 210,
+    "openingQty": 136,
+    "vendorName": "Arvind Textiles"
+  },
+  {
+    "materialCode": "FAB-039",
+    "name": "brown denim",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 195,
+    "openingQty": 80,
+    "vendorName": "Arvind Textiles"
+  },
+  {
+    "materialCode": "FAB-040",
+    "name": "Gray Twill Bitcoin Fabric",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 180,
+    "openingQty": 99.3,
+    "vendorName": "Vikas Texties"
+  },
+  {
+    "materialCode": "FAB-041",
+    "name": "Lyrca Sttion",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 135,
+    "openingQty": 590,
+    "vendorName": "Vikas Texties"
+  },
+  {
+    "materialCode": "FAB-042",
+    "name": "Black bitcoin fabric",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 180,
+    "openingQty": 90,
+    "vendorName": "Vikas Texties"
+  },
+  {
+    "materialCode": "FAB-043",
+    "name": "Dark Gray Bitcoin fabric",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 180,
+    "openingQty": 100,
+    "vendorName": "Vikas Texties"
+  },
+  {
+    "materialCode": "FAB-044",
+    "name": "Banana Crap",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 200,
+    "openingQty": 135,
+    "vendorName": "Vikas Texties"
+  },
+  {
+    "materialCode": "FAB-045",
+    "name": "Black amami fabric",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 380,
+    "openingQty": 340,
+    "vendorName": "Vikas Texties"
+  },
+  {
+    "materialCode": "FAB-046",
+    "name": "Beige amami fabric",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 380,
+    "openingQty": 220,
+    "vendorName": "Vikas Texties"
+  },
+  {
+    "materialCode": "FAB-047",
+    "name": "Wine amami fabric",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 380,
+    "openingQty": 130,
+    "vendorName": "Vikas Texties"
+  },
+  {
+    "materialCode": "FAB-048",
+    "name": "Gray amami fabric",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 380,
+    "openingQty": 230,
+    "vendorName": "Vikas Texties"
+  },
+  {
+    "materialCode": "FAB-049",
+    "name": "lyrca foreway cream",
+    "category": "FABRIC",
+    "unit": "KG",
+    "unitCost": 485,
+    "openingQty": 29,
+    "vendorName": "Vikas Texties"
+  },
+  {
+    "materialCode": "FAB-050",
+    "name": "lyrca foreway sky blue",
+    "category": "FABRIC",
+    "unit": "KG",
+    "unitCost": 485,
+    "openingQty": 83.83,
+    "vendorName": "Vikas Texties"
+  },
+  {
+    "materialCode": "FAB-051",
+    "name": "lyrca foreway peach",
+    "category": "FABRIC",
+    "unit": "KG",
+    "unitCost": 485,
+    "openingQty": 85,
+    "vendorName": "Vikas Texties"
+  },
+  {
+    "materialCode": "FAB-052",
+    "name": "lyrca foreway gray",
+    "category": "FABRIC",
+    "unit": "KG",
+    "unitCost": 485,
+    "openingQty": 86,
+    "vendorName": "Vikas Texties"
+  },
+  {
+    "materialCode": "FAB-053",
+    "name": "zebraprint riyon cripp",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 100,
+    "openingQty": 106,
+    "vendorName": "Amit Impax"
+  },
+  {
+    "materialCode": "FAB-054",
+    "name": "Dlive slub cotton",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 120,
+    "openingQty": 60,
+    "vendorName": "Hafaz cloth House"
+  },
+  {
+    "materialCode": "FAB-055",
+    "name": "Beige slub cotton",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 120,
+    "openingQty": 434,
+    "vendorName": "Hafaz cloth House"
+  },
+  {
+    "materialCode": "FAB-056",
+    "name": "Cream slub cotton",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 120,
+    "openingQty": 559,
+    "vendorName": "Hafaz cloth House"
+  },
+  {
+    "materialCode": "FAB-057",
+    "name": "Single Jersey",
+    "category": "FABRIC",
+    "unit": "KG",
+    "unitCost": 560,
+    "openingQty": 380,
+    "vendorName": "Mittal Hoisery"
+  },
+  {
+    "materialCode": "FAB-058",
+    "name": "Japnese Linen",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 140,
+    "openingQty": 172,
+    "vendorName": "Darshini enterprises"
+  },
+  {
+    "materialCode": "FAB-059",
+    "name": "Lufar Cotton",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 100,
+    "openingQty": 120,
+    "vendorName": "Darshini enterprises"
+  },
+  {
+    "materialCode": "FAB-060",
+    "name": "Cotton sitton",
+    "category": "FABRIC",
+    "unit": "METERS",
+    "unitCost": 140,
+    "openingQty": 31.75,
+    "vendorName": "Darshini enterprises"
+  },
+  {
+    "materialCode": "ACC-001",
+    "name": "Needle",
+    "category": "ACCESSORY",
+    "unit": "PIECES",
+    "unitCost": 80,
+    "openingQty": 59,
+    "vendorName": "RP Enterprises"
+  },
+  {
+    "materialCode": "ACC-002",
+    "name": "Thread",
+    "category": "THREAD",
+    "unit": "CONES",
+    "unitCost": 110,
+    "openingQty": 90,
+    "vendorName": "Pikansh Traders"
+  },
+  {
+    "materialCode": "ACC-003",
+    "name": "Cone",
+    "category": "THREAD",
+    "unit": "CONES",
+    "unitCost": 750,
+    "openingQty": 18,
+    "vendorName": "Pikansh Traders"
+  },
+  {
+    "materialCode": "ACC-004",
+    "name": "Butter Paper",
+    "category": "PACKAGING",
+    "unit": "PIECES",
+    "unitCost": 2.5,
+    "openingQty": 10000,
+    "vendorName": "Shri Sai Shakti Print"
+  },
+  {
+    "materialCode": "ACC-005",
+    "name": "Hand Tag",
+    "category": "LABEL",
+    "unit": "PIECES",
+    "unitCost": 2.5,
+    "openingQty": 8700,
+    "vendorName": "Shri Sai Shakti Print"
+  },
+  {
+    "materialCode": "ACC-006",
+    "name": "Sticker",
+    "category": "LABEL",
+    "unit": "PIECES",
+    "unitCost": 2,
+    "openingQty": 7700,
+    "vendorName": "Shri Sai Shakti Print"
+  },
+  {
+    "materialCode": "ACC-007",
+    "name": "Poly Bag",
+    "category": "PACKAGING",
+    "unit": "PIECES",
+    "unitCost": 5.8,
+    "openingQty": 7300,
+    "vendorName": "Somya Enterprises"
+  },
+  {
+    "materialCode": "ACC-008",
+    "name": "Courier Poly Bag",
+    "category": "PACKAGING",
+    "unit": "PIECES",
+    "unitCost": 1.8,
+    "openingQty": 2000,
+    "vendorName": "Somya Enterprises"
+  },
+  {
+    "materialCode": "ACC-009",
+    "name": "Button",
+    "category": "BUTTON",
+    "unit": "PIECES",
+    "unitCost": 1.1,
+    "openingQty": 2000,
+    "vendorName": "baba creation"
+  },
+  {
+    "materialCode": "ACC-010",
+    "name": "Printer Paper",
+    "category": "PACKAGING",
+    "unit": "PIECES",
+    "unitCost": 250,
+    "openingQty": 10,
+    "vendorName": "RP Enterprises"
+  },
+  {
+    "materialCode": "ACC-011",
+    "name": "28mm Folder",
+    "category": "ACCESSORY",
+    "unit": "PIECES",
+    "unitCost": 350,
+    "openingQty": 1,
+    "vendorName": "RP Enterprises"
+  },
+  {
+    "materialCode": "ACC-012",
+    "name": "32mm folder",
+    "category": "ACCESSORY",
+    "unit": "PIECES",
+    "unitCost": 350,
+    "openingQty": 1,
+    "vendorName": "RP Enterprises"
+  },
+  {
+    "materialCode": "ACC-013",
+    "name": "Adjuster",
+    "category": "ACCESSORY",
+    "unit": "PIECES",
+    "unitCost": 2,
+    "openingQty": 700,
+    "vendorName": "baba creation"
+  },
+  {
+    "materialCode": "ACC-014",
+    "name": "Magic Pen",
+    "category": "ACCESSORY",
+    "unit": "PIECES",
+    "unitCost": 135,
+    "openingQty": 9,
+    "vendorName": "RP Enterprises"
+  },
+  {
+    "materialCode": "ACC-015",
+    "name": "Smocking Lastic",
+    "category": "THREAD",
+    "unit": "PIECES",
+    "unitCost": 90,
+    "openingQty": 6,
+    "vendorName": "RP Enterprises"
+  },
+  {
+    "materialCode": "ACC-016",
+    "name": "Eye Hock",
+    "category": "ACCESSORY",
+    "unit": "PIECES",
+    "unitCost": 200,
+    "openingQty": 2,
+    "vendorName": "RP Enterprises"
+  },
+  {
+    "materialCode": "ACC-017",
+    "name": "Man label white",
+    "category": "LABEL",
+    "unit": "PIECES",
+    "unitCost": 2,
+    "openingQty": 6000,
+    "vendorName": "Shri Sai Shakti Print"
+  },
+  {
+    "materialCode": "ACC-018",
+    "name": "Man label black",
+    "category": "LABEL",
+    "unit": "PIECES",
+    "unitCost": 2,
+    "openingQty": 4000,
+    "vendorName": "Shri Sai Shakti Print"
+  },
+  {
+    "materialCode": "ACC-019",
+    "name": "Leather Pech",
+    "category": "ACCESSORY",
+    "unit": "PIECES",
+    "unitCost": 4,
+    "openingQty": 2000,
+    "vendorName": "Shri Sai Shakti Print"
+  },
+  {
+    "materialCode": "ACC-020",
+    "name": "Leather Pech",
+    "category": "ACCESSORY",
+    "unit": "PIECES",
+    "unitCost": 5,
+    "openingQty": 2000,
+    "vendorName": "Shri Sai Shakti Print"
+  },
+  {
+    "materialCode": "ACC-021",
+    "name": "Conselled Zipper",
+    "category": "ZIPPER",
+    "unit": "PIECES",
+    "unitCost": 7,
+    "openingQty": 2400,
+    "vendorName": "Deepanshi Enterprises"
+  },
+  {
+    "materialCode": "ACC-022",
+    "name": "Metal Zipper",
+    "category": "ZIPPER",
+    "unit": "PIECES",
+    "unitCost": 35,
+    "openingQty": 50,
+    "vendorName": "Deepanshi Enterprises"
+  },
+  {
+    "materialCode": "ACC-023",
+    "name": "Gold Zipper",
+    "category": "ZIPPER",
+    "unit": "PIECES",
+    "unitCost": 25,
+    "openingQty": 50,
+    "vendorName": "Deepanshi Enterprises"
+  },
+  {
+    "materialCode": "ACC-024",
+    "name": "Pant Zipper",
+    "category": "ZIPPER",
+    "unit": "PIECES",
+    "unitCost": 7,
+    "openingQty": 20,
+    "vendorName": "Deepanshi Enterprises"
+  },
+  {
+    "materialCode": "ACC-025",
+    "name": "Denim Gold Zipper",
+    "category": "ZIPPER",
+    "unit": "PIECES",
+    "unitCost": 11,
+    "openingQty": 100,
+    "vendorName": "Deepanshi Enterprises"
+  },
+  {
+    "materialCode": "ACC-026",
+    "name": "Denim Silver Zipper",
+    "category": "ZIPPER",
+    "unit": "PIECES",
+    "unitCost": 11,
+    "openingQty": 100,
+    "vendorName": "Deepanshi Enterprises"
+  },
+  {
+    "materialCode": "ACC-027",
+    "name": "Carteen Boxes",
+    "category": "PACKAGING",
+    "unit": "PIECES",
+    "unitCost": 58,
+    "openingQty": 430,
+    "vendorName": "Shri Sai Shakti Print"
+  },
+  {
+    "materialCode": "ACC-028",
+    "name": "Buckle Silver",
+    "category": "ACCESSORY",
+    "unit": "PIECES",
+    "unitCost": 20,
+    "openingQty": 40,
+    "vendorName": "Mamura"
+  },
+  {
+    "materialCode": "ACC-029",
+    "name": "Pant Hock",
+    "category": "ACCESSORY",
+    "unit": "PIECES",
+    "unitCost": 2,
+    "openingQty": 100,
+    "vendorName": "Mamura"
+  }
+]

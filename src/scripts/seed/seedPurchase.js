@@ -9,7 +9,8 @@ async function seedSuppliers(ctx) {
   const { org, factory, admin } = ctx;
   const purchaseService = await import('../../modules/purchase/purchase.service.js');
   const rows = loadSeedJson('suppliers.seed.json');
-  const limit = seedLimit({ heavy: rows.length, conditions: 2, light: 1 });
+  // Vendor master: always load the full list (not profile-limited).
+  const limit = rows.length;
 
   ctx.suppliers = [];
   for (const row of rows.slice(0, limit)) {
@@ -21,6 +22,18 @@ async function seedSuppliers(ctx) {
         ...row,
       }, admin._id);
       console.log(`Seeded supplier ${row.supplierCode}`);
+    } else {
+      supplier = await purchaseService.updateSupplier(supplier._id, factory._id, {
+        name: row.name,
+        contactPerson: row.contactPerson ?? '',
+        contactEmail: row.contactEmail ?? '',
+        phone: row.phone ?? '',
+        gstNumber: row.gstNumber ?? '',
+        materialsSupplied: row.materialsSupplied ?? '',
+        paymentTerms: row.paymentTerms ?? '',
+        status: row.status || 'ACTIVE',
+        leadTimeDays: row.leadTimeDays,
+      }, admin._id);
     }
     ctx.suppliers.push(supplier);
   }

@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Design, DesignCollection } from './design.model.js';
 import { DesignAsset } from './designAsset.model.js';
 import { DesignVersion } from './designVersion.model.js';
@@ -17,6 +18,7 @@ import {
 import { notify } from '../notification/notification.service.js';
 import { findUserIdsWithFactoryPermission } from '../user/user.service.js';
 import { User } from '../user/user.model.js';
+import { InventoryCode } from '../inventoryCode/inventoryCode.model.js';
 import { emitDesignUpdated } from '../../shared/services/realtime.js';
 import { uploadFile } from '../../shared/services/s3.service.js';
 import {
@@ -94,10 +96,47 @@ const IMAGE_ASSET_TYPES = [
 const VERSION_TRACKED_FIELDS = [
   'title', 'description', 'skuPrefix', 'styleNumber', 'skuCodeInputs', 'category', 'subCategory', 'gender', 'ageGroup',
   'fit', 'sleeveType', 'neckType', 'pattern', 'occasion', 'tags',
-  'collectionId', 'seasonId', 'sizeChartId', 'sizeChartData', 'targetPrice', 'currency',
+  'collectionCode', 'seasonCode', 'collectionId', 'seasonId', 'sizeChartId', 'sizeChartData', 'targetPrice', 'currency',
   'productSpecs', 'colorVariants', 'fabricConsumption', 'fabricSuggestions',
   'accessories', 'bomLines', 'costing', 'productionInfo', 'qualityNotes', 'manufacturingNotes',
 ];
+
+/**
+ * Everything a downstream stage decides — graded measurements, consumption, BOM, trims,
+ * quality tolerances, sewing instructions, cost rollup, and production planning — belongs
+ * to the pattern master's tech pack, so the designer cannot write it here.
+ * `sizeChartData` stays because the designer only sets the size range (labels) for SKUs.
+ */
+const PATTERN_OWNED_FIELDS = [
+  'fabricConsumption', 'fabricSuggestions', 'bomLines', 'accessories',
+  'costing', 'productionInfo', 'qualityNotes', 'manufacturingNotes',
+];
+
+/** Fabric / care technicals confirmed against the sourced cloth, not the designer's brief. */
+const PATTERN_OWNED_SPEC_FIELDS = [
+  'fabricGsm', 'fabricWidth', 'fabricFinish', 'shrinkagePercent', 'washCare', 'ironing',
+];
+
+const DESIGNER_EDITABLE_FIELDS = VERSION_TRACKED_FIELDS.filter(
+  (f) => !PATTERN_OWNED_FIELDS.includes(f),
+);
+
+/**
+ * Strips pattern-owned data from an incoming designer payload. Values already stored on
+ * a legacy design are carried over untouched so an edit never silently drops them.
+ */
+function stripPatternOwned(payload, existing) {
+  for (const key of PATTERN_OWNED_FIELDS) delete payload[key];
+  if (payload.productSpecs) {
+    const current = existing?.productSpecs?.toObject?.() ?? existing?.productSpecs ?? {};
+    payload.productSpecs = { ...payload.productSpecs };
+    for (const key of PATTERN_OWNED_SPEC_FIELDS) {
+      if (current[key] === undefined) delete payload.productSpecs[key];
+      else payload.productSpecs[key] = current[key];
+    }
+  }
+  return payload;
+}
 
 const FIELD_LABELS = {
   colorVariants: 'Color Changed',
@@ -159,19 +198,27 @@ function migrateFabricOnRead(design) {
   return obj;
 }
 
+/**
+ * Only refreshes legacy designs that still carry their own material and cost lines.
+ * The authoritative cost rollup now lives on the pattern development record.
+ */
 export function recomputeCosting(design) {
-  const fabricTotal = (design.fabricConsumption || []).reduce((sum, f) => {
-    const qty = (f.consumption || 0) * (1 + (f.wastagePercent || 0) / 100);
-    return sum + qty * (f.fabricCost || 0);
-  }, 0);
-
-  const accessoriesTotal = (design.accessories || []).reduce((sum, a) => {
-    return sum + (a.consumption || a.quantity || 0) * (a.unitCost || 0);
-  }, 0);
+  const hasLegacyCostData = design.accessories?.length
+    || design.fabricConsumption?.length
+    || design.costing;
+  if (!hasLegacyCostData) return;
 
   if (!design.costing) design.costing = {};
-  design.costing.fabricCost = fabricTotal;
-  design.costing.accessoriesCost = accessoriesTotal;
+  if (design.fabricConsumption?.length) {
+    design.costing.fabricCost = design.fabricConsumption.reduce((sum, f) => {
+      const qty = (f.consumption || 0) * (1 + (f.wastagePercent || 0) / 100);
+      return sum + qty * (f.fabricCost || 0);
+    }, 0);
+  }
+  design.costing.accessoriesCost = (design.accessories || []).reduce(
+    (sum, a) => sum + (a.consumption || a.quantity || 0) * (a.unitCost || 0),
+    0,
+  );
 
   const c = design.costing;
   const actualCost = (c.fabricCost || 0) + (c.accessoriesCost || 0)
@@ -225,13 +272,119 @@ export function getLookups() {
   return getDesignLookups();
 }
 
+function escapeRegex(str) {
+  return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function looksLikeObjectId(value) {
+  return /^[a-fA-F0-9]{24}$/.test(String(value || ''));
+}
+
+async function lookupInventory(type, input) {
+  const raw = String(input || '').trim();
+  if (!raw) return null;
+  const re = new RegExp(`^${escapeRegex(raw)}$`, 'i');
+  return InventoryCode.findOne({ type, isActive: true, $or: [{ code: re }, { name: re }] });
+}
+
+async function ensureCollectionFromCode({ organizationId, factoryId, code, userId }) {
+  const raw = String(code || '').trim();
+  if (!raw) return { collectionId: null, collectionCode: '' };
+  const inv = await lookupInventory('COLLECTION', raw);
+  const key = (inv?.code || raw).trim();
+  const name = (inv?.name || key).trim();
+  let col = await DesignCollection.findOne(applySoftDeleteFilter({ organizationId, code: key }));
+  if (!col) col = await DesignCollection.findOne(applySoftDeleteFilter({ organizationId, name }));
+  if (!col) {
+    col = await DesignCollection.create({
+      organizationId,
+      factoryId,
+      code: key,
+      name,
+      status: 'ACTIVE',
+      createdBy: userId,
+      updatedBy: userId,
+    });
+  } else if (!col.code) {
+    col.code = key;
+    col.updatedBy = userId;
+    await col.save();
+  }
+  return { collectionId: col._id, collectionCode: key };
+}
+
+async function ensureSeasonFromCode({ organizationId, factoryId, code, userId }) {
+  const raw = String(code || '').trim();
+  if (!raw) return { seasonId: null, seasonCode: '' };
+  const inv = await lookupInventory('SEASON', raw);
+  const key = (inv?.code || raw).trim();
+  const name = (inv?.name || key).trim();
+  const yearMatch = `${key} ${name}`.match(/(20\d{2}|\d{2})$/);
+  let year = new Date().getFullYear();
+  if (yearMatch) {
+    year = yearMatch[1].length === 2 ? 2000 + Number(yearMatch[1]) : Number(yearMatch[1]);
+  }
+  let season = await Season.findOne(applySoftDeleteFilter({ organizationId, code: key }));
+  if (!season) season = await Season.findOne(applySoftDeleteFilter({ organizationId, name, year }));
+  if (!season) {
+    season = await Season.create({
+      organizationId,
+      factoryId,
+      code: key,
+      name,
+      year,
+      status: 'ACTIVE',
+      createdBy: userId,
+      updatedBy: userId,
+    });
+  } else if (!season.code) {
+    season.code = key;
+    season.updatedBy = userId;
+    await season.save();
+  }
+  return { seasonId: season._id, seasonCode: key };
+}
+
+async function applyCatalogCollectionSeason(payload, { organizationId, factoryId, userId }) {
+  const collectionInput = payload.collectionCode || payload.collection
+    || (!looksLikeObjectId(payload.collectionId) ? payload.collectionId : '');
+  if (collectionInput) {
+    const resolved = await ensureCollectionFromCode({
+      organizationId, factoryId, code: collectionInput, userId,
+    });
+    payload.collectionId = resolved.collectionId;
+    payload.collectionCode = resolved.collectionCode;
+  }
+  const seasonInput = payload.seasonCode || payload.season
+    || (!looksLikeObjectId(payload.seasonId) ? payload.seasonId : '');
+  if (seasonInput) {
+    const resolved = await ensureSeasonFromCode({
+      organizationId, factoryId, code: seasonInput, userId,
+    });
+    payload.seasonId = resolved.seasonId;
+    payload.seasonCode = resolved.seasonCode;
+  } else if (payload.seasonCode === '' || payload.seasonId === '' || payload.seasonId === null) {
+    payload.seasonId = null;
+    payload.seasonCode = '';
+  }
+  delete payload.collection;
+  delete payload.season;
+}
+
 export async function createDesign(data, userId) {
   const factory = await Factory.findById(data.factoryId);
   if (!factory) throw new NotFoundError('Factory not found');
   const prefix = `DSN-${factory.code}-`;
   const designCode = await nextDocumentNumber(data.factoryId, 'DESIGN', prefix);
+  const payload = stripPatternOwned({ ...data });
+  await applyCatalogCollectionSeason(payload, {
+    organizationId: data.organizationId,
+    factoryId: data.factoryId,
+    userId,
+  });
+  if (!payload.collectionId) throw new ValidationError('Collection is required');
   const design = await Design.create({
-    ...data,
+    ...payload,
     designCode,
     status: 'DRAFT',
     currentVersion: 1,
@@ -251,8 +404,14 @@ export async function listDesigns(factoryId, {
   const filter = applySoftDeleteFilter({ factoryId });
   if (status) filter.status = status;
   if (category) filter.category = category;
-  if (collectionId) filter.collectionId = collectionId;
-  if (seasonId) filter.seasonId = seasonId;
+  if (collectionId) {
+    if (looksLikeObjectId(collectionId)) filter.collectionId = collectionId;
+    else filter.collectionCode = collectionId;
+  }
+  if (seasonId) {
+    if (looksLikeObjectId(seasonId)) filter.seasonId = seasonId;
+    else filter.seasonCode = seasonId;
+  }
   if (gender) filter.gender = gender;
   if (tags) {
     const tagList = tags.split(',').map((t) => t.trim()).filter(Boolean);
@@ -273,7 +432,7 @@ export async function listDesigns(factoryId, {
   const [items, total] = await Promise.all([
     Design.find(filter)
       .populate('collectionId', 'name code')
-      .populate('seasonId', 'name year')
+      .populate('seasonId', 'name year code')
       .populate('createdBy', 'firstName lastName email')
       .skip(skip)
       .limit(limit)
@@ -290,8 +449,8 @@ export async function getDesign(id, { factoryId, viewer, permissions } = {}) {
     filter.createdBy = viewer._id;
   }
   const design = await Design.findOne(filter)
-    .populate('collectionId', 'name')
-    .populate('seasonId', 'name year')
+      .populate('collectionId', 'name code')
+      .populate('seasonId', 'name year code')
     .populate('sizeChartId')
     .populate('createdBy', 'firstName lastName email');
   if (!design) throw new NotFoundError('Design not found');
@@ -324,11 +483,15 @@ export async function updateDesign(id, data, userId, { factoryId, viewer, permis
   }
 
   const before = buildDesignSnapshot(design);
-  const allowed = VERSION_TRACKED_FIELDS;
-  for (const key of allowed) {
-    if (data[key] !== undefined) design[key] = data[key];
+  const payload = stripPatternOwned({ ...data }, design);
+  await applyCatalogCollectionSeason(payload, {
+    organizationId: design.organizationId,
+    factoryId: factoryId || design.factoryId,
+    userId,
+  });
+  for (const key of DESIGNER_EDITABLE_FIELDS) {
+    if (payload[key] !== undefined) design[key] = payload[key];
   }
-  if (data.fabricConsumption !== undefined) design.fabricSuggestions = [];
 
   recomputeCosting(design);
   await assertStyleNumberUnique(design);
@@ -343,18 +506,100 @@ export async function updateDesign(id, data, userId, { factoryId, viewer, permis
   return getDesign(id, { factoryId, viewer, permissions });
 }
 
-export async function getDesignStats(factoryId, { viewer, permissions } = {}) {
-  const filter = applySoftDeleteFilter({ factoryId });
-  if (viewer && !canViewAllDesigns(permissions, viewer.isSuperAdmin)) {
-    filter.createdBy = viewer._id;
+function asObjectId(id) {
+  if (!id) return id;
+  if (id instanceof mongoose.Types.ObjectId) return id;
+  if (mongoose.Types.ObjectId.isValid(id)) return new mongoose.Types.ObjectId(id);
+  return id;
+}
+
+function rowsToRecord(rows) {
+  const out = {};
+  for (const row of rows) {
+    const key = row._id == null || row._id === '' ? 'Unspecified' : String(row._id);
+    out[key] = row.count;
   }
-  const [total, inReview, released, draft] = await Promise.all([
-    Design.countDocuments(filter),
-    Design.countDocuments({ ...filter, status: 'IN_REVIEW' }),
-    Design.countDocuments({ ...filter, status: 'RELEASED' }),
-    Design.countDocuments({ ...filter, status: { $in: ['DRAFT', 'REVISION_REQUESTED'] } }),
+  return out;
+}
+
+const STATUS_BUCKET = {
+  $cond: [
+    { $or: [{ $eq: ['$status', null] }, { $eq: ['$status', ''] }] },
+    'DRAFT',
+    '$status',
+  ],
+};
+
+const LABEL_OR_UNSPECIFIED = (field) => ({
+  $cond: [
+    { $or: [{ $eq: [`$${field}`, null] }, { $eq: [`$${field}`, ''] }] },
+    'Unspecified',
+    `$${field}`,
+  ],
+});
+
+export async function getDesignStats(factoryId, { viewer, permissions } = {}) {
+  const filter = applySoftDeleteFilter({ factoryId: asObjectId(factoryId) });
+  if (viewer && !canViewAllDesigns(permissions, viewer.isSuperAdmin)) {
+    filter.createdBy = asObjectId(viewer._id);
+  }
+
+  const [byStatusRows, byCategoryRows, bySeasonRows, byGenderRows] = await Promise.all([
+    Design.aggregate([
+      { $match: filter },
+      { $group: { _id: STATUS_BUCKET, count: { $sum: 1 } } },
+    ]),
+    Design.aggregate([
+      { $match: filter },
+      { $group: { _id: LABEL_OR_UNSPECIFIED('category'), count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 8 },
+    ]),
+    Design.aggregate([
+      { $match: filter },
+      { $group: { _id: LABEL_OR_UNSPECIFIED('seasonCode'), count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 8 },
+    ]),
+    Design.aggregate([
+      { $match: filter },
+      { $group: { _id: LABEL_OR_UNSPECIFIED('gender'), count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 8 },
+    ]),
   ]);
-  return { total, inReview, released, draft };
+
+  const byStatus = rowsToRecord(byStatusRows);
+  const draftOnly = byStatus.DRAFT || 0;
+  const revisionRequested = byStatus.REVISION_REQUESTED || 0;
+  const inReview = (byStatus.IN_REVIEW || 0) + (byStatus.SUBMITTED || 0);
+  const approved = byStatus.APPROVED || 0;
+  const released = byStatus.RELEASED || 0;
+  const rejected = byStatus.REJECTED || 0;
+  const total = Object.values(byStatus).reduce((sum, n) => sum + n, 0);
+  const decided = approved + released + rejected;
+  const approvalRate = decided > 0 ? Math.round(((approved + released) / decided) * 100) : 0;
+  const releaseRate = total > 0 ? Math.round((released / total) * 100) : 0;
+
+  return {
+    total,
+    draft: draftOnly + revisionRequested,
+    draftOnly,
+    revisionRequested,
+    inReview,
+    submitted: inReview,
+    approved,
+    released,
+    rejected,
+    needsAction: draftOnly + revisionRequested,
+    awaitingOthers: inReview + approved,
+    approvalRate,
+    releaseRate,
+    byStatus,
+    byCategory: rowsToRecord(byCategoryRows),
+    bySeason: rowsToRecord(bySeasonRows),
+    byGender: rowsToRecord(byGenderRows),
+  };
 }
 
 export async function submitDesign(id, userId, { factoryId, viewer, permissions } = {}) {
@@ -371,20 +616,8 @@ export async function submitDesign(id, userId, { factoryId, viewer, permissions 
   if (imageCount === 0) {
     throw new ValidationError('At least one image or sketch is required before submission');
   }
-  const hasSizeChart = !!(
-    design.sizeChartData?.sizeLabels?.length && design.sizeChartData?.rows?.length
-  );
-  const hasConsumption = !!(design.fabricConsumption?.length);
-  const hasBom = !!(design.bomLines?.length);
-  if (!hasSizeChart || !hasConsumption || !hasBom) {
-    const missing = [
-      !hasSizeChart && 'Size Chart',
-      !hasConsumption && 'Fabric consumption',
-      !hasBom && 'BOM',
-    ].filter(Boolean);
-    throw new ValidationError(
-      `Tech pack incomplete — fill ${missing.join(', ')} on the design before submit`,
-    );
+  if (!design.sizeChartData?.sizeLabels?.length) {
+    throw new ValidationError('Pick the size range for this style before submission');
   }
   design.status = 'IN_REVIEW';
   design.submittedAt = new Date();
@@ -510,11 +743,24 @@ export async function requestRevision(id, userId, comments, { syncApproval = tru
   return design;
 }
 
-export async function releaseDesign(id, userId) {
+export async function releaseDesign(id, userId, { patternMasterId } = {}) {
   const design = await Design.findOne(applySoftDeleteFilter({ _id: id }));
   if (!design) throw new NotFoundError('Design not found');
   if (design.status !== 'APPROVED') {
     throw new ConflictError('Only APPROVED designs can be released');
+  }
+  let assignPatternMaster;
+  if (patternMasterId) {
+    const patternService = await import('../pattern/pattern.service.js');
+    assignPatternMaster = patternService.assignPatternMaster;
+    const masters = await patternService.listPatternMasters({
+      factoryId: design.factoryId,
+      organizationId: design.organizationId,
+    });
+    const allowed = masters.some((u) => String(u._id) === String(patternMasterId));
+    if (!allowed) {
+      throw new ValidationError('Selected user is not a pattern master for this factory');
+    }
   }
   const versionRecord = await DesignVersion.findOne({ designId: design._id, version: design.currentVersion });
   if (versionRecord) {
@@ -544,6 +790,13 @@ export async function releaseDesign(id, userId) {
     });
   }
   emitDesignUpdated(design, { actorId: userId });
+  if (patternMasterId && assignPatternMaster) {
+    await assignPatternMaster({
+      designId: design._id,
+      factoryId: design.factoryId,
+      patternMasterId,
+    }, userId);
+  }
   return getDesign(id);
 }
 
@@ -812,6 +1065,7 @@ export async function listMaterialOptions(factoryId) {
     name: m.name,
     unit: m.unit,
     category: m.category,
+    unitCost: m.unitCost ?? 0,
   }));
 }
 
@@ -833,26 +1087,3 @@ export async function regenerateDesignSkus(id, userId, { viewer, permissions } =
   return getDesign(id, { viewer, permissions });
 }
 
-export function generateBomFromDesign(design) {
-  const lines = [];
-  for (const f of design.fabricConsumption || []) {
-    if (!f.materialId) continue;
-    const qty = (f.consumption || 0) * (1 + (f.wastagePercent || 0) / 100);
-    lines.push({
-      materialId: f.materialId,
-      quantity: Math.round(qty * 1000) / 1000,
-      unit: f.unit || 'METERS',
-      category: 'FABRIC',
-    });
-  }
-  for (const a of design.accessories || []) {
-    if (!a.materialId) continue;
-    lines.push({
-      materialId: a.materialId,
-      quantity: a.consumption || a.quantity || 1,
-      unit: a.unit || 'PIECES',
-      category: a.accessoryType || 'ACCESSORY',
-    });
-  }
-  return lines;
-}

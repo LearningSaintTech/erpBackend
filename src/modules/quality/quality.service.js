@@ -6,6 +6,7 @@ import { ProductionBatch } from '../production/productionBatch.model.js';
 import { ProductionOrder } from '../production/productionOrder.model.js';
 import { Material } from '../inventory/material.model.js';
 import { Factory } from '../organization/factory.model.js';
+import { Sample } from '../sampling/sample.model.js';
 import * as inventoryService from '../inventory/inventory.service.js';
 import * as warehouseService from '../warehouse/warehouse.service.js';
 import * as productionService from '../production/production.service.js';
@@ -30,6 +31,7 @@ export async function getQualityStats(factoryId) {
     pendingGrns,
     batchesAwaitingFinal,
     batchesInProcess,
+    pendingSampleQc,
   ] = await Promise.all([
     QualityInspection.countDocuments(base),
     QualityInspection.countDocuments({ ...base, status: 'PENDING' }),
@@ -44,6 +46,7 @@ export async function getQualityStats(factoryId) {
     GoodsReceipt.countDocuments({ factoryId, status: 'PENDING_QC', isDeleted: false }),
     ProductionBatch.countDocuments({ factoryId, status: 'COMPLETED', currentStage: 'COMPLETED', qcInspectionId: { $exists: false }, isDeleted: false }),
     ProductionBatch.countDocuments({ factoryId, status: { $in: ['IN_PROGRESS', 'REWORK'] }, isDeleted: false }),
+    Sample.countDocuments({ factoryId, status: 'QC_PENDING', isDeleted: false }),
   ]);
 
   const firstPassYield = completed > 0 ? Math.round((passed / completed) * 100) : 0;
@@ -62,12 +65,13 @@ export async function getQualityStats(factoryId) {
     pendingGrns,
     batchesAwaitingFinal,
     batchesInProcess,
+    pendingSampleQc,
     firstPassYield,
   };
 }
 
 export async function getPendingWork(factoryId) {
-  const [pendingGrns, inProgressBatches, completedBatches] = await Promise.all([
+  const [pendingGrns, inProgressBatches, completedBatches, pendingSamples] = await Promise.all([
     GoodsReceipt.find({ factoryId, status: 'PENDING_QC', isDeleted: false })
       .populate('lines.materialId', 'materialCode name unit')
       .populate('poId', 'poNumber status')
@@ -88,8 +92,18 @@ export async function getPendingWork(factoryId) {
       .populate('productionOrderId', 'orderNumber')
       .sort({ updatedAt: -1 })
       .limit(50),
+    Sample.find({ factoryId, status: 'QC_PENDING', isDeleted: false })
+      .populate('designId', 'designCode title')
+      .populate('qcInspectionId', 'inspectionNumber status')
+      .sort({ updatedAt: -1 })
+      .limit(50),
   ]);
-  return { pendingGrns, inProgressBatches, completedBatches };
+  for (const sample of pendingSamples) {
+    if (!sample.qcInspectionId) {
+      await ensureSampleQcInspection(sample, sample.updatedBy || sample.createdBy);
+    }
+  }
+  return { pendingGrns, inProgressBatches, completedBatches, pendingSamples };
 }
 
 export async function getIncomingQcContext(grnId, factoryId) {
@@ -209,6 +223,42 @@ export async function createInspectionRecord({
   return inspection;
 }
 
+export async function ensureSampleQcInspection(sample, userId) {
+  if (!sample || sample.status !== 'QC_PENDING') return null;
+  const existing = await QualityInspection.findOne(applySoftDeleteFilter({
+    factoryId: sample.factoryId,
+    referenceType: 'SAMPLE',
+    referenceId: sample._id,
+    status: { $in: ['PENDING', 'IN_PROGRESS'] },
+  }));
+  if (existing) {
+    if (!sample.qcInspectionId) {
+      sample.qcInspectionId = existing._id;
+      sample.updatedBy = userId;
+      await sample.save();
+    }
+    return existing;
+  }
+
+  const factory = await Factory.findById(sample.factoryId);
+  const inspectionNumber = await nextDocumentNumber(sample.factoryId, 'QC', `QC-${factory?.code || 'F'}-`);
+  return createInspectionRecord({
+    organizationId: sample.organizationId,
+    factoryId: sample.factoryId,
+    inspectionNumber,
+    inspectionType: 'SAMPLING',
+    referenceType: 'SAMPLE',
+    referenceId: sample._id,
+    stageAtInspection: 'SAMPLE_QC',
+    userId,
+    onCreated: async (inspection) => {
+      sample.qcInspectionId = inspection._id;
+      sample.updatedBy = userId;
+      await sample.save();
+    },
+  });
+}
+
 export async function createFinalInspection(batchId, userId, { storageBinId, autoDispatchReady } = {}) {
   const batch = await ProductionBatch.findOne(applySoftDeleteFilter({ _id: batchId }));
   if (!batch) throw new NotFoundError('Batch not found');
@@ -279,7 +329,7 @@ export async function completeInspection(id, body, userId, factoryId) {
   const inspection = await getInspection(id, factoryId);
   if (inspection.status === 'COMPLETED') throw new ConflictError('Inspection already completed');
 
-  const { passedQuantity, failedQuantity, result, disposition, storageBinId, autoDispatchReady } = body;
+  const { passedQuantity, failedQuantity, result, disposition, storageBinId, autoDispatchReady, notes } = body;
   const failed = failedQuantity || 0;
   const passed = passedQuantity || 0;
   const disp = disposition || (failed > 0 && passed === 0 ? 'REJECT' : failed > 0 ? 'PARTIAL' : 'PASS');
@@ -324,6 +374,17 @@ export async function completeInspection(id, body, userId, factoryId) {
     } else {
       await completeFinalQc(inspection, userId);
     }
+  }
+
+  if (inspection.referenceType === 'SAMPLE') {
+    const { applySampleQcFromInspection } = await import('../sampling/sample.service.js');
+    await applySampleQcFromInspection(inspection.referenceId, factoryId, userId, {
+      result: inspection.result,
+      disposition: inspection.disposition,
+      passed,
+      failed,
+      notes: body.notes,
+    });
   }
 
   return inspection;

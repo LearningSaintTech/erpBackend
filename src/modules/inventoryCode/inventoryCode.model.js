@@ -1,6 +1,33 @@
-﻿import mongoose from 'mongoose';
+import mongoose from 'mongoose';
 
-const INVENTORY_CODE_TYPES = ['CATEGORY', 'FIT', 'COLOR', 'SECTION'];
+const INVENTORY_CODE_TYPES = [
+  'CATEGORY',
+  'SUB_CATEGORY',
+  'SECTION',
+  'FIT',
+  'COLOR',
+  'SIZE',
+  'GENDER',
+  'AGE_GROUP',
+  'SLEEVE',
+  'NECK',
+  'PATTERN',
+  'OCCASION',
+  'MATERIAL',
+  'PRINTING_TYPE',
+  'TAG',
+  'CURRENCY',
+  'COLLECTION',
+  'SEASON',
+  'UNIT',
+  'ACCESSORY',
+  'FABRIC_FINISH',
+  'MATERIAL_GROUP',
+  'MEASUREMENT',
+  'STITCH',
+  'NEEDLE',
+  'MACHINE',
+];
 
 const inventoryCodeSchema = new mongoose.Schema({
   type: { type: String, enum: INVENTORY_CODE_TYPES, required: true, index: true },

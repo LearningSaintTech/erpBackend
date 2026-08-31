@@ -79,15 +79,58 @@ async function seedPatternAndSample(ctx, design, approved = true) {
 
   await safeSeed(`pattern-${design.designCode}`, async () => {
     const patternService = await import('../../modules/pattern/pattern.service.js');
+    const { matrixSizeChartData } = await import('./seedHelpers.js');
     await patternService.assignPatternMaster({
       designId: design._id,
       factoryId: factory._id,
       patternMasterId: patternMaster._id,
     }, admin._id);
-    await patternService.updatePatternDevelopment(design._id, factory._id, {
+
+    // Pattern master owns the whole production tech pack — measurements, consumption, BOM,
+    // trims, fabric technicals, quality, sewing notes, costing and planning.
+    // Save the tech pack first, then verify — verification asserts against saved evidence.
+    const techPackUpdate = {
       marker: { length: 2.4, piecesPerMarker: 12, efficiencyPercent: 82 },
       calculatedConsumption: { wastagePercent: 5, derivedFromMarker: true, notes: 'Seed marker' },
       grading: { baseSize: 'M', gradedSizes: ['S', 'M', 'L', 'XL'], notes: 'Seed grading' },
+      sizeChartData: matrixSizeChartData(),
+      fabricSpecs: { fabricGsm: 180, fabricWidth: '58"', fabricFinish: 'Bio wash', shrinkagePercent: 3 },
+      qualityNotes: {
+        allowedDefects: 'Minor thread trim allowed',
+        measurementTolerance: '±0.5 inch',
+        checklist: [{ item: 'Color match', required: true }],
+      },
+      manufacturingNotes: {
+        specialStitch: 'Double needle hem',
+        packingInstructions: 'Poly bag with hangtag',
+      },
+      costing: { laborCost: 120, packingCost: 15, overhead: 30 },
+      productionInfo: { sampleRequired: true, expectedProductionQty: 500, productionPriority: 'NORMAL' },
+    };
+    if (ctx.fabric && ctx.buttons) {
+      techPackUpdate.fabricConsumption = [{
+        materialId: ctx.fabric._id,
+        consumption: 2.42,
+        unit: 'METERS',
+        wastagePercent: 5,
+        fabricCost: ctx.fabric.unitCost,
+      }];
+      techPackUpdate.bomLines = [
+        { materialId: ctx.fabric._id, materialName: ctx.fabric.name, quantity: 2.42, unit: 'METERS', category: 'FABRIC' },
+        { materialId: ctx.buttons._id, materialName: ctx.buttons.name, quantity: 8, unit: 'PIECES', category: 'BUTTON' },
+      ];
+      techPackUpdate.accessories = [{
+        accessoryType: 'BUTTON',
+        materialId: ctx.buttons._id,
+        color: 'White',
+        consumption: 8,
+        unit: 'PIECES',
+        unitCost: ctx.buttons.unitCost,
+        approved: true,
+      }];
+    }
+    await patternService.updatePatternDevelopment(design._id, factory._id, techPackUpdate, patternMaster._id);
+    await patternService.updatePatternDevelopment(design._id, factory._id, {
       sizeChartVerified: true,
       consumptionVerified: true,
       sampleBomVerified: true,
@@ -308,7 +351,11 @@ async function seedProductionOrder(ctx, sku, { plannedQuantity, startBatch, comp
   }, admin._id);
 
   await productionService.runProductionMrp(order._id, admin._id, factory._id);
-  await productionService.reserveProductionMaterials(order._id, admin._id, factory._id);
+  try {
+    await productionService.reserveProductionMaterials(order._id, admin._id, factory._id);
+  } catch (err) {
+    console.warn(`Reserve materials for order ${order.orderNumber || order._id}: ${err.message}`);
+  }
   await productionService.submitProductionOrderForApproval(order._id, admin._id, factory._id);
   await productionService.approveProductionOrder(order._id, ctx.roleUsers.productionManager?._id || admin._id, { factoryId: factory._id });
 
@@ -437,16 +484,6 @@ async function seedExtraSamples(ctx) {
     if (!existing) {
       await safeSeed(`sample-pending-${pendingDesign.designCode}`, async () => {
         const fresh = await Design.findById(pendingDesign._id);
-        if (ctx.fabric && ctx.buttons) {
-          fresh.fabricConsumption = [{
-            materialId: ctx.fabric._id, consumption: 2.5, unit: 'METERS', wastagePercent: 5, fabricCost: ctx.fabric.unitCost,
-          }];
-          fresh.bomLines = [
-            { materialId: ctx.fabric._id, materialName: ctx.fabric.name, quantity: 2.5, unit: 'METERS', category: 'FABRIC' },
-            { materialId: ctx.buttons._id, materialName: ctx.buttons.name, quantity: 4, unit: 'PIECES', category: 'BUTTON' },
-          ];
-          await fresh.save();
-        }
         const sample = await seedPatternAndSample(ctx, fresh, false);
         const sampleService = await import('../../modules/sampling/sample.service.js');
         const pmId = ctx.roleUsers.pattern?._id || ctx.admin._id;

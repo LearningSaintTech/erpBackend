@@ -125,7 +125,7 @@ async function seedSizeCharts(ctx) {
 }
 
 function buildDesignPayload(ctx, template, idx) {
-  const { org, factory, fabric, buttons } = ctx;
+  const { org, factory } = ctx;
   const collection = ctx.collections[idx % ctx.collections.length];
   const season = ctx.seasons[idx % ctx.seasons.length];
   const sizeChart = ctx.sizeCharts[idx % ctx.sizeCharts.length];
@@ -158,43 +158,11 @@ function buildDesignPayload(ctx, template, idx) {
       : [{ name: 'Natural', hexCode: '#f5f5dc', code: 'NAT' }],
     productSpecs: {
       material: 'Cotton',
-      fabricGsm: 180,
-      washCare: 'Machine Wash',
-    },
-    costing: {
-      laborCost: 120,
-      packingCost: 15,
-      overhead: 30,
-      profitPercent: 25,
-      expectedSellingPrice: template.targetPrice,
     },
   };
 
-  if (fabric && buttons) {
-    payload.fabricConsumption = [{
-      materialId: fabric._id,
-      color: 'White',
-      gsm: 180,
-      consumption: 2.3,
-      unit: 'METERS',
-      wastagePercent: 5,
-      fabricCost: fabric.unitCost,
-      approvedVendor: true,
-    }];
-    payload.accessories = [{
-      accessoryType: 'BUTTON',
-      materialId: buttons._id,
-      color: 'White',
-      consumption: 8,
-      unit: 'PIECES',
-      unitCost: buttons.unitCost,
-      approved: true,
-    }];
-    payload.bomLines = [
-      { materialId: fabric._id, materialName: fabric.name, quantity: 2.42, unit: 'METERS', category: 'FABRIC' },
-      { materialId: buttons._id, materialName: buttons.name, quantity: 8, unit: 'PIECES', category: 'BUTTON' },
-    ];
-  }
+  // Consumption, trims, BOM, costing, quality, sewing notes and planning are seeded onto
+  // the pattern development record instead — see seedProduction.seedPatternAndSample.
 
   if (template.flagship) {
     Object.assign(payload, {
@@ -202,20 +170,6 @@ function buildDesignPayload(ctx, template, idx) {
       neckType: 'Spread Collar',
       pattern: 'Solid',
       occasion: 'Casual',
-      productionInfo: {
-        sampleRequired: true,
-        expectedProductionQty: 500,
-        productionPriority: 'NORMAL',
-      },
-      qualityNotes: {
-        allowedDefects: 'Minor thread trim allowed',
-        measurementTolerance: '±0.5 inch',
-        checklist: [{ item: 'Color match', required: true }],
-      },
-      manufacturingNotes: {
-        specialStitch: 'Double needle hem',
-        packingInstructions: 'Poly bag with hangtag',
-      },
     });
   }
 

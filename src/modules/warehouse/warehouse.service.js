@@ -5,9 +5,15 @@ import { Rack } from './rack.model.js';
 import { Shelf } from './shelf.model.js';
 import { InventoryBalance } from '../inventory/inventoryBalance.model.js';
 import { InventoryTransaction } from '../inventory/inventoryTransaction.model.js';
+import { Material } from '../inventory/material.model.js';
+import { Sku } from '../sku/sku.model.js';
 import { NotFoundError, ConflictError } from '../../shared/errors/AppError.js';
 import { applySoftDeleteFilter } from '../../shared/utils/schema.js';
 import { getOrCreateRmBalance } from '../inventory/inventoryStock.service.js';
+
+// Ensure populate targets are registered when this module loads first
+void Material;
+void Sku;
 
 export async function getWarehouseStats(factoryId) {
   const base = applySoftDeleteFilter({ factoryId });
@@ -312,11 +318,77 @@ export async function putAway({ factoryId, organizationId, materialId, binId, qu
   return { fromBalance: unalloc, toBalance: binBalance, bin, quantity: transferQty };
 }
 
-export async function transferStock({
-  factoryId, organizationId, materialId, fromBinId, toBinId, quantity, userId,
+async function transferFgStock({
+  factoryId, organizationId, skuId, fromBinId, toBinId, quantity, userId,
 }) {
   const resolvedTo = toBinId;
   if (!resolvedTo) throw new ConflictError('Destination bin (toBinId) required');
+  if (!skuId) throw new ConflictError('skuId required for finished-goods transfer');
+
+  const toBin = await getBin(resolvedTo, factoryId);
+  await assertBinWarehouseType(toBin, 'FINISHED_GOODS');
+
+  const filter = {
+    factoryId,
+    skuId,
+    inventoryType: 'FINISHED_GOODS',
+    isDeleted: false,
+    onHand: { $gt: 0 },
+  };
+  if (fromBinId) filter.storageBinId = fromBinId;
+
+  const fromBalance = await InventoryBalance.findOne(filter);
+  if (!fromBalance || fromBalance.onHand <= 0) throw new ConflictError('No finished-goods stock to transfer');
+  if (fromBinId && String(fromBalance.storageBinId || '') !== String(fromBinId)) {
+    throw new ConflictError('Finished goods are not in the selected source bin');
+  }
+  if (fromBalance.storageBinId && String(fromBalance.storageBinId) === String(toBin._id)) {
+    throw new ConflictError('Source and destination bins must differ');
+  }
+
+  const maxTransfer = fromBalance.onHand - (fromBalance.reserved || 0);
+  const transferQty = quantity ?? maxTransfer;
+  if (transferQty <= 0 || maxTransfer < transferQty) {
+    throw new ConflictError('Cannot transfer reserved stock or zero quantity');
+  }
+  if (transferQty < fromBalance.onHand) {
+    throw new ConflictError('Partial FG bin transfers are not supported — transfer full on-hand qty');
+  }
+
+  fromBalance.storageBinId = toBin._id;
+  fromBalance.locationId = toBin.warehouseId;
+  fromBalance.updatedBy = userId;
+  await fromBalance.save();
+
+  await InventoryTransaction.create({
+    organizationId,
+    factoryId,
+    type: 'TRANSFER',
+    skuId,
+    quantity: transferQty,
+    unit: fromBalance.unit,
+    referenceType: 'BIN_TRANSFER',
+    referenceId: toBin._id,
+    performedBy: userId,
+    createdBy: userId,
+    updatedBy: userId,
+  });
+
+  return { fromBalance, toBalance: fromBalance, bin: toBin, quantity: transferQty };
+}
+
+export async function transferStock({
+  factoryId, organizationId, materialId, skuId, fromBinId, toBinId, quantity, userId,
+}) {
+  if (skuId) {
+    return transferFgStock({
+      factoryId, organizationId, skuId, fromBinId, toBinId, quantity, userId,
+    });
+  }
+
+  const resolvedTo = toBinId;
+  if (!resolvedTo) throw new ConflictError('Destination bin (toBinId) required');
+  if (!materialId) throw new ConflictError('materialId or skuId required');
 
   const toBin = await getBin(resolvedTo, factoryId);
   await assertBinWarehouseType(toBin, 'RAW_MATERIAL');

@@ -3,6 +3,7 @@ import { tenantFields, auditFields } from '../../shared/utils/schema.js';
 
 const seasonSchema = new mongoose.Schema({
   ...tenantFields,
+  code: { type: String, trim: true },
   name: { type: String, required: true },
   year: { type: Number, required: true },
   startDate: Date,

@@ -1,6 +1,6 @@
 [
-  { "materialCode": "FAB-COT-001", "name": "Cotton Fabric White", "category": "FABRIC", "unit": "METERS", "unitCost": 120, "receiptQty": 500 },
-  { "materialCode": "BTN-001", "name": "Plastic Buttons 12mm", "category": "ACCESSORY", "unit": "PIECES", "unitCost": 2, "receiptQty": 2000 },
+  { "materialCode": "FAB-COT-001", "name": "Cotton Fabric White", "category": "FABRIC", "unit": "METERS", "unitCost": 120, "receiptQty": 2500 },
+  { "materialCode": "BTN-001", "name": "Plastic Buttons 12mm", "category": "ACCESSORY", "unit": "PIECES", "unitCost": 2, "receiptQty": 8000 },
   { "materialCode": "FAB-COT-002", "name": "Cotton Poplin Navy", "category": "FABRIC", "unit": "METERS", "unitCost": 135, "receiptQty": 400 },
   { "materialCode": "FAB-LIN-001", "name": "Linen Blend Natural", "category": "FABRIC", "unit": "METERS", "unitCost": 180, "receiptQty": 300 },
   { "materialCode": "FAB-POL-001", "name": "Polyester Microfiber", "category": "FABRIC", "unit": "METERS", "unitCost": 95, "receiptQty": 600 },

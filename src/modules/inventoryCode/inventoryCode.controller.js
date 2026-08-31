@@ -40,7 +40,11 @@ export const skuFormulaSchema = Joi.object({
 
 export async function listInventoryCodes(req, res, next) {
   try {
-    const { page, limit, skip } = paginate(req.query);
+    const catalog = req.query.catalog === 'true' || req.query.catalog === '1';
+    const requestedLimit = parseInt(String(req.query.limit || (catalog ? '2000' : '20')), 10);
+    const { page, limit, skip } = catalog || requestedLimit > 100
+      ? { page: 1, limit: Math.min(2000, Math.max(requestedLimit, 1)), skip: 0 }
+      : paginate(req.query);
     const activeOnly = req.query.active !== 'false' && req.query.active !== '0' && req.query.inactiveOnly !== 'true';
     const inactiveOnly = req.query.inactiveOnly === 'true';
     const { items, total } = await inventoryCodeService.listInventoryCodes({
@@ -52,6 +56,14 @@ export async function listInventoryCodes(req, res, next) {
       limit,
     });
     success(res, items, buildMeta(page, limit, total));
+  } catch (e) { next(e); }
+}
+
+export async function getInventoryCodeStats(req, res, next) {
+  try {
+    success(res, await inventoryCodeService.countInventoryCodesByType({
+      activeOnly: req.query.active !== 'false' && req.query.inactiveOnly !== 'true',
+    }));
   } catch (e) { next(e); }
 }
 

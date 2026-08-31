@@ -6,7 +6,32 @@ import { ProductionOrder } from '../../modules/production/productionOrder.model.
 import { Sample } from '../../modules/sampling/sample.model.js';
 import { Design } from '../../modules/design/design.model.js';
 import { WasteRecord } from '../../modules/waste/wasteRecord.model.js';
-import { safeSeed } from './seedHelpers.js';
+import { safeSeed, matrixSizeChartData } from './seedHelpers.js';
+
+/** Minimal pattern tech pack so sample material requirements can be generated. */
+function patternTechPackForSample(ctx) {
+  const { fabric, buttons } = ctx;
+  const update = {
+    marker: { length: 2.2, piecesPerMarker: 10, efficiencyPercent: 80 },
+    calculatedConsumption: { wastagePercent: 5, derivedFromMarker: true },
+    grading: { baseSize: 'M', gradedSizes: ['S', 'M', 'L', 'XL'], notes: 'Seed grading' },
+    sizeChartData: matrixSizeChartData(),
+  };
+  if (fabric && buttons) {
+    update.fabricConsumption = [{
+      materialId: fabric._id,
+      consumption: 2.42,
+      unit: 'METERS',
+      wastagePercent: 5,
+      fabricCost: fabric.unitCost,
+    }];
+    update.bomLines = [
+      { materialId: fabric._id, materialName: fabric.name, quantity: 2.42, unit: 'METERS', category: 'FABRIC' },
+      { materialId: buttons._id, materialName: buttons.name, quantity: 8, unit: 'PIECES', category: 'BUTTON' },
+    ];
+  }
+  return update;
+}
 
 /** GRN in DRAFT (submit QC modal) and PENDING_QC (incoming QC modal). */
 export async function seedPurchaseModalStates(ctx) {
@@ -239,31 +264,35 @@ export async function seedSampleHandoffStates(ctx) {
     const pmId = ctx.roleUsers.pattern?._id || admin._id;
 
     let pd = await PatternDevelopment.findOne({ factoryId: factory._id, designId: design._id, isDeleted: false });
+    const needsTechPack = !pd?.fabricConsumption?.length;
+
+    if (pd?.status === 'COMPLETED' && needsTechPack) {
+      await patternService.reopenPatternDevelopment(design._id, factory._id, pmId, {
+        reason: 'Seed — add tech pack for sample reserve modal',
+      });
+      pd = await PatternDevelopment.findOne({ factoryId: factory._id, designId: design._id, isDeleted: false });
+    }
+
     if (!pd) {
       await patternService.assignPatternMaster({
         designId: design._id,
         factoryId: factory._id,
         patternMasterId: pmId,
       }, admin._id);
+    }
+
+    if (!pd || pd.status !== 'COMPLETED' || needsTechPack) {
       await patternService.updatePatternDevelopment(design._id, factory._id, {
-        marker: { length: 2.2, piecesPerMarker: 10, efficiencyPercent: 80 },
-        calculatedConsumption: { wastagePercent: 5, derivedFromMarker: true },
-        grading: { baseSize: 'M', gradedSizes: ['S', 'M', 'L', 'XL'], notes: 'Seed grading' },
+        ...patternTechPackForSample(ctx),
+      }, pmId);
+      await patternService.updatePatternDevelopment(design._id, factory._id, {
         sizeChartVerified: true,
         consumptionVerified: true,
         sampleBomVerified: true,
       }, pmId);
-      await patternService.completePatternDevelopment(design._id, factory._id, pmId);
-    } else if (pd.status !== 'COMPLETED') {
-      await patternService.updatePatternDevelopment(design._id, factory._id, {
-        marker: { length: 2.2, piecesPerMarker: 10, efficiencyPercent: 80 },
-        calculatedConsumption: { wastagePercent: 5, derivedFromMarker: true },
-        grading: { baseSize: 'M', gradedSizes: ['S', 'M', 'L', 'XL'], notes: 'Seed grading' },
-        sizeChartVerified: true,
-        consumptionVerified: true,
-        sampleBomVerified: true,
-      }, pmId);
-      await patternService.completePatternDevelopment(design._id, factory._id, pmId);
+      if ((await PatternDevelopment.findOne({ factoryId: factory._id, designId: design._id, isDeleted: false }))?.status !== 'COMPLETED') {
+        await patternService.completePatternDevelopment(design._id, factory._id, pmId);
+      }
     }
 
     const sample = await sampleService.createSample({

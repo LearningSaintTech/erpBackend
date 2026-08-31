@@ -2,6 +2,7 @@ import { Material } from './material.model.js';
 import { InventoryBalance } from './inventoryBalance.model.js';
 import { StockReservation } from './stockReservation.model.js';
 import { InventoryTransaction } from './inventoryTransaction.model.js';
+import { Supplier } from '../purchase/supplier.model.js';
 import { NotFoundError, ConflictError, ValidationError } from '../../shared/errors/AppError.js';
 import { applySoftDeleteFilter } from '../../shared/utils/schema.js';
 import {
@@ -9,9 +10,51 @@ import {
   aggregateRmTotals,
   getOrCreateRmBalance,
 } from './inventoryStock.service.js';
+import { MATERIAL_CATEGORIES, MATERIAL_UNITS } from './inventory.defaults.js';
+import { MaterialMasterRequest } from './materialMasterRequest.model.js';
 
 function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function normalizeVendorKey(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/m\/s\s*/g, '')
+    .replace(/pvt\.?\s*ltd\.?/g, '')
+    .replace(/private\s+limited/g, '')
+    .replace(/hoisery/g, 'hosiery')
+    .replace(/texties/g, 'textiles')
+    .replace(/agarwal/g, 'aggarwal')
+    .replace(/darshini/g, 'darshni')
+    .replace(/deepanshi/g, 'dipanshi')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function slugCodePart(value, max = 18) {
+  return String(value || '')
+    .trim()
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toUpperCase()
+    .slice(0, max) || 'MAT';
+}
+
+function buildMaterialCode(row, index) {
+  if (row.materialCode?.trim()) return row.materialCode.trim().toUpperCase();
+  const prefix = row.category === 'FABRIC' ? 'FAB' : row.category === 'THREAD' ? 'THR' : 'RM';
+  return `${prefix}-${String(index + 1).padStart(3, '0')}-${slugCodePart(row.name)}`.slice(0, 40);
+}
+
+async function resolveSupplierId(factoryId, row, supplierByKey) {
+  if (row.supplierId) return row.supplierId;
+  const key = normalizeVendorKey(row.vendorName);
+  if (!key) return undefined;
+  if (supplierByKey.has(key)) return supplierByKey.get(key);
+  for (const [sKey, id] of supplierByKey.entries()) {
+    if (sKey.includes(key) || key.includes(sKey)) return id;
+  }
+  return undefined;
 }
 
 export async function createMaterial(data, userId) {
@@ -20,7 +63,92 @@ export async function createMaterial(data, userId) {
     materialCode: data.materialCode?.trim(),
   }));
   if (existing) throw new ConflictError(`Material code already exists: ${data.materialCode}`);
-  return Material.create({ ...data, createdBy: userId, updatedBy: userId });
+  const payload = { ...data, createdBy: userId, updatedBy: userId };
+  if (!payload.supplierId) delete payload.supplierId;
+  return Material.create(payload);
+}
+
+/**
+ * Bulk import materials from parsed spreadsheet rows.
+ * Skips duplicate materialCode; optionally posts openingQty as dock receipt.
+ */
+export async function bulkImportMaterials({ factoryId, organizationId, items, postOpeningStock = true }, userId) {
+  if (!Array.isArray(items) || !items.length) {
+    throw new ValidationError('No materials to import');
+  }
+
+  const suppliers = await Supplier.find(applySoftDeleteFilter({ factoryId })).select('_id name').lean();
+  const supplierByKey = new Map(suppliers.map((s) => [normalizeVendorKey(s.name), s._id]));
+
+  const existing = await Material.find(applySoftDeleteFilter({ factoryId })).select('materialCode name').lean();
+  const codeSet = new Set(existing.map((m) => m.materialCode.toUpperCase()));
+  const nameSet = new Set(existing.map((m) => m.name.trim().toLowerCase()));
+
+  const summary = {
+    total: items.length,
+    created: 0,
+    skipped: 0,
+    stockPosted: 0,
+    errors: [],
+  };
+
+  for (let i = 0; i < items.length; i += 1) {
+    const row = items[i];
+    const name = String(row.name || '').trim();
+    if (!name) {
+      summary.skipped += 1;
+      summary.errors.push({ row: i + 1, message: 'Missing name' });
+      continue;
+    }
+
+    const category = MATERIAL_CATEGORIES.includes(row.category) ? row.category : 'FABRIC';
+    const unit = MATERIAL_UNITS.includes(row.unit) ? row.unit : 'METERS';
+    const materialCode = buildMaterialCode({ ...row, category }, i);
+
+    if (codeSet.has(materialCode.toUpperCase()) || nameSet.has(name.toLowerCase())) {
+      summary.skipped += 1;
+      continue;
+    }
+
+    try {
+      const supplierId = await resolveSupplierId(factoryId, row, supplierByKey);
+      const material = await Material.create({
+        organizationId,
+        factoryId,
+        materialCode,
+        name,
+        category,
+        unit,
+        unitCost: Number(row.unitCost) || 0,
+        reorderLevel: Number(row.reorderLevel) || 0,
+        ...(supplierId ? { supplierId } : {}),
+        createdBy: userId,
+        updatedBy: userId,
+      });
+
+      codeSet.add(materialCode.toUpperCase());
+      nameSet.add(name.toLowerCase());
+      summary.created += 1;
+
+      const qty = Number(row.openingQty) || 0;
+      if (postOpeningStock && qty > 0) {
+        await receiptMaterial({
+          factoryId,
+          organizationId,
+          materialId: material._id,
+          quantity: qty,
+          unit,
+          userId,
+        });
+        summary.stockPosted += 1;
+      }
+    } catch (err) {
+      summary.skipped += 1;
+      summary.errors.push({ row: i + 1, name, message: err.message || 'Import failed' });
+    }
+  }
+
+  return summary;
 }
 
 export async function updateMaterial(id, factoryId, data, userId) {
@@ -68,7 +196,7 @@ export async function getMaterial(id, factoryId) {
 }
 
 export async function getInventoryStats(factoryId) {
-  const [materialCount, balanceCount, activeReservations, dockBalanceCount] = await Promise.all([
+  const [materialCount, balanceCount, activeReservations, dockBalanceCount, pendingMasterRequests] = await Promise.all([
     Material.countDocuments(applySoftDeleteFilter({ factoryId })),
     InventoryBalance.countDocuments({ factoryId, inventoryType: 'RAW_MATERIAL', isDeleted: false }),
     StockReservation.countDocuments({ factoryId, status: 'ACTIVE', isDeleted: false }),
@@ -79,6 +207,7 @@ export async function getInventoryStats(factoryId) {
       storageBinId: null,
       available: { $gt: 0 },
     }),
+    MaterialMasterRequest.countDocuments(applySoftDeleteFilter({ factoryId, status: 'PENDING' })),
   ]);
 
   const balances = await InventoryBalance.find({
@@ -127,6 +256,7 @@ export async function getInventoryStats(factoryId) {
     lowStock,
     outOfStock,
     activeReservations,
+    pendingMasterRequests,
   };
 }
 

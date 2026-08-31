@@ -1,6 +1,6 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { authMiddleware } from '../../middleware/auth.js';
-import { rbac } from '../../middleware/rbac.js';
+import { rbac, rbacAny } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/errorHandler.js';
 import * as ctrl from './inventoryCode.controller.js';
 
@@ -8,11 +8,20 @@ const router = Router();
 
 router.use(authMiddleware);
 
-router.get('/inventory-codes', rbac('inventory.read'), ctrl.listInventoryCodes);
-router.get('/inventory-codes/:id', rbac('inventory.read'), ctrl.getInventoryCode);
+router.get(
+  '/inventory-codes/stats',
+  rbacAny('inventory.read', 'design.read', 'pattern.read'),
+  ctrl.getInventoryCodeStats,
+);
+router.get(
+  '/inventory-codes',
+  rbacAny('inventory.read', 'design.read', 'pattern.read'),
+  ctrl.listInventoryCodes,
+);
+router.get('/inventory-codes/:id', rbacAny('inventory.read', 'design.read', 'pattern.read'), ctrl.getInventoryCode);
 router.post(
   '/inventory-codes',
-  rbac('inventory.configure'),
+  rbacAny('inventory.configure', 'design.create', 'design.update', 'pattern.update', 'pattern.create'),
   validate(ctrl.createCodeSchema),
   ctrl.createInventoryCode,
 );

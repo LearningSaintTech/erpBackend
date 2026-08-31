@@ -3,7 +3,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { InventoryCode } from './inventoryCode.model.js';
 import { SkuFormulaConfig, DEFAULT_SKU_SEGMENT_ORDER } from './skuFormulaConfig.model.js';
-import { NotFoundError } from '../../shared/errors/AppError.js';
+import { ConflictError, NotFoundError } from '../../shared/errors/AppError.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -25,6 +25,16 @@ export async function listInventoryCodes({
   return { items, total };
 }
 
+export async function countInventoryCodesByType({ activeOnly = true } = {}) {
+  const match = {};
+  if (activeOnly) match.isActive = true;
+  const rows = await InventoryCode.aggregate([
+    { $match: match },
+    { $group: { _id: '$type', count: { $sum: 1 } } },
+  ]);
+  return Object.fromEntries(rows.map((r) => [r._id, r.count]));
+}
+
 export async function getInventoryCode(id) {
   const doc = await InventoryCode.findById(id);
   if (!doc) throw new NotFoundError('Inventory code not found');
@@ -32,12 +42,21 @@ export async function getInventoryCode(id) {
 }
 
 export async function createInventoryCode(data) {
-  return InventoryCode.create({
-    ...data,
-    code: data.code?.trim(),
-    name: data.name?.trim(),
-    updatedAt: new Date(),
-  });
+  const code = data.code?.trim();
+  const name = data.name?.trim();
+  try {
+    return await InventoryCode.create({
+      ...data,
+      code,
+      name,
+      updatedAt: new Date(),
+    });
+  } catch (err) {
+    if (err?.code === 11000) {
+      throw new ConflictError(`Code "${code}" already exists for this type`);
+    }
+    throw err;
+  }
 }
 
 export async function updateInventoryCode(id, data) {

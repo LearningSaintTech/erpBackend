@@ -8,6 +8,7 @@ const cycleCountSchema = new mongoose.Schema({
   status: { type: String, enum: ['DRAFT', 'IN_PROGRESS', 'COMPLETED'], default: 'DRAFT' },
   lines: [{
     materialId: { type: mongoose.Schema.Types.ObjectId, ref: 'Material' },
+    skuId: { type: mongoose.Schema.Types.ObjectId, ref: 'Sku' },
     systemQty: Number,
     countedQty: Number,
     variance: Number,

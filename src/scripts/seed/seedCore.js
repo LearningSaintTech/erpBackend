@@ -31,7 +31,7 @@ async function seedInventoryCatalog() {
 }
 
 async function seedSuperAdmin() {
-  let superAdmin = await User.findOne({ email: 'superadmin@erp.local', isSuperAdmin: true });
+  let superAdmin = await User.findOne({ email: 'superadmin@erp.local' });
   if (!superAdmin) {
     superAdmin = await User.create({
       email: 'superadmin@erp.local',
@@ -42,6 +42,10 @@ async function seedSuperAdmin() {
       status: 'ACTIVE',
     });
     console.log('Created super admin: superadmin@erp.local / SuperAdmin@123');
+  } else if (!superAdmin.isSuperAdmin) {
+    superAdmin.isSuperAdmin = true;
+    superAdmin.status = 'ACTIVE';
+    await superAdmin.save();
   }
   return superAdmin;
 }
@@ -119,16 +123,22 @@ async function seedDemoUsers(org, factory, superAdmin, roleMap) {
     const password = spec.password || DEMO_ROLE_PASSWORD;
     let user = await User.findOne({ email: spec.email });
     if (!user) {
-      user = await User.create({
-        organizationId: org._id,
-        email: spec.email,
-        passwordHash: await User.hashPassword(password),
-        firstName: spec.firstName,
-        lastName: spec.lastName,
-        status: 'ACTIVE',
-        createdBy: superAdmin._id,
-      });
-      created += 1;
+      try {
+        user = await User.create({
+          organizationId: org._id,
+          email: spec.email,
+          passwordHash: await User.hashPassword(password),
+          firstName: spec.firstName,
+          lastName: spec.lastName,
+          status: 'ACTIVE',
+          createdBy: superAdmin._id,
+        });
+        created += 1;
+      } catch (err) {
+        if (err.code !== 11000) throw err;
+        user = await User.findOne({ email: spec.email });
+        if (!user) throw err;
+      }
     }
     const role = roleMap.get(spec.roleCode);
     if (!role) throw new Error(`Role not found: ${spec.roleCode}`);

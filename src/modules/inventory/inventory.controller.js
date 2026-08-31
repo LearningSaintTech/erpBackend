@@ -1,5 +1,6 @@
 import Joi from 'joi';
 import * as inventoryService from './inventory.service.js';
+import * as materialMasterRequestService from './materialMasterRequest.service.js';
 import { success, paginate, buildMeta } from '../../shared/utils/response.js';
 import {
   MATERIAL_CATEGORIES, MATERIAL_UNITS, INVENTORY_TYPES, TRANSACTION_TYPES,
@@ -13,6 +14,24 @@ export const createMaterialSchema = Joi.object({
     unit: Joi.string().valid(...MATERIAL_UNITS),
     unitCost: Joi.number().min(0),
     reorderLevel: Joi.number().min(0),
+    supplierId: Joi.string().allow('', null),
+  }),
+});
+
+export const bulkImportMaterialsSchema = Joi.object({
+  body: Joi.object({
+    postOpeningStock: Joi.boolean().default(true),
+    items: Joi.array().items(Joi.object({
+      materialCode: Joi.string().trim().min(2),
+      name: Joi.string().trim().min(2).required(),
+      category: Joi.string().valid(...MATERIAL_CATEGORIES),
+      unit: Joi.string().valid(...MATERIAL_UNITS),
+      unitCost: Joi.number().min(0),
+      reorderLevel: Joi.number().min(0),
+      openingQty: Joi.number().min(0),
+      vendorName: Joi.string().allow(''),
+      supplierId: Joi.string().allow('', null),
+    })).min(1).max(2000).required(),
   }),
 });
 
@@ -24,6 +43,7 @@ export const updateMaterialSchema = Joi.object({
     unit: Joi.string().valid(...MATERIAL_UNITS),
     unitCost: Joi.number().min(0),
     reorderLevel: Joi.number().min(0),
+    supplierId: Joi.string().allow('', null),
   }).min(1),
 });
 
@@ -65,6 +85,35 @@ export const releaseSchema = Joi.object({
   }),
 });
 
+export const createMaterialMasterRequestSchema = Joi.object({
+  body: Joi.object({
+    name: Joi.string().trim().min(2).required(),
+    proposedCode: Joi.string().trim().allow('', null),
+    category: Joi.string().valid(...MATERIAL_CATEGORIES),
+    unit: Joi.string().valid(...MATERIAL_UNITS),
+    unitCost: Joi.number().min(0),
+    notes: Joi.string().allow('', null),
+    designId: Joi.string().hex().length(24).required(),
+  }),
+});
+
+export const approveMaterialMasterRequestSchema = Joi.object({
+  body: Joi.object({
+    name: Joi.string().trim().min(2),
+    materialCode: Joi.string().trim().min(2),
+    category: Joi.string().valid(...MATERIAL_CATEGORIES),
+    unit: Joi.string().valid(...MATERIAL_UNITS),
+    unitCost: Joi.number().min(0),
+    reviewNotes: Joi.string().allow('', null),
+  }),
+});
+
+export const rejectMaterialMasterRequestSchema = Joi.object({
+  body: Joi.object({
+    reviewNotes: Joi.string().allow('', null),
+  }),
+});
+
 export async function catalog(req, res, next) {
   try {
     success(res, {
@@ -90,6 +139,18 @@ export async function createMaterial(req, res, next) {
       organizationId: req.user.organizationId,
     }, req.user._id);
     success(res, material, null, 201);
+  } catch (e) { next(e); }
+}
+
+export async function bulkImportMaterials(req, res, next) {
+  try {
+    const result = await inventoryService.bulkImportMaterials({
+      factoryId: req.factoryId,
+      organizationId: req.user.organizationId,
+      items: req.body.items,
+      postOpeningStock: req.body.postOpeningStock !== false,
+    }, req.user._id);
+    success(res, result, null, 201);
   } catch (e) { next(e); }
 }
 
@@ -212,5 +273,59 @@ export async function releaseReservations(req, res, next) {
       userId: req.user._id,
     });
     success(res, { released: count });
+  } catch (e) { next(e); }
+}
+
+function canSeeAllMasterRequests(req) {
+  const perms = req.permissions || [];
+  return req.user?.isSuperAdmin || perms.includes('*') || perms.includes('inventory.read');
+}
+
+export async function listMaterialMasterRequests(req, res, next) {
+  try {
+    const { page, limit, skip } = paginate(req.query);
+    const { items, total } = await materialMasterRequestService.listMaterialMasterRequests(req.factoryId, {
+      page, limit, skip,
+      status: req.query.status,
+      designId: req.query.designId,
+      canSeeAll: canSeeAllMasterRequests(req),
+      userId: req.user._id,
+    });
+    success(res, items, buildMeta(page, limit, total));
+  } catch (e) { next(e); }
+}
+
+export async function createMaterialMasterRequest(req, res, next) {
+  try {
+    const request = await materialMasterRequestService.createMaterialMasterRequest({
+      ...req.body,
+      factoryId: req.factoryId,
+      organizationId: req.user.organizationId,
+    }, req.user._id);
+    success(res, request, null, 201);
+  } catch (e) { next(e); }
+}
+
+export async function approveMaterialMasterRequest(req, res, next) {
+  try {
+    const request = await materialMasterRequestService.approveMaterialMasterRequest(
+      req.params.id,
+      req.factoryId,
+      req.body || {},
+      req.user._id,
+    );
+    success(res, request);
+  } catch (e) { next(e); }
+}
+
+export async function rejectMaterialMasterRequest(req, res, next) {
+  try {
+    const request = await materialMasterRequestService.rejectMaterialMasterRequest(
+      req.params.id,
+      req.factoryId,
+      req.body || {},
+      req.user._id,
+    );
+    success(res, request);
   } catch (e) { next(e); }
 }

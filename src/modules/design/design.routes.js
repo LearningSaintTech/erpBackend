@@ -8,8 +8,7 @@ import { ForbiddenError } from '../../shared/errors/AppError.js';
 import { success, paginate, buildMeta } from '../../shared/utils/response.js';
 import * as designService from './design.service.js';
 import {
-  DESIGN_CATEGORIES, DESIGN_FITS, DESIGN_GENDERS, DESIGN_AGE_GROUPS,
-  ACCESSORY_TYPES, COLOR_VARIANT_STATUSES, PRODUCTION_PRIORITIES, DESIGN_ASSET_TYPES,
+  COLOR_VARIANT_STATUSES, DESIGN_ASSET_TYPES,
 } from '../../config/designLookups.js';
 
 const router = Router();
@@ -36,16 +35,11 @@ function forbidDesignAuthorReview(req, _res, next) {
   return next();
 }
 
+/** Design intent only — fabric technicals, wash care and ironing live on the pattern. */
 const productSpecsSchema = Joi.object({
   material: Joi.string().allow(''),
-  fabricGsm: Joi.number().min(0).allow(null),
-  fabricWidth: Joi.string().allow(''),
-  fabricFinish: Joi.string().allow(''),
-  shrinkagePercent: Joi.number().min(0).allow(null),
   printingType: Joi.string().allow(''),
   embroidery: Joi.boolean(),
-  washCare: Joi.string().allow(''),
-  ironing: Joi.string().allow(''),
 });
 
 const colorVariantSchema = Joi.object({
@@ -65,32 +59,6 @@ const colorVariantSchema = Joi.object({
   })),
 });
 
-const fabricConsumptionSchema = Joi.object({
-  materialId: Joi.string().required(),
-  color: Joi.string().allow(''),
-  gsm: Joi.number().min(0).allow(null),
-  consumption: Joi.number().min(0),
-  unit: Joi.string(),
-  wastagePercent: Joi.number().min(0).max(100),
-  supplierName: Joi.string().allow(''),
-  fabricCost: Joi.number().min(0),
-  leadTimeDays: Joi.number().min(0).allow(null),
-  minOrderQty: Joi.number().min(0).allow(null),
-  approvedVendor: Joi.boolean(),
-});
-
-const accessorySchema = Joi.object({
-  accessoryType: Joi.string().valid(...ACCESSORY_TYPES).allow(''),
-  materialId: Joi.string().allow(''),
-  color: Joi.string().allow(''),
-  size: Joi.string().allow(''),
-  supplierName: Joi.string().allow(''),
-  consumption: Joi.number().min(0),
-  unit: Joi.string().allow(''),
-  unitCost: Joi.number().min(0),
-  approved: Joi.boolean(),
-});
-
 const sizeChartDataSchema = Joi.object({
   unit: Joi.string(),
   sizeLabels: Joi.array().items(Joi.string()),
@@ -100,77 +68,25 @@ const sizeChartDataSchema = Joi.object({
   })),
 });
 
-const bomLineSchema = Joi.object({
-  materialId: Joi.string().allow(''),
-  materialName: Joi.string().allow(''),
-  quantity: Joi.number().min(0),
-  unit: Joi.string().allow(''),
-  category: Joi.string().allow(''),
-  notes: Joi.string().allow(''),
-});
-
-const costingSchema = Joi.object({
-  fabricCost: Joi.number().min(0),
-  accessoriesCost: Joi.number().min(0),
-  printingCost: Joi.number().min(0),
-  embroideryCost: Joi.number().min(0),
-  laborCost: Joi.number().min(0),
-  packingCost: Joi.number().min(0),
-  overhead: Joi.number().min(0),
-  profitPercent: Joi.number().min(0),
-  expectedSellingPrice: Joi.number().min(0),
-  actualCost: Joi.number(),
-  margin: Joi.number(),
-});
-
-const productionInfoSchema = Joi.object({
-  sampleRequired: Joi.boolean(),
-  sampleDeadline: Joi.date().allow(null),
-  productionLineId: Joi.string().allow(null, ''),
-  expectedProductionQty: Joi.number().min(0).allow(null),
-  productionPriority: Joi.string().valid(...PRODUCTION_PRIORITIES),
-  remarks: Joi.string().allow(''),
-});
-
-const qualityNotesSchema = Joi.object({
-  allowedDefects: Joi.string().allow(''),
-  colorTolerance: Joi.string().allow(''),
-  shrinkagePercent: Joi.number().min(0).allow(null),
-  measurementTolerance: Joi.string().allow(''),
-  checklist: Joi.array().items(Joi.object({
-    item: Joi.string().required(),
-    required: Joi.boolean(),
-  })),
-});
-
-const manufacturingNotesSchema = Joi.object({
-  specialStitch: Joi.string().allow(''),
-  needleType: Joi.string().allow(''),
-  machineType: Joi.string().allow(''),
-  threadColor: Joi.string().allow(''),
-  packingInstructions: Joi.string().allow(''),
-  foldingInstructions: Joi.string().allow(''),
-  ironInstructions: Joi.string().allow(''),
-  barcodePosition: Joi.string().allow(''),
-  labelPosition: Joi.string().allow(''),
-});
-
 const designBodySchema = Joi.object({
   title: Joi.string().required(),
   description: Joi.string().allow(''),
   skuPrefix: Joi.string().allow(''),
   styleNumber: Joi.string().allow(''),
-  category: Joi.string().valid(...DESIGN_CATEGORIES).allow(''),
-  subCategory: Joi.string().allow(''),
-  gender: Joi.string().valid(...DESIGN_GENDERS).allow(''),
-  ageGroup: Joi.string().valid(...DESIGN_AGE_GROUPS).allow(''),
-  fit: Joi.string().valid(...DESIGN_FITS).allow(''),
-  sleeveType: Joi.string().allow(''),
-  neckType: Joi.string().allow(''),
-  pattern: Joi.string().allow(''),
-  occasion: Joi.string().allow(''),
+  category: Joi.string().max(40).allow(''),
+  subCategory: Joi.string().max(40).allow(''),
+  section: Joi.string().max(40).allow(''),
+  gender: Joi.string().max(40).allow(''),
+  ageGroup: Joi.string().max(40).allow(''),
+  fit: Joi.string().max(40).allow(''),
+  sleeveType: Joi.string().max(40).allow(''),
+  neckType: Joi.string().max(40).allow(''),
+  pattern: Joi.string().max(40).allow(''),
+  occasion: Joi.string().max(40).allow(''),
   tags: Joi.array().items(Joi.string()),
-  collectionId: Joi.string().required(),
+  collectionCode: Joi.string().max(40).allow(''),
+  seasonCode: Joi.string().max(40).allow(''),
+  collectionId: Joi.string().allow('', null),
   seasonId: Joi.string().allow(null, ''),
   sizeChartId: Joi.string().allow(null, ''),
   sizeChartData: sizeChartDataSchema,
@@ -178,13 +94,6 @@ const designBodySchema = Joi.object({
   currency: Joi.string().default('INR'),
   productSpecs: productSpecsSchema,
   colorVariants: Joi.array().items(colorVariantSchema),
-  fabricConsumption: Joi.array().items(fabricConsumptionSchema),
-  accessories: Joi.array().items(accessorySchema),
-  bomLines: Joi.array().items(bomLineSchema),
-  costing: costingSchema,
-  productionInfo: productionInfoSchema,
-  qualityNotes: qualityNotesSchema,
-  manufacturingNotes: manufacturingNotesSchema,
 });
 
 const createSchema = Joi.object({ body: designBodySchema });
@@ -204,6 +113,12 @@ const reviewCommentsSchema = Joi.object({
   body: Joi.object({
     comments: Joi.string().trim().min(3).required(),
   }),
+});
+
+const releaseSchema = Joi.object({
+  body: Joi.object({
+    patternMasterId: Joi.string().hex().length(24).empty(['', null]),
+  }).default({}),
 });
 
 router.get('/designs/stats', rbac('design.read'), async (req, res, next) => {
@@ -316,9 +231,11 @@ router.post('/designs/:id/revision', rbac('design.approve'), forbidDesignAuthorR
   } catch (e) { next(e); }
 });
 
-router.post('/designs/:id/release', rbac('design.approve'), forbidDesignAuthorReview, async (req, res, next) => {
+router.post('/designs/:id/release', rbac('design.approve'), forbidDesignAuthorReview, validate(releaseSchema), async (req, res, next) => {
   try {
-    success(res, await designService.releaseDesign(req.params.id, req.user._id));
+    success(res, await designService.releaseDesign(req.params.id, req.user._id, {
+      patternMasterId: req.body?.patternMasterId,
+    }));
   } catch (e) { next(e); }
 });
 

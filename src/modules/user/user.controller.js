@@ -96,6 +96,7 @@ export async function listUsers(req, res, next) {
       skip,
       status: req.query.status,
       search: req.query.search,
+      factoryId: req.factoryId,
     });
     return success(res, items, buildMeta(page, limit, total));
   } catch (err) {

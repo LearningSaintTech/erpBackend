@@ -4,6 +4,7 @@ import { Design } from '../design/design.model.js';
 import { Sample } from '../sampling/sample.model.js';
 import { Material } from '../inventory/material.model.js';
 import * as mrpService from '../mrp/mrp.service.js';
+import { getPatternTechPack } from '../pattern/pattern.service.js';
 import { NotFoundError, ConflictError, ValidationError } from '../../shared/errors/AppError.js';
 import { applySoftDeleteFilter } from '../../shared/utils/schema.js';
 import { BOM_EDITABLE_STATUSES, BOM_APPROVABLE_STATUSES } from './bom.defaults.js';
@@ -62,24 +63,42 @@ export async function suggestBomLines(skuId, factoryId) {
   const design = sku.designId
     ? await Design.findOne(applySoftDeleteFilter({ _id: sku.designId, factoryId }))
     : null;
+  const techPack = design
+    ? await getPatternTechPack(design._id, factoryId)
+    : null;
 
   const lines = [];
-  const source = design?.bomLines?.length ? 'design_bom' : 'sample_materials';
+  const source = techPack?.bomLines?.length || techPack?.fabricConsumption?.length
+    ? 'pattern_bom'
+    : 'sample_materials';
+  const seen = new Set();
 
-  if (design?.bomLines?.length) {
-    for (const line of design.bomLines) {
-      if (!line.materialId || !line.quantity) continue;
-      const mat = await Material.findById(line.materialId);
-      lines.push({
-        materialId: line.materialId,
-        materialCategory: line.category || mat?.category,
-        quantityPerPiece: line.quantity,
-        unit: line.unit || mat?.unit || 'PIECES',
-        wastagePercent: 0,
-        unitCost: mat?.unitCost ?? 0,
-        materialCode: mat?.materialCode,
-        materialName: mat?.name || line.materialName,
-      });
+  async function pushLine(materialId, quantityPerPiece, unit, wastagePercent, fallbackName, fallbackCost) {
+    if (!materialId || seen.has(String(materialId))) return;
+    if (!(Number(quantityPerPiece) > 0)) return;
+    seen.add(String(materialId));
+    const mat = await Material.findById(materialId);
+    lines.push({
+      materialId,
+      materialCategory: mat?.category,
+      quantityPerPiece: quantityPerPiece || 0,
+      unit: unit || mat?.unit || 'PIECES',
+      wastagePercent: wastagePercent ?? 0,
+      unitCost: mat?.unitCost ?? fallbackCost ?? 0,
+      materialCode: mat?.materialCode,
+      materialName: mat?.name || fallbackName,
+    });
+  }
+
+  if (techPack?.fabricConsumption?.length) {
+    for (const line of techPack.fabricConsumption) {
+      await pushLine(line.materialId, line.consumption, line.unit, line.wastagePercent, undefined, line.fabricCost);
+    }
+  }
+
+  if (techPack?.bomLines?.length) {
+    for (const line of techPack.bomLines) {
+      await pushLine(line.materialId, line.quantity, line.unit, 0, line.materialName);
     }
   }
 
@@ -142,7 +161,7 @@ export async function createBom({ skuId, factoryId, organizationId, lines, fromD
     bomLines = suggestion.lines;
   }
   if (!bomLines?.length) {
-    throw new ValidationError('BOM lines are required — add materials or complete design BOM tab');
+    throw new ValidationError('BOM lines are required — add materials or fill the BOM on the pattern');
   }
 
   const normalizedLines = await assertMaterials(bomLines, factoryId);

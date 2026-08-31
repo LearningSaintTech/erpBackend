@@ -143,6 +143,7 @@ export const SYSTEM_ROLES = [
     permissions: p(
       'factory.read',
       'design.create', 'design.read', 'design.update',
+      'inventory.read',
       ...notify,
     ),
   },
@@ -167,7 +168,7 @@ export const SYSTEM_ROLES = [
       ...factoryRead,
       'design.read',
       'inventory.read',
-      'sampling.create', 'sampling.read',
+      'sampling.create', 'sampling.read', 'sampling.update',
       ...notify,
     ),
   },
@@ -246,6 +247,7 @@ export const SYSTEM_ROLES = [
     permissions: p(
       ...factoryRead,
       'quality.create', 'quality.read', 'quality.update',
+      'sampling.read',
       'waste.create', 'waste.read',
       'batch.read',
       ...notify,

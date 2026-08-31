@@ -1318,5 +1318,1261 @@
     "sortOrder": 0,
     "isActive": true,
     "remarks": ""
+  },
+  {
+    "type": "SUB_CATEGORY",
+    "code": "FORMAL",
+    "name": "Formal",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SUB_CATEGORY",
+    "code": "CASUAL",
+    "name": "Casual",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SUB_CATEGORY",
+    "code": "PARTY",
+    "name": "Party",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SUB_CATEGORY",
+    "code": "ETHNIC",
+    "name": "Ethnic",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SUB_CATEGORY",
+    "code": "WESTERN",
+    "name": "Western",
+    "sortOrder": 5,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SUB_CATEGORY",
+    "code": "SPORTS",
+    "name": "Sportswear",
+    "sortOrder": 6,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SUB_CATEGORY",
+    "code": "LOUNGE",
+    "name": "Lounge",
+    "sortOrder": 7,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SUB_CATEGORY",
+    "code": "RESORT",
+    "name": "Resort",
+    "sortOrder": 8,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SUB_CATEGORY",
+    "code": "WORK",
+    "name": "Workwear",
+    "sortOrder": 9,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SUB_CATEGORY",
+    "code": "BRIDAL",
+    "name": "Bridal",
+    "sortOrder": 10,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SIZE",
+    "code": "XS",
+    "name": "XS",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SIZE",
+    "code": "S",
+    "name": "S",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SIZE",
+    "code": "M",
+    "name": "M",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SIZE",
+    "code": "L",
+    "name": "L",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SIZE",
+    "code": "XL",
+    "name": "XL",
+    "sortOrder": 5,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SIZE",
+    "code": "XXL",
+    "name": "XXL",
+    "sortOrder": 6,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SIZE",
+    "code": "XXXL",
+    "name": "XXXL",
+    "sortOrder": 7,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SIZE",
+    "code": "28",
+    "name": "28",
+    "sortOrder": 8,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SIZE",
+    "code": "30",
+    "name": "30",
+    "sortOrder": 9,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SIZE",
+    "code": "32",
+    "name": "32",
+    "sortOrder": 10,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SIZE",
+    "code": "34",
+    "name": "34",
+    "sortOrder": 11,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SIZE",
+    "code": "36",
+    "name": "36",
+    "sortOrder": 12,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SIZE",
+    "code": "38",
+    "name": "38",
+    "sortOrder": 13,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SIZE",
+    "code": "40",
+    "name": "40",
+    "sortOrder": 14,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SIZE",
+    "code": "42",
+    "name": "42",
+    "sortOrder": 15,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SIZE",
+    "code": "FREE",
+    "name": "Free size",
+    "sortOrder": 16,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "GENDER",
+    "code": "MEN",
+    "name": "Men",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "GENDER",
+    "code": "WOMEN",
+    "name": "Women",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "GENDER",
+    "code": "UNISEX",
+    "name": "Unisex",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "GENDER",
+    "code": "BOYS",
+    "name": "Boys",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "GENDER",
+    "code": "GIRLS",
+    "name": "Girls",
+    "sortOrder": 5,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "GENDER",
+    "code": "KIDS",
+    "name": "Kids",
+    "sortOrder": 6,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "AGE_GROUP",
+    "code": "INFANT",
+    "name": "Infant",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "AGE_GROUP",
+    "code": "TODDLER",
+    "name": "Toddler",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "AGE_GROUP",
+    "code": "KIDS",
+    "name": "Kids",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "AGE_GROUP",
+    "code": "TEEN",
+    "name": "Teen",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "AGE_GROUP",
+    "code": "ADULT",
+    "name": "Adult",
+    "sortOrder": 5,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "AGE_GROUP",
+    "code": "SENIOR",
+    "name": "Senior",
+    "sortOrder": 6,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SLEEVE",
+    "code": "FULL",
+    "name": "Full sleeve",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SLEEVE",
+    "code": "HALF",
+    "name": "Half sleeve",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SLEEVE",
+    "code": "34",
+    "name": "Three-quarter",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SLEEVE",
+    "code": "SLVLS",
+    "name": "Sleeveless",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SLEEVE",
+    "code": "CAP",
+    "name": "Cap sleeve",
+    "sortOrder": 5,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SLEEVE",
+    "code": "BELL",
+    "name": "Bell sleeve",
+    "sortOrder": 6,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SLEEVE",
+    "code": "PUFF",
+    "name": "Puff sleeve",
+    "sortOrder": 7,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "NECK",
+    "code": "ROUND",
+    "name": "Round neck",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "NECK",
+    "code": "V",
+    "name": "V-neck",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "NECK",
+    "code": "COLLAR",
+    "name": "Collar",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "NECK",
+    "code": "MAND",
+    "name": "Mandarin",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "NECK",
+    "code": "HALTER",
+    "name": "Halter",
+    "sortOrder": 5,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "NECK",
+    "code": "BOAT",
+    "name": "Boat neck",
+    "sortOrder": 6,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "NECK",
+    "code": "TURTLE",
+    "name": "Turtle neck",
+    "sortOrder": 7,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "NECK",
+    "code": "SQUARE",
+    "name": "Square neck",
+    "sortOrder": 8,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "PATTERN",
+    "code": "SOLID",
+    "name": "Solid",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "PATTERN",
+    "code": "STRIPE",
+    "name": "Stripe",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "PATTERN",
+    "code": "CHECK",
+    "name": "Check",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "PATTERN",
+    "code": "PRINT",
+    "name": "Print",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "PATTERN",
+    "code": "FLORAL",
+    "name": "Floral",
+    "sortOrder": 5,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "PATTERN",
+    "code": "ABSTRACT",
+    "name": "Abstract",
+    "sortOrder": 6,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "PATTERN",
+    "code": "EMB",
+    "name": "Embroidered",
+    "sortOrder": 7,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "OCCASION",
+    "code": "CASUAL",
+    "name": "Casual",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "OCCASION",
+    "code": "FORMAL",
+    "name": "Formal",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "OCCASION",
+    "code": "PARTY",
+    "name": "Party",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "OCCASION",
+    "code": "FESTIVE",
+    "name": "Festive",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "OCCASION",
+    "code": "WORK",
+    "name": "Work",
+    "sortOrder": 5,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "OCCASION",
+    "code": "WEDDING",
+    "name": "Wedding",
+    "sortOrder": 6,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "OCCASION",
+    "code": "RESORT",
+    "name": "Resort",
+    "sortOrder": 7,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MATERIAL",
+    "code": "CTN",
+    "name": "Cotton",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MATERIAL",
+    "code": "POLY",
+    "name": "Polyester",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MATERIAL",
+    "code": "LINEN",
+    "name": "Linen",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MATERIAL",
+    "code": "SILK",
+    "name": "Silk",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MATERIAL",
+    "code": "WOOL",
+    "name": "Wool",
+    "sortOrder": 5,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MATERIAL",
+    "code": "DENIM",
+    "name": "Denim",
+    "sortOrder": 6,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MATERIAL",
+    "code": "VIS",
+    "name": "Viscose",
+    "sortOrder": 7,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MATERIAL",
+    "code": "RAYON",
+    "name": "Rayon",
+    "sortOrder": 8,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MATERIAL",
+    "code": "NYL",
+    "name": "Nylon",
+    "sortOrder": 9,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MATERIAL",
+    "code": "BLEND",
+    "name": "Blend",
+    "sortOrder": 10,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "PRINTING_TYPE",
+    "code": "SCREEN",
+    "name": "Screen print",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "PRINTING_TYPE",
+    "code": "DIGITAL",
+    "name": "Digital print",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "PRINTING_TYPE",
+    "code": "BLOCK",
+    "name": "Block print",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "PRINTING_TYPE",
+    "code": "EMB",
+    "name": "Embroidery",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "PRINTING_TYPE",
+    "code": "SUB",
+    "name": "Sublimation",
+    "sortOrder": 5,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "PRINTING_TYPE",
+    "code": "FOIL",
+    "name": "Foil",
+    "sortOrder": 6,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "PRINTING_TYPE",
+    "code": "NONE",
+    "name": "None",
+    "sortOrder": 7,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "TAG",
+    "code": "SUMMER",
+    "name": "Summer",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "TAG",
+    "code": "PREM",
+    "name": "Premium",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "TAG",
+    "code": "COTTON",
+    "name": "Cotton",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "TAG",
+    "code": "EXPORT",
+    "name": "Export",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "TAG",
+    "code": "KIDS",
+    "name": "Kids",
+    "sortOrder": 5,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "TAG",
+    "code": "FORMAL",
+    "name": "Formal",
+    "sortOrder": 6,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "TAG",
+    "code": "CASUAL",
+    "name": "Casual",
+    "sortOrder": 7,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "TAG",
+    "code": "WINTER",
+    "name": "Winter",
+    "sortOrder": 8,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "TAG",
+    "code": "ECO",
+    "name": "Eco",
+    "sortOrder": 9,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "TAG",
+    "code": "LTD",
+    "name": "Limited",
+    "sortOrder": 10,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CURRENCY",
+    "code": "INR",
+    "name": "INR",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CURRENCY",
+    "code": "USD",
+    "name": "USD",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CURRENCY",
+    "code": "EUR",
+    "name": "EUR",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CURRENCY",
+    "code": "GBP",
+    "name": "GBP",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "CURRENCY",
+    "code": "AED",
+    "name": "AED",
+    "sortOrder": 5,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLLECTION",
+    "code": "SS26",
+    "name": "Spring Summer 2026",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLLECTION",
+    "code": "AW26",
+    "name": "Autumn Winter 2026",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLLECTION",
+    "code": "CORE",
+    "name": "Core",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLLECTION",
+    "code": "ESS",
+    "name": "Essentials",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "COLLECTION",
+    "code": "HOL",
+    "name": "Holiday",
+    "sortOrder": 5,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SEASON",
+    "code": "SUMMER",
+    "name": "Summer",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SEASON",
+    "code": "WINTER",
+    "name": "Winter",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SEASON",
+    "code": "SPRING",
+    "name": "Spring",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SEASON",
+    "code": "AUTUMN",
+    "name": "Autumn",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SEASON",
+    "code": "MONSOON",
+    "name": "Monsoon",
+    "sortOrder": 5,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "SEASON",
+    "code": "RESORT",
+    "name": "Resort",
+    "sortOrder": 6,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "UNIT",
+    "code": "CM",
+    "name": "cm",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "UNIT",
+    "code": "IN",
+    "name": "in",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "UNIT",
+    "code": "M",
+    "name": "m",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "UNIT",
+    "code": "YD",
+    "name": "Yard",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "UNIT",
+    "code": "PC",
+    "name": "pc",
+    "sortOrder": 5,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "UNIT",
+    "code": "PIECES",
+    "name": "Pieces",
+    "sortOrder": 6,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "UNIT",
+    "code": "METERS",
+    "name": "Meters",
+    "sortOrder": 7,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "UNIT",
+    "code": "KG",
+    "name": "kg",
+    "sortOrder": 8,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "UNIT",
+    "code": "CONE",
+    "name": "Cone",
+    "sortOrder": 9,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "ACCESSORY",
+    "code": "BUTTON",
+    "name": "Button",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "ACCESSORY",
+    "code": "ZIPPER",
+    "name": "Zipper",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "ACCESSORY",
+    "code": "LABEL",
+    "name": "Label",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "ACCESSORY",
+    "code": "THREAD",
+    "name": "Thread",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "ACCESSORY",
+    "code": "ELASTIC",
+    "name": "Elastic",
+    "sortOrder": 5,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "ACCESSORY",
+    "code": "HOOK",
+    "name": "Hook",
+    "sortOrder": 6,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "ACCESSORY",
+    "code": "TAG",
+    "name": "Hangtag",
+    "sortOrder": 7,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "ACCESSORY",
+    "code": "OTHER",
+    "name": "Other",
+    "sortOrder": 8,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FABRIC_FINISH",
+    "code": "BIO",
+    "name": "Bio wash",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FABRIC_FINISH",
+    "code": "ENZYME",
+    "name": "Enzyme",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FABRIC_FINISH",
+    "code": "PEACH",
+    "name": "Peach",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FABRIC_FINISH",
+    "code": "MERC",
+    "name": "Mercerized",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "FABRIC_FINISH",
+    "code": "NONE",
+    "name": "None",
+    "sortOrder": 5,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MATERIAL_GROUP",
+    "code": "FABRIC",
+    "name": "Fabric",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MATERIAL_GROUP",
+    "code": "TRIM",
+    "name": "Trim",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MATERIAL_GROUP",
+    "code": "PACKING",
+    "name": "Packing",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MATERIAL_GROUP",
+    "code": "THREAD",
+    "name": "Thread",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MATERIAL_GROUP",
+    "code": "INTERLINING",
+    "name": "Interlining",
+    "sortOrder": 5,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MEASUREMENT",
+    "code": "CHEST",
+    "name": "Chest",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MEASUREMENT",
+    "code": "WAIST",
+    "name": "Waist",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MEASUREMENT",
+    "code": "HIP",
+    "name": "Hip",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MEASUREMENT",
+    "code": "SHOULDER",
+    "name": "Shoulder",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MEASUREMENT",
+    "code": "SLEEVE",
+    "name": "Sleeve",
+    "sortOrder": 5,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MEASUREMENT",
+    "code": "LENGTH",
+    "name": "Length",
+    "sortOrder": 6,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MEASUREMENT",
+    "code": "NECK",
+    "name": "Neck",
+    "sortOrder": 7,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MEASUREMENT",
+    "code": "INSEAM",
+    "name": "Inseam",
+    "sortOrder": 8,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "STITCH",
+    "code": "SNL",
+    "name": "Single needle",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "STITCH",
+    "code": "DBL",
+    "name": "Double needle",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "STITCH",
+    "code": "OVL",
+    "name": "Overlock",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "STITCH",
+    "code": "CVR",
+    "name": "Coverstitch",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "NEEDLE",
+    "code": "N9",
+    "name": "Needle 9",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "NEEDLE",
+    "code": "N11",
+    "name": "Needle 11",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "NEEDLE",
+    "code": "N14",
+    "name": "Needle 14",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "NEEDLE",
+    "code": "N16",
+    "name": "Needle 16",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MACHINE",
+    "code": "LOCK",
+    "name": "Lockstitch",
+    "sortOrder": 1,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MACHINE",
+    "code": "OVERLOCK",
+    "name": "Overlock",
+    "sortOrder": 2,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MACHINE",
+    "code": "FLATLOCK",
+    "name": "Flatlock",
+    "sortOrder": 3,
+    "isActive": true,
+    "remarks": ""
+  },
+  {
+    "type": "MACHINE",
+    "code": "BH",
+    "name": "Buttonhole",
+    "sortOrder": 4,
+    "isActive": true,
+    "remarks": ""
   }
 ]

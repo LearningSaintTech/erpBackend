@@ -47,6 +47,7 @@ const sampleSchema = new mongoose.Schema({
   rejectionComments: String,
   revisionComments: String,
   qcComments: String,
+  qcInspectionId: { type: mongoose.Schema.Types.ObjectId, ref: 'QualityInspection' },
   qcMeasurements: [{
     point: String,
     required: String,

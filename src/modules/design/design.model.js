@@ -1,12 +1,12 @@
 import mongoose from 'mongoose';
 import { tenantFields, auditFields } from '../../shared/utils/schema.js';
 import {
-  DESIGN_CATEGORIES, DESIGN_FITS, DESIGN_GENDERS, DESIGN_AGE_GROUPS,
   ACCESSORY_TYPES, COLOR_VARIANT_STATUSES, PRODUCTION_PRIORITIES,
 } from '../../config/designLookups.js';
 
 const designCollectionSchema = new mongoose.Schema({
   ...tenantFields,
+  code: { type: String, trim: true },
   name: { type: String, required: true },
   description: String,
   seasonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Season' },
@@ -147,16 +147,19 @@ const designSchema = new mongoose.Schema({
   },
   title: { type: String, required: true },
   description: String,
-  category: { type: String, enum: DESIGN_CATEGORIES },
+  category: String,
   subCategory: String,
-  gender: { type: String, enum: DESIGN_GENDERS },
-  ageGroup: { type: String, enum: DESIGN_AGE_GROUPS },
-  fit: { type: String, enum: DESIGN_FITS },
+  section: String,
+  gender: String,
+  ageGroup: String,
+  fit: String,
   sleeveType: String,
   neckType: String,
   pattern: String,
   occasion: String,
   tags: [{ type: String }],
+  collectionCode: String,
+  seasonCode: String,
   collectionId: { type: mongoose.Schema.Types.ObjectId, ref: 'DesignCollection' },
   seasonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Season' },
   sizeChartId: { type: mongoose.Schema.Types.ObjectId, ref: 'SizeChart' },

@@ -31,6 +31,15 @@ const productionBatchSchema = new mongoose.Schema({
   machineHours: { type: Number, default: 0 },
   labourHours: { type: Number, default: 0 },
   qcInspectionId: { type: mongoose.Schema.Types.ObjectId, ref: 'QualityInspection' },
+  actualMaterialCost: { type: Number, default: 0 },
+  issuedMaterials: [{
+    _id: false,
+    materialId: { type: mongoose.Schema.Types.ObjectId, ref: 'Material' },
+    quantity: Number,
+    unit: String,
+    unitCost: Number,
+    extendedCost: Number,
+  }],
   ...auditFields,
 });
 

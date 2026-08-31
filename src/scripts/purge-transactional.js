@@ -1,11 +1,12 @@
 /**
- * Purge transactional / demo data while keeping:
- * - RBAC (permissions, roles, user role assignments)
+ * Purge all operational / demo data while keeping:
  * - Users (ids, password hashes)
- * - Org / factory (needed for login)
- * - Sessions (active login tokens — cleared so users re-authenticate cleanly)
- * - Factory settings + app settings + inventory code catalog / SKU formula
- * - Financial years + approval workflow definitions (configuration)
+ * - Roles + permissions + role assignments
+ * - Organizations / factories (required for login)
+ * - Factory settings
+ *
+ * Sessions and everything else (designs, inventory, POs, warehouses, chat, …)
+ * are cleared so users must log in again.
  *
  * Usage: node src/scripts/purge-transactional.js
  */
@@ -21,15 +22,6 @@ const KEEP = new Set([
   'organizations',
   'factories',
   'factorysettings',
-  'appsettings',
-  'financialyears',
-  'inventorycodes',
-  'skuformulaconfigs',
-  'approvalworkflows',
-  // system collections
-  'system.views',
-  'system.buckets',
-  'system.profile',
 ]);
 
 async function purge() {
