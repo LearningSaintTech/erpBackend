@@ -27,7 +27,7 @@ Base path: `/api/v1`
 |----------|---------|
 | PORT | 3000 |
 | MONGODB_URI | mongodb://localhost:27017/erpFactory |
-| CORS_ORIGIN | http://localhost:5173 |
+| CORS_ORIGIN | http://localhost:5173,https://erp.khushpehno.com |
 | JWT_SECRET | (set in production) |
 
 ## Scripts

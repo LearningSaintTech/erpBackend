@@ -37,24 +37,43 @@ import { success } from './shared/utils/response.js';
 
 const app = express();
 
+const DEFAULT_CORS_ORIGINS = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'https://erp.khushpehno.com',
+  'https://www.erp.khushpehno.com',
+];
+
+function allowedCorsOrigins() {
+  const fromEnv = env.corsOrigin.split(',').map((o) => o.trim()).filter(Boolean);
+  return new Set([...DEFAULT_CORS_ORIGINS, ...fromEnv]);
+}
+
 const corsOptions = {
   credentials: true,
   origin(origin, callback) {
     if (!origin) return callback(null, true);
-    const allowed = env.corsOrigin.split(',').map((o) => o.trim());
-    if (allowed.includes(origin)) return callback(null, true);
-    // Vite may use 5174+ when 5173 is busy
+    if (allowedCorsOrigins().has(origin)) return callback(null, true);
     if (env.nodeEnv !== 'production' && /^http:\/\/localhost:\d+$/.test(origin)) {
       return callback(null, true);
     }
-    callback(new Error(`CORS blocked: ${origin}`));
+    try {
+      const host = new URL(origin).hostname;
+      if (origin.startsWith('https://') && (host === 'khushpehno.com' || host.endsWith('.khushpehno.com'))) {
+        return callback(null, true);
+      }
+    } catch { /* ignore invalid Origin */ }
+    callback(null, false);
   },
 };
 
 export { corsOptions };
 
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(morgan('dev'));
 app.use(express.json({ limit: '15mb' }));
 app.use(cookieParser());
