@@ -13,6 +13,7 @@
     "seed:light": "node src/scripts/seed-light.js",
     "seed:verify": "node src/scripts/seed-verify.js",
     "db:purge": "node src/scripts/purge-transactional.js",
+    "feed:raw-materials": "node src/scripts/feed-raw-materials.js",
     "smoke-test": "node src/scripts/smoke-test.js",
     "rbac-test": "node src/scripts/rbac-test.js",
     "panel-audit-test": "node src/scripts/panel-audit-test.js",

@@ -1,12 +1,13 @@
 /**
- * Purge all operational / demo data while keeping:
- * - Users (ids, password hashes)
- * - Roles + permissions + role assignments
- * - Organizations / factories (required for login)
- * - Factory settings
+ * Purge operational / demo data while keeping auth and factory master setup:
+ * - Organization / factory
+ * - Users, roles, permissions, role assignments
+ * - App settings and factory settings
+ * - Inventory codes (+ SKU formula config)
+ * - Approval workflows (not pending approval instances)
  *
- * Sessions and everything else (designs, inventory, POs, warehouses, chat, …)
- * are cleared so users must log in again.
+ * Designs, stock, POs, warehouses, QC, chat, sessions, etc. are cleared.
+ * Users must log in again.
  *
  * Usage: node src/scripts/purge-transactional.js
  */
@@ -22,6 +23,10 @@ const KEEP = new Set([
   'organizations',
   'factories',
   'factorysettings',
+  'appsettings',
+  'inventorycodes',
+  'skuformulaconfigs',
+  'approvalworkflows',
 ]);
 
 async function purge() {
@@ -50,8 +55,8 @@ async function purge() {
   }
 
   console.log(`\nDone. Cleared ${cleared} collections; kept ${kept}.`);
-  console.log('Users, roles, passwords, org/factory, and settings were preserved.');
-  console.log('Sessions were cleared — log in again at http://localhost:5173/login\n');
+  console.log('Kept: factory, users/roles, settings, factory settings, inventory codes, approval workflows.');
+  console.log('Sessions and demo operational data were cleared — log in again.\n');
 
   await mongoose.disconnect();
 }
