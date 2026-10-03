@@ -1,17 +1,27 @@
 import Redis from 'ioredis';
-import { env } from '../config/env.js';
+import { env } from '../../config/env.js';
 
 let redis;
 
 export function getRedis() {
   if (!redis && env.redisUrl) {
-    redis = new Redis(env.redisUrl, { maxRetriesPerRequest: 1, lazyConnect: true });
+    redis = new Redis(env.redisUrl, {
+      maxRetriesPerRequest: 1,
+      lazyConnect: true,
+      keyPrefix: env.redisKeyPrefix || '',
+    });
+    redis.on('error', (err) => {
+      console.warn('[REDIS]', err.message);
+    });
     redis.connect().catch(() => {
       console.warn('[REDIS] Connection failed — running without cache');
-      redis = null;
     });
   }
   return redis;
+}
+
+export function isRedisReady() {
+  return Boolean(redis && redis.status === 'ready');
 }
 
 export async function cacheGet(key) {

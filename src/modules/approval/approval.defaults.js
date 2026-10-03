@@ -22,8 +22,8 @@ export const APPROVER_PERMISSION_OPTIONS = [
   { documentType: 'SAMPLE', permission: 'sampling.approve', label: 'Sample approver' },
   { documentType: 'SAMPLE_MATERIAL', permission: 'sampling.approve', label: 'Sample material approver' },
   { documentType: 'PRODUCTION_ORDER', permission: 'production.approve', label: 'Production approver' },
-  { documentType: 'PURCHASE_REQUISITION', permission: 'purchase.approve', label: 'Purchase requisition approver' },
-  { documentType: 'PURCHASE_ORDER', permission: 'purchase.approve', label: 'Purchase order approver' },
+  { documentType: 'PURCHASE_REQUISITION', permission: 'purchase.authorize', label: 'Factory Admin / Super Admin' },
+  { documentType: 'PURCHASE_ORDER', permission: 'purchase.approve', label: 'Payment (purchase staff)' },
   { documentType: 'BOM', permission: 'bom.approve', label: 'BOM approver' },
   { documentType: '*', permission: 'approval.approve', label: 'General approval authority' },
 ];

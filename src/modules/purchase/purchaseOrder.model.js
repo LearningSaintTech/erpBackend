@@ -25,6 +25,17 @@ const purchaseOrderSchema = new mongoose.Schema({
   expectedDeliveryDate: Date,
   approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   approvedAt: Date,
+  paymentStatus: {
+    type: String,
+    enum: ['UNPAID', 'PAID'],
+    default: 'UNPAID',
+  },
+  paidAt: Date,
+  paidBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  receipts: [{
+    url: { type: String, required: true },
+    fileName: { type: String, default: '' },
+  }],
   ...auditFields,
 });
 

@@ -3,5 +3,6 @@ export const PO_STATUS_LIST = ['DRAFT', 'APPROVED', 'SENT', 'PARTIAL', 'RECEIVED
 export const GRN_STATUS_LIST = ['DRAFT', 'PENDING_QC', 'COMPLETED'];
 export const RFQ_STATUS_LIST = ['DRAFT', 'SENT', 'CLOSED'];
 export const SUPPLIER_STATUS_LIST = ['ACTIVE', 'INACTIVE'];
+export const PAYMENT_STATUS_LIST = ['UNPAID', 'PAID'];
 
 export const PO_OPEN_STATUSES = ['APPROVED', 'SENT', 'PARTIAL'];

@@ -2,13 +2,21 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { auditFields } from '../../shared/utils/schema.js';
 
+function normalizePhoneValue(phone) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  if (!digits) return undefined;
+  return digits.length > 10 ? digits.slice(-10) : digits;
+}
+
 const userSchema = new mongoose.Schema({
   organizationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', index: true },
   email: { type: String, required: true, lowercase: true, trim: true },
   passwordHash: { type: String, required: true, select: false },
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
-  phone: String,
+  phone: { type: String, trim: true },
+  countryCode: { type: String, default: '+91' },
+  isNumberVerified: { type: Boolean, default: false },
   employeeId: String,
   avatarUrl: String,
   status: { type: String, enum: ['ACTIVE', 'INACTIVE', 'LOCKED'], default: 'ACTIVE' },
@@ -22,6 +30,17 @@ const userSchema = new mongoose.Schema({
 
 userSchema.index({ organizationId: 1, email: 1 }, { unique: true, sparse: true });
 userSchema.index({ email: 1 }, { unique: true, partialFilterExpression: { isSuperAdmin: true } });
+userSchema.index(
+  { phone: 1 },
+  { unique: true, sparse: true, partialFilterExpression: { phone: { $type: 'string', $gt: '' } } },
+);
+
+userSchema.pre('save', function normalizePhone(next) {
+  const normalized = normalizePhoneValue(this.phone);
+  if (!normalized) this.set('phone', undefined);
+  else this.phone = normalized;
+  next();
+});
 
 userSchema.methods.comparePassword = async function (password) {
   return bcrypt.compare(password, this.passwordHash);

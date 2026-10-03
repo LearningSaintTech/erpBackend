@@ -6,6 +6,14 @@ import {
   MATERIAL_CATEGORIES, MATERIAL_UNITS, INVENTORY_TYPES, TRANSACTION_TYPES,
 } from './inventory.defaults.js';
 
+const imageItemSchema = Joi.object({
+  url: Joi.string().allow(''),
+  fileName: Joi.string().allow(''),
+  contentType: Joi.string().allow(''),
+  data: Joi.string().allow(''),
+  dataUrl: Joi.string().allow(''),
+});
+
 export const createMaterialSchema = Joi.object({
   body: Joi.object({
     materialCode: Joi.string().trim().min(2).required(),
@@ -15,6 +23,7 @@ export const createMaterialSchema = Joi.object({
     unitCost: Joi.number().min(0),
     reorderLevel: Joi.number().min(0),
     supplierId: Joi.string().allow('', null),
+    images: Joi.array().items(imageItemSchema).max(12),
   }),
 });
 
@@ -44,6 +53,7 @@ export const updateMaterialSchema = Joi.object({
     unitCost: Joi.number().min(0),
     reorderLevel: Joi.number().min(0),
     supplierId: Joi.string().allow('', null),
+    images: Joi.array().items(imageItemSchema).max(12),
   }).min(1),
 });
 

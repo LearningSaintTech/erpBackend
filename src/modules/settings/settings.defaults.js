@@ -37,7 +37,7 @@ export const INTEGRATIONS_DEFAULTS = {
 
 export const FEATURE_FLAG_CATALOG = [
   { key: 'advancedQuality', label: 'Advanced QC', description: 'Enable in-process QC gates on production stages.' },
-  { key: 'rfqModule', label: 'RFQ module', description: 'Request-for-quotation workflow in purchase.' },
+  { key: 'rfqModule', label: 'RFQ module (legacy)', description: 'Unused. Supplier quotes are agreed on call, then recorded as a payment. Do not enable a supplier portal.' },
   { key: 'wasteTracking', label: 'Waste tracking', description: 'Track material waste and scrap in production.' },
   { key: 'batchBarcode', label: 'Batch barcodes', description: 'Generate barcodes for production batches.' },
   { key: 'strictInventoryLock', label: 'Strict inventory lock', description: 'Block issues when stock is below reserved quantity.' },

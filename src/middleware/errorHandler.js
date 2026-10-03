@@ -6,17 +6,6 @@ export function errorHandler(err, req, res, next) {
   const status = err.statusCode || 500;
   const code = err.code || 'INTERNAL_ERROR';
 
-  if (err.name === 'ValidationError' && !err.statusCode) {
-    return res.status(422).json({
-      success: false,
-      error: {
-        code: 'VALIDATION_ERROR',
-        message: err.message,
-        details: Object.values(err.errors || {}).map((e) => ({ field: e.path, message: e.message })),
-      },
-    });
-  }
-
   if (err.isJoi) {
     return res.status(422).json({
       success: false,
@@ -24,6 +13,17 @@ export function errorHandler(err, req, res, next) {
         code: 'VALIDATION_ERROR',
         message: 'Validation failed',
         details: err.details?.map((d) => ({ field: d.path.join('.'), message: d.message })),
+      },
+    });
+  }
+
+  if (err.name === 'ValidationError' && !err.statusCode) {
+    return res.status(422).json({
+      success: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: err.message,
+        details: Object.values(err.errors || {}).map((e) => ({ field: e.path, message: e.message })),
       },
     });
   }

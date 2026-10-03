@@ -36,3 +36,27 @@ export class ConflictError extends AppError {
     super(message, 409, 'CONFLICT');
   }
 }
+
+export class BadRequestError extends AppError {
+  constructor(message = 'Bad request') {
+    super(message, 400, 'BAD_REQUEST');
+  }
+}
+
+export class TooManyRequestsError extends AppError {
+  constructor(message = 'Too many requests. Please try again later.') {
+    super(message, 429, 'RATE_LIMIT_EXCEEDED');
+  }
+}
+
+export class ServiceUnavailableError extends AppError {
+  constructor(message = 'Service temporarily unavailable. Please try again later.') {
+    super(message, 503, 'SERVICE_UNAVAILABLE');
+  }
+}
+
+export class BadGatewayError extends AppError {
+  constructor(message = 'Upstream service failed') {
+    super(message, 502, 'BAD_GATEWAY');
+  }
+}

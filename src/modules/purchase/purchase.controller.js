@@ -53,11 +53,20 @@ export const createPrSchema = Joi.object({
   }),
 });
 
+const receiptItemSchema = Joi.object({
+  url: Joi.string().allow(''),
+  fileName: Joi.string().allow(''),
+  contentType: Joi.string().allow(''),
+  data: Joi.string().allow(''),
+  dataUrl: Joi.string().allow(''),
+});
+
 export const createPoSchema = Joi.object({
   body: Joi.object({
     supplierId: Joi.string().required(),
     prId: Joi.string(),
     lines: Joi.array().items(lineSchema),
+    receipts: Joi.array().items(receiptItemSchema).max(12),
   }),
 });
 
@@ -71,6 +80,13 @@ export const createGrnSchema = Joi.object({
         unit: Joi.string(),
       }),
     ).min(1).required(),
+    receipts: Joi.array().items(receiptItemSchema).max(12),
+  }),
+});
+
+export const setReceiptsSchema = Joi.object({
+  body: Joi.object({
+    receipts: Joi.array().items(receiptItemSchema).max(12).required(),
   }),
 });
 
@@ -233,6 +249,7 @@ export async function listPos(req, res, next) {
       excludeStatus: req.query.excludeStatus,
       search: req.query.search || req.query.q,
       supplierId: req.query.supplierId,
+      paymentStatus: req.query.paymentStatus,
     });
     success(res, items, buildMeta(page, limit, total));
   } catch (e) { next(e); }
@@ -250,6 +267,18 @@ export async function poReceiptPreview(req, res, next) {
   } catch (e) { next(e); }
 }
 
+export async function downloadPoReceipt(req, res, next) {
+  try {
+    await purchaseService.downloadDocumentReceipt('po', req.params.id, req.params.index, req.factoryId, res);
+  } catch (e) { next(e); }
+}
+
+export async function downloadGrnReceipt(req, res, next) {
+  try {
+    await purchaseService.downloadDocumentReceipt('grn', req.params.id, req.params.index, req.factoryId, res);
+  } catch (e) { next(e); }
+}
+
 export async function approvePo(req, res, next) {
   try {
     success(res, await purchaseService.approvePurchaseOrder(req.params.id, req.factoryId, req.user._id));
@@ -259,6 +288,20 @@ export async function approvePo(req, res, next) {
 export async function sendPo(req, res, next) {
   try {
     success(res, await purchaseService.sendPurchaseOrder(req.params.id, req.factoryId, req.user._id));
+  } catch (e) { next(e); }
+}
+
+export async function markPoPaid(req, res, next) {
+  try {
+    success(res, await purchaseService.markPurchaseOrderPaid(req.params.id, req.factoryId, req.user._id));
+  } catch (e) { next(e); }
+}
+
+export async function setPoReceipts(req, res, next) {
+  try {
+    success(res, await purchaseService.setPurchaseOrderReceipts(
+      req.params.id, req.factoryId, req.body.receipts, req.user._id,
+    ));
   } catch (e) { next(e); }
 }
 
@@ -295,6 +338,14 @@ export async function getGrn(req, res, next) {
 export async function submitGrnQc(req, res, next) {
   try {
     success(res, await purchaseService.submitGrnForQc(req.params.id, req.factoryId, req.user._id));
+  } catch (e) { next(e); }
+}
+
+export async function setGrnReceipts(req, res, next) {
+  try {
+    success(res, await purchaseService.setGoodsReceiptReceipts(
+      req.params.id, req.factoryId, req.body.receipts, req.user._id,
+    ));
   } catch (e) { next(e); }
 }
 

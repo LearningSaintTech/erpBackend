@@ -14,7 +14,11 @@ export const openApiSpec = {
   },
   security: [{ bearerAuth: [], factoryHeader: [] }],
   paths: {
-    '/auth/login': { post: { summary: 'Login', tags: ['Auth'] } },
+    '/auth/login': { post: { summary: 'Email/password login', tags: ['Auth'] } },
+    '/auth/otp/login': { post: { summary: 'Send phone OTP for login', tags: ['Auth'] } },
+    '/auth/otp/register': { post: { summary: 'Register with phone and send OTP', tags: ['Auth'] } },
+    '/auth/otp/resend': { post: { summary: 'Resend phone OTP', tags: ['Auth'] } },
+    '/auth/otp/verify': { post: { summary: 'Verify phone OTP and issue tokens', tags: ['Auth'] } },
     '/auth/refresh': { post: { summary: 'Refresh access token', tags: ['Auth'] } },
     '/users/me': { get: { summary: 'Current user', tags: ['Users'] } },
     '/designs': { get: { summary: 'List designs', tags: ['Design'] }, post: { summary: 'Create design', tags: ['Design'] } },

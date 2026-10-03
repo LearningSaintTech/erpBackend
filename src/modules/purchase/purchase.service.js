@@ -14,6 +14,7 @@ import { submitForApproval, approveInstance, rejectInstance } from '../approval/
 import { findPendingApproval } from '../../shared/services/approvalSync.js';
 import { createIncomingInspection } from '../quality/quality.service.js';
 import { PO_OPEN_STATUSES } from './purchase.defaults.js';
+import { persistPurchaseReceipts, sendLocalUpload } from '../../shared/services/localFiles.service.js';
 
 function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -30,6 +31,7 @@ const PO_POPULATE = [
   { path: 'prId', select: 'prNumber status' },
   { path: 'lines.materialId', select: 'materialCode name unit unitCost' },
   { path: 'approvedBy', select: 'firstName lastName' },
+  { path: 'paidBy', select: 'firstName lastName' },
 ];
 
 const GRN_POPULATE = [
@@ -81,6 +83,7 @@ export async function getPurchaseStats(factoryId) {
     prApproved,
     poDraft,
     poOpen,
+    poUnpaid,
     grnPendingQc,
     grnDraft,
     rfqOpen,
@@ -91,6 +94,7 @@ export async function getPurchaseStats(factoryId) {
     PurchaseRequisition.countDocuments({ ...base, status: 'APPROVED' }),
     PurchaseOrder.countDocuments({ ...base, status: 'DRAFT' }),
     PurchaseOrder.countDocuments({ ...base, status: { $in: PO_OPEN_STATUSES } }),
+    PurchaseOrder.countDocuments({ ...base, status: { $ne: 'CANCELLED' }, paymentStatus: { $ne: 'PAID' } }),
     GoodsReceipt.countDocuments({ ...base, status: 'PENDING_QC' }),
     GoodsReceipt.countDocuments({ ...base, status: 'DRAFT' }),
     Rfq.countDocuments({ ...base, status: { $in: ['DRAFT', 'SENT'] } }),
@@ -106,6 +110,7 @@ export async function getPurchaseStats(factoryId) {
     prApproved,
     poDraft,
     poOpen,
+    poUnpaid,
     grnPendingQc,
     grnDraft,
     rfqOpen,
@@ -268,7 +273,7 @@ export async function submitPurchaseRequisition(id, factoryId, userId) {
       userId: pr.requestedBy,
       eventType: 'pr.submitted',
       title: 'PR submitted',
-      message: `${pr.prNumber} submitted for approval (Purchase Manager → Admin)`,
+      message: `${pr.prNumber} submitted for Factory Admin / Super Admin approval`,
       referenceType: 'PURCHASE_REQUISITION',
       referenceId: pr._id,
     });
@@ -277,9 +282,8 @@ export async function submitPurchaseRequisition(id, factoryId, userId) {
 }
 
 /**
- * Advance PR approval. When a pending ApprovalInstance exists, routes through the
- * multi-level engine (L1 Purchase Manager → L2 Factory Admin). Final APPROVED
- * is applied by the approval bridge; mid-level leaves PR as SUBMITTED.
+ * Advance PR approval. Single-level Factory Admin / Super Admin (purchase.authorize).
+ * Final APPROVED is applied by the approval bridge.
  */
 export async function approvePurchaseRequisition(id, factoryId, userId, { syncApproval = true, permissions } = {}) {
   if (syncApproval) {
@@ -304,7 +308,7 @@ export async function approvePurchaseRequisition(id, factoryId, userId, { syncAp
       userId: pr.requestedBy,
       eventType: 'pr.approved',
       title: 'PR approved',
-      message: `${pr.prNumber} approved — Purchase Manager can create PO / RFQ`,
+      message: `${pr.prNumber} approved — create a payment (agreed with supplier on call)`,
       referenceType: 'PURCHASE_REQUISITION',
       referenceId: pr._id,
     });
@@ -342,7 +346,7 @@ export async function rejectPurchaseRequisition(id, factoryId, userId, comments,
   return populatePr(pr);
 }
 
-export async function createPurchaseOrder({ factoryId, organizationId, supplierId, prId, lines }, userId) {
+export async function createPurchaseOrder({ factoryId, organizationId, supplierId, prId, lines, receipts }, userId) {
   const supplier = await Supplier.findOne(applySoftDeleteFilter({ _id: supplierId, factoryId }));
   if (!supplier) throw new NotFoundError('Supplier not found');
 
@@ -389,14 +393,21 @@ export async function createPurchaseOrder({ factoryId, organizationId, supplierI
       unitPrice: l.unitPrice ?? 0,
       receivedQty: 0,
     })),
-    status: 'DRAFT',
+    status: 'APPROVED',
+    paymentStatus: 'UNPAID',
+    approvedBy: userId,
+    approvedAt: new Date(),
     createdBy: userId,
     updatedBy: userId,
   });
+  if (receipts?.length) {
+    po.receipts = await persistPurchaseReceipts(receipts, po.poNumber);
+    await po.save();
+  }
   return populatePo(po);
 }
 
-export async function listPurchaseOrders(factoryId, { page, limit, skip, status, excludeStatus, search, supplierId }) {
+export async function listPurchaseOrders(factoryId, { page, limit, skip, status, excludeStatus, search, supplierId, paymentStatus }) {
   const filter = applySoftDeleteFilter({ factoryId });
   if (status) {
     const statuses = String(status).split(',').map((s) => s.trim()).filter(Boolean);
@@ -404,6 +415,11 @@ export async function listPurchaseOrders(factoryId, { page, limit, skip, status,
   } else if (excludeStatus) {
     const excluded = String(excludeStatus).split(',').map((s) => s.trim()).filter(Boolean);
     filter.status = { $nin: excluded };
+  }
+  if (paymentStatus) {
+    const pay = String(paymentStatus).toUpperCase();
+    if (pay === 'UNPAID') filter.paymentStatus = { $ne: 'PAID' };
+    else filter.paymentStatus = pay;
   }
   if (supplierId) filter.supplierId = supplierId;
   if (search?.trim()) {
@@ -430,11 +446,25 @@ export async function getPurchaseOrder(id, factoryId) {
 
 export async function approvePurchaseOrder(id, factoryId, userId, { syncApproval: _syncApproval = true } = {}) {
   const po = await loadPo(id, factoryId);
+  if (po.status === 'APPROVED' || po.status === 'SENT' || po.status === 'PARTIAL') {
+    return populatePo(po);
+  }
   if (po.status !== 'DRAFT') throw new ConflictError('Only DRAFT PO can be approved');
   if (!po.lines?.length) throw new ValidationError('PO has no lines');
   po.status = 'APPROVED';
   po.approvedBy = userId;
   po.approvedAt = new Date();
+  po.updatedBy = userId;
+  await po.save();
+  return populatePo(po);
+}
+
+export async function setPurchaseOrderReceipts(id, factoryId, receipts, userId) {
+  const po = await loadPo(id, factoryId);
+  const kept = (receipts || []).filter((r) => r?.url && !r.data && !r.dataUrl);
+  const incoming = (receipts || []).filter((r) => r?.data || r?.dataUrl);
+  const saved = incoming.length ? await persistPurchaseReceipts(incoming, po.poNumber) : [];
+  po.receipts = [...kept.map((r) => ({ url: r.url, fileName: r.fileName || '' })), ...saved].slice(0, 12);
   po.updatedBy = userId;
   await po.save();
   return populatePo(po);
@@ -449,7 +479,46 @@ export async function sendPurchaseOrder(id, factoryId, userId) {
   return populatePo(po);
 }
 
-export async function createGoodsReceipt({ factoryId, organizationId, poId, lines }, userId) {
+export async function downloadDocumentReceipt(kind, id, index, factoryId, res) {
+  const i = Number(index);
+  if (!Number.isInteger(i) || i < 0) throw new ValidationError('Invalid invoice');
+  const doc = kind === 'grn' ? await loadGrn(id, factoryId) : await loadPo(id, factoryId);
+  const item = (doc.receipts || [])[i];
+  if (!item?.url) throw new NotFoundError('Invoice not found');
+  const prefix = kind === 'grn' ? doc.grnNumber : doc.poNumber;
+  const name = item.fileName || `${prefix}-invoice-${i + 1}`;
+  try {
+    await sendLocalUpload(res, item.url, name);
+  } catch (err) {
+    if (err.statusCode === 404 || err.message === 'Invoice file not found' || err.message === 'Invalid file path') {
+      throw new NotFoundError('Invoice file not found');
+    }
+    throw err;
+  }
+}
+
+export async function markPurchaseOrderPaid(id, factoryId, userId) {
+  const po = await loadPo(id, factoryId);
+  if (po.status === 'CANCELLED') throw new ConflictError('Cancelled payment cannot be marked paid');
+  if (po.paymentStatus === 'PAID') throw new ConflictError('Already marked paid');
+  const hasPoInvoice = (po.receipts || []).length > 0;
+  const hasGrnInvoice = await GoodsReceipt.exists(applySoftDeleteFilter({
+    factoryId,
+    poId: po._id,
+    'receipts.0': { $exists: true },
+  }));
+  if (!hasPoInvoice && !hasGrnInvoice) {
+    throw new ValidationError('Upload the supplier invoice on GRN before marking paid');
+  }
+  po.paymentStatus = 'PAID';
+  po.paidAt = new Date();
+  po.paidBy = userId;
+  po.updatedBy = userId;
+  await po.save();
+  return populatePo(po);
+}
+
+export async function createGoodsReceipt({ factoryId, organizationId, poId, lines, receipts }, userId) {
   const po = await loadPo(poId, factoryId);
   if (!PO_OPEN_STATUSES.includes(po.status)) {
     throw new ConflictError('PO not open for receipt');
@@ -493,6 +562,10 @@ export async function createGoodsReceipt({ factoryId, organizationId, poId, line
     createdBy: userId,
     updatedBy: userId,
   });
+  if (receipts?.length) {
+    grn.receipts = await persistPurchaseReceipts(receipts, grn.grnNumber);
+    await grn.save();
+  }
   return populateGrn(grn);
 }
 
@@ -525,6 +598,17 @@ export async function getGoodsReceipt(id, factoryId) {
   const grn = await GoodsReceipt.findOne(applySoftDeleteFilter({ _id: id, factoryId })).populate(GRN_POPULATE);
   if (!grn) throw new NotFoundError('Goods receipt not found');
   return grn;
+}
+
+export async function setGoodsReceiptReceipts(id, factoryId, receipts, userId) {
+  const grn = await loadGrn(id, factoryId);
+  const kept = (receipts || []).filter((r) => r?.url && !r.data && !r.dataUrl);
+  const incoming = (receipts || []).filter((r) => r?.data || r?.dataUrl);
+  const saved = incoming.length ? await persistPurchaseReceipts(incoming, grn.grnNumber) : [];
+  grn.receipts = [...kept.map((r) => ({ url: r.url, fileName: r.fileName || '' })), ...saved].slice(0, 12);
+  grn.updatedBy = userId;
+  await grn.save();
+  return populateGrn(grn);
 }
 
 export async function submitGrnForQc(id, factoryId, userId) {

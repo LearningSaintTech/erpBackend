@@ -11,7 +11,7 @@ export const createUserSchema = Joi.object({
     password: Joi.string().min(8).required(),
     firstName: Joi.string().required(),
     lastName: Joi.string().required(),
-    phone: Joi.string().allow(''),
+    phone: Joi.string().allow('').pattern(/^$|^[6-9]\d{9}$/),
     employeeId: Joi.string(),
     organizationId: Joi.string().required(),
   }),
@@ -30,7 +30,7 @@ export const updateUserSchema = Joi.object({
   body: Joi.object({
     firstName: Joi.string(),
     lastName: Joi.string(),
-    phone: Joi.string().allow(''),
+    phone: Joi.string().allow('').pattern(/^$|^[6-9]\d{9}$/),
     status: Joi.string().valid('ACTIVE', 'INACTIVE', 'LOCKED'),
   }).min(1),
 });

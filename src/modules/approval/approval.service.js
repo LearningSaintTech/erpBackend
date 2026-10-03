@@ -56,8 +56,9 @@ function assertCanAct(instance, approverId, permissions, workflow) {
     : [defaultApproverPermission(instance.documentType)];
 
   if (hasPermission(permissions, required)) return;
-  // Factory admin / delegated general approvers may act at any level
-  if (hasPermission(permissions, ['approval.approve'])) return;
+  // Factory admin / delegated general approvers may act at any level, except PR:
+  // only Super Admin or Factory Admin (purchase.authorize) may approve requisitions.
+  if (instance.documentType !== 'PURCHASE_REQUISITION' && hasPermission(permissions, ['approval.approve'])) return;
 
   throw new ForbiddenError('You are not authorized to act at the current approval level');
 }

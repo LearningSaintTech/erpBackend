@@ -79,6 +79,7 @@ export async function getReadiness() {
     checks: {
       database,
       redis: process.env.REDIS_URL ? 'configured' : 'optional',
+      twofactor: process.env.TWOFACTOR_API_KEY ? 'configured' : 'optional',
       smtp: process.env.SMTP_HOST ? 'configured' : 'optional',
       s3: process.env.S3_BUCKET ? 'configured' : 'optional',
     },

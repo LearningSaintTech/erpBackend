@@ -14,6 +14,10 @@ const materialSchema = new mongoose.Schema({
   unitCost: { type: Number, default: 0 },
   reorderLevel: { type: Number, default: 0 },
   supplierId: { type: mongoose.Schema.Types.ObjectId, ref: 'Supplier' },
+  images: [{
+    url: { type: String, required: true },
+    fileName: { type: String, default: '' },
+  }],
   ...auditFields,
 });
 

@@ -12,6 +12,10 @@ import { signAccessToken, signRefreshToken } from '../../middleware/auth.js';
 import { applySoftDeleteFilter } from '../../shared/utils/schema.js';
 import { validatePermissionCodes } from './permissionUtils.js';
 import { logRbacEvent } from './rbacAudit.js';
+import { getRedis, isRedisReady } from '../../shared/services/redis.service.js';
+import { resolveDeviceId } from '../auth/authDevice.util.js';
+import { refreshTtlMs, refreshTtlSec } from '../auth/authCookie.util.js';
+import { normalizeMobile } from '../auth/appleReviewOtp.util.js';
 
 const now = () => new Date();
 
@@ -139,6 +143,10 @@ export async function login(email, password, meta = {}) {
     throw new UnauthorizedError('Invalid credentials');
   }
 
+  return issueAuthSession(user, meta);
+}
+
+export async function issueAuthSession(user, meta = {}) {
   user.failedLoginAttempts = 0;
   user.lockedUntil = null;
   if (user.status === 'LOCKED') user.status = 'ACTIVE';
@@ -158,14 +166,28 @@ export async function login(email, password, meta = {}) {
 
   const accessToken = signAccessToken(payload);
   const refreshToken = signRefreshToken({ sub: user._id.toString(), type: 'refresh' });
+  const deviceId = resolveDeviceId(meta.deviceId, user._id);
 
   await Session.create({
     userId: user._id,
     refreshTokenHash: hashToken(refreshToken),
-    deviceInfo: meta.deviceInfo,
+    deviceInfo: { ...(meta.deviceInfo || {}), deviceId },
     ipAddress: meta.ipAddress,
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    expiresAt: new Date(Date.now() + refreshTtlMs()),
   });
+
+  try {
+    if (isRedisReady()) {
+      await getRedis().set(
+        `refreshtoken:${user._id}:${deviceId}`,
+        refreshToken,
+        'EX',
+        refreshTtlSec(),
+      );
+    }
+  } catch (err) {
+    console.warn('[AUTH] Redis refresh store failed:', err.message);
+  }
 
   const safeUser = await User.findById(user._id).select('-passwordHash');
   return { accessToken, refreshToken, user: safeUser, factories, permissions };
@@ -211,6 +233,11 @@ export async function refreshAccessToken(refreshToken) {
 }
 
 export async function createUser(data, createdBy, actorEmail) {
+  const phone = data.phone ? normalizeMobile(data.phone) : undefined;
+  if (phone) {
+    const existingPhone = await User.findOne({ phone, isDeleted: false });
+    if (existingPhone) throw new ConflictError('Phone number already in use');
+  }
   const passwordHash = await User.hashPassword(data.password);
   const user = await User.create({
     organizationId: data.organizationId,
@@ -218,7 +245,8 @@ export async function createUser(data, createdBy, actorEmail) {
     passwordHash,
     firstName: data.firstName,
     lastName: data.lastName,
-    phone: data.phone,
+    phone,
+    countryCode: data.countryCode || '+91',
     employeeId: data.employeeId,
     createdBy,
   });
@@ -337,7 +365,16 @@ export async function updateUser(id, organizationId, data, updatedBy, actorEmail
   const user = await getUser(id, organizationId);
   if (data.firstName) user.firstName = data.firstName;
   if (data.lastName) user.lastName = data.lastName;
-  if (data.phone !== undefined) user.phone = data.phone;
+  if (data.phone !== undefined) {
+    const phone = data.phone ? normalizeMobile(data.phone) : undefined;
+    if (phone) {
+      const existingPhone = await User.findOne({ phone, isDeleted: false, _id: { $ne: user._id } });
+      if (existingPhone) throw new ConflictError('Phone number already in use');
+    }
+    const previous = user.phone;
+    user.phone = phone;
+    if (previous !== phone) user.isNumberVerified = false;
+  }
   if (data.status) user.status = data.status;
   user.updatedBy = updatedBy;
   await user.save();

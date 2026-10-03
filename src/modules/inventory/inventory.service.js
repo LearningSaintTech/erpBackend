@@ -12,6 +12,7 @@ import {
 } from './inventoryStock.service.js';
 import { MATERIAL_CATEGORIES, MATERIAL_UNITS } from './inventory.defaults.js';
 import { MaterialMasterRequest } from './materialMasterRequest.model.js';
+import { persistMaterialImages } from '../../shared/services/localFiles.service.js';
 
 function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -65,7 +66,14 @@ export async function createMaterial(data, userId) {
   if (existing) throw new ConflictError(`Material code already exists: ${data.materialCode}`);
   const payload = { ...data, createdBy: userId, updatedBy: userId };
   if (!payload.supplierId) delete payload.supplierId;
-  return Material.create(payload);
+  const imageInputs = payload.images;
+  delete payload.images;
+  const material = await Material.create(payload);
+  if (imageInputs?.length) {
+    material.images = await persistMaterialImages(imageInputs, material.materialCode);
+    await material.save();
+  }
+  return material;
 }
 
 /**
@@ -168,6 +176,17 @@ export async function updateMaterial(id, factoryId, data, userId) {
   if (data.unit) material.unit = data.unit;
   if (data.unitCost != null) material.unitCost = data.unitCost;
   if (data.reorderLevel != null) material.reorderLevel = data.reorderLevel;
+  if (data.supplierId !== undefined) {
+    material.supplierId = data.supplierId || undefined;
+  }
+  if (data.images !== undefined) {
+    const kept = (data.images || []).filter((img) => img?.url && !img.data && !img.dataUrl);
+    const incoming = (data.images || []).filter((img) => img?.data || img?.dataUrl);
+    const saved = incoming.length
+      ? await persistMaterialImages(incoming, material.materialCode)
+      : [];
+    material.images = [...kept.map((img) => ({ url: img.url, fileName: img.fileName || '' })), ...saved];
+  }
   material.updatedBy = userId;
   await material.save();
   return material;

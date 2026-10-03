@@ -118,6 +118,10 @@ async function ensureRoleAssignment({ org, factory, user, role, assignedBy }) {
 }
 
 async function seedDemoUsers(org, factory, superAdmin, roleMap) {
+  if (['true', '1', 'yes', 'on'].includes(String(process.env.AUTH_PHONE_OTP_ONLY || '').toLowerCase())) {
+    console.log('Skipped demo email users (AUTH_PHONE_OTP_ONLY)');
+    return User.findOne({ isSuperAdmin: true, isDeleted: { $ne: true } }) || superAdmin;
+  }
   let created = 0;
   for (const spec of DEMO_USERS) {
     const password = spec.password || DEMO_ROLE_PASSWORD;

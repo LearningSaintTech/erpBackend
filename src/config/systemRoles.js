@@ -12,7 +12,7 @@ export const PERMISSIONS = [
   ['bom', 'create'], ['bom', 'read'], ['bom', 'update'], ['bom', 'approve'], ['bom', 'configure'],
   ['inventory', 'create'], ['inventory', 'read'], ['inventory', 'update'], ['inventory', 'delete'], ['inventory', 'export'], ['inventory', 'configure'],
   ['warehouse', 'create'], ['warehouse', 'read'], ['warehouse', 'update'], ['warehouse', 'configure'],
-  ['purchase', 'create'], ['purchase', 'read'], ['purchase', 'update'], ['purchase', 'delete'], ['purchase', 'approve'], ['purchase', 'export'],
+  ['purchase', 'create'], ['purchase', 'read'], ['purchase', 'update'], ['purchase', 'delete'], ['purchase', 'approve'], ['purchase', 'authorize'], ['purchase', 'pay'], ['purchase', 'export'],
   ['production', 'create'], ['production', 'read'], ['production', 'update'], ['production', 'approve'], ['production', 'configure'],
   ['batch', 'create'], ['batch', 'read'], ['batch', 'update'],
   ['quality', 'create'], ['quality', 'read'], ['quality', 'update'], ['quality', 'approve'], ['quality', 'configure'],
@@ -122,6 +122,7 @@ export const SYSTEM_ROLES = [
       'report.export',
       'waste.read',
       'purchase.read',
+      'purchase.pay',
       'inventory.read',
       ...notify,
     ),
@@ -206,7 +207,7 @@ export const SYSTEM_ROLES = [
       'inventory.create', 'inventory.read', 'inventory.update',
       // Read stock locator + put away dock receipts into bins after QC
       'warehouse.read', 'warehouse.update',
-      // Create & submit purchase requisitions; Purchase Manager + Admin approve, then PM executes PO/RFQ/GRN
+      // Create & submit purchase requisitions; Factory Admin / Super Admin approve, then payment + GRN invoice
       'purchase.create', 'purchase.read', 'purchase.update',
       'approval.read',
       ...notify,

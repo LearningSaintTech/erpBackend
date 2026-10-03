@@ -49,10 +49,9 @@ async function seedAppSettings(ctx) {
 async function seedPurchaseRequisitionWorkflow(ctx) {
   const { org, factory } = ctx;
   const { createWorkflow } = await import('../../modules/approval/approval.service.js');
-  // L1 Purchase Manager (purchase.approve) → L2 Factory Admin (approval.approve)
+  // Single level: Super Admin or Factory Admin (purchase.authorize)
   const levels = [
-    { level: 1, approverRoles: ['purchase.approve'], approvalType: 'ANY', slaHours: 12 },
-    { level: 2, approverRoles: ['approval.approve'], approvalType: 'ANY', slaHours: 24 },
+    { level: 1, approverRoles: ['purchase.authorize'], approvalType: 'ANY', slaHours: 24 },
   ];
 
   const exists = await ApprovalWorkflow.findOne({
@@ -66,7 +65,7 @@ async function seedPurchaseRequisitionWorkflow(ctx) {
     exists.name = 'Purchase Requisition Approval';
     exists.levels = levels;
     await exists.save();
-    console.log('Updated PURCHASE_REQUISITION workflow → L1 purchase.approve, L2 approval.approve');
+    console.log('Updated PURCHASE_REQUISITION workflow → Factory Admin / Super Admin');
     return;
   }
 
@@ -78,7 +77,7 @@ async function seedPurchaseRequisitionWorkflow(ctx) {
     levels,
     isActive: true,
   }));
-  console.log('Seeded PURCHASE_REQUISITION 2-level workflow');
+  console.log('Seeded PURCHASE_REQUISITION Factory Admin workflow');
 }
 
 async function seedApprovalWorkflows(ctx) {

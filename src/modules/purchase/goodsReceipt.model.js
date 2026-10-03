@@ -21,6 +21,10 @@ const goodsReceiptSchema = new mongoose.Schema({
   },
   qcInspectionId: { type: mongoose.Schema.Types.ObjectId, ref: 'QualityInspection' },
   receivedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  receipts: [{
+    url: { type: String, required: true },
+    fileName: { type: String, default: '' },
+  }],
   ...auditFields,
 });
 
