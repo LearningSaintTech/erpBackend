@@ -1,6 +1,7 @@
 import Joi from 'joi';
 import * as warehouseService from './warehouse.service.js';
 import * as warehouseExtended from './warehouseExtended.service.js';
+import { queryString } from '../../shared/utils/schema.js';
 import { success, paginate, buildMeta } from '../../shared/utils/response.js';
 import {
   WAREHOUSE_TYPES, WAREHOUSE_STATUS_LIST, BIN_STATUS_LIST, CYCLE_COUNT_STATUS_LIST,
@@ -59,6 +60,18 @@ export const materialOpSchema = Joi.object({
   }),
 });
 
+/** Transfer / pick work on raw material (materialId) or finished goods (skuId) — exactly one. */
+export const stockOpSchema = Joi.object({
+  body: Joi.object({
+    materialId: Joi.string(),
+    skuId: Joi.string(),
+    binId: Joi.string(),
+    fromBinId: Joi.string(),
+    toBinId: Joi.string(),
+    quantity: Joi.number().greater(0),
+  }).xor('materialId', 'skuId'),
+});
+
 export const fgOpSchema = Joi.object({
   body: Joi.object({
     skuId: Joi.string().required(),
@@ -103,13 +116,20 @@ export const createCycleCountSchema = Joi.object({
   }),
 });
 
+const cycleCountRef = Joi.alternatives().try(
+  Joi.string().hex().length(24),
+  Joi.object({ _id: Joi.string().hex().length(24).required() }).unknown(true),
+).allow(null);
+
 export const completeCycleCountSchema = Joi.object({
   body: Joi.object({
+    // materialId/skuId may arrive populated ({ _id, ... }); systemQty is ignored server-side
     lines: Joi.array().items(Joi.object({
-      materialId: Joi.string().required(),
+      materialId: cycleCountRef,
+      skuId: cycleCountRef,
       systemQty: Joi.number().min(0),
       countedQty: Joi.number().min(0),
-    })).min(1),
+    }).or('materialId', 'skuId')).min(1),
     applyAdjustments: Joi.boolean(),
   }),
 });
@@ -134,10 +154,10 @@ export async function stats(req, res, next) {
 export async function stockLocator(req, res, next) {
   try {
     success(res, await warehouseExtended.stockLocator(req.factoryId, {
-      materialId: req.query.materialId,
-      skuId: req.query.skuId,
-      search: req.query.search || req.query.q,
-      inventoryType: req.query.inventoryType,
+      materialId: queryString(req.query.materialId),
+      skuId: queryString(req.query.skuId),
+      search: queryString(req.query.search) || queryString(req.query.q),
+      inventoryType: queryString(req.query.inventoryType),
     }));
   } catch (e) { next(e); }
 }
@@ -158,8 +178,8 @@ export async function listWarehouses(req, res, next) {
     const { page, limit, skip } = paginate(req.query);
     const { items, total } = await warehouseService.listWarehouses(req.factoryId, {
       page, limit, skip,
-      search: req.query.search,
-      type: req.query.type,
+      search: queryString(req.query.search),
+      type: queryString(req.query.type),
     });
     success(res, items, buildMeta(page, limit, total));
   } catch (e) { next(e); }
@@ -194,8 +214,8 @@ export async function listBins(req, res, next) {
     const { page, limit, skip } = paginate(req.query);
     const { items, total } = await warehouseService.listStorageBins(req.factoryId, req.params.warehouseId, {
       page, limit, skip,
-      search: req.query.search,
-      status: req.query.status,
+      search: queryString(req.query.search),
+      status: queryString(req.query.status),
     });
     success(res, items, buildMeta(page, limit, total));
   } catch (e) { next(e); }
@@ -377,7 +397,7 @@ export async function createCycleCount(req, res, next) {
 export async function listCycleCounts(req, res, next) {
   try {
     const { page, limit, skip } = paginate(req.query);
-    const { items, total } = await warehouseExtended.listCycleCounts(req.factoryId, { page, limit, skip, status: req.query.status });
+    const { items, total } = await warehouseExtended.listCycleCounts(req.factoryId, { page, limit, skip, status: queryString(req.query.status) });
     success(res, items, buildMeta(page, limit, total));
   } catch (e) { next(e); }
 }

@@ -34,13 +34,37 @@ export const createLineSchema = Joi.object({
   }),
 });
 
+/** The line code is the line's identity (unique per factory) — it is not editable. */
+export const updateLineSchema = Joi.object({
+  params: Joi.object({ id: Joi.string().hex().length(24).required() }),
+  body: Joi.object({
+    name: Joi.string().trim().min(2),
+    stages: Joi.array().items(Joi.string()),
+    capacityPerDay: Joi.number().min(0),
+    status: Joi.string().valid(...LINE_STATUS_LIST),
+  }).min(1),
+});
+
+const SHIFT_TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+const shiftTime = (label) => Joi.string().pattern(SHIFT_TIME).messages({ 'string.pattern.base': `${label} must be HH:MM` });
+
 export const createShiftSchema = Joi.object({
   body: Joi.object({
     name: Joi.string().trim().min(2).required(),
-    startTime: Joi.string().required(),
-    endTime: Joi.string().required(),
+    startTime: shiftTime('Start time').required(),
+    endTime: shiftTime('End time').required(),
     isActive: Joi.boolean(),
   }),
+});
+
+export const updateShiftSchema = Joi.object({
+  params: Joi.object({ id: Joi.string().hex().length(24).required() }),
+  body: Joi.object({
+    name: Joi.string().trim().min(2),
+    startTime: shiftTime('Start time'),
+    endTime: shiftTime('End time'),
+    isActive: Joi.boolean(),
+  }).min(1),
 });
 
 export async function createMachine(req, res, next) {
@@ -90,6 +114,12 @@ export async function createLine(req, res, next) {
   } catch (e) { next(e); }
 }
 
+export async function updateLine(req, res, next) {
+  try {
+    success(res, await machineService.updateProductionLine(req.params.id, req.body, req.user._id, req.factoryId));
+  } catch (e) { next(e); }
+}
+
 export async function listLines(req, res, next) {
   try {
     const { page, limit, skip } = paginate(req.query);
@@ -106,6 +136,12 @@ export async function createShift(req, res, next) {
       organizationId: req.user.organizationId,
     }, req.user._id);
     success(res, shift, null, 201);
+  } catch (e) { next(e); }
+}
+
+export async function updateShift(req, res, next) {
+  try {
+    success(res, await machineService.updateShift(req.params.id, req.body, req.user._id, req.factoryId));
   } catch (e) { next(e); }
 }
 

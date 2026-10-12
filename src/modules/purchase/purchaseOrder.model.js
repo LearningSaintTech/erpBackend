@@ -4,7 +4,11 @@ import { tenantFields, auditFields } from '../../shared/utils/schema.js';
 const poLineSchema = {
   materialId: { type: mongoose.Schema.Types.ObjectId, ref: 'Material', required: true },
   orderedQty: { type: Number, required: true },
+  /** Received net of QC rejections (accepted + pending QC). Rejected qty is re-orderable. */
   receivedQty: { type: Number, default: 0 },
+  /** Written back by incoming QC (recordIncomingQcResult). */
+  acceptedQty: { type: Number, default: 0 },
+  rejectedQty: { type: Number, default: 0 },
   unit: String,
   unitPrice: { type: Number, default: 0 },
   extendedPrice: { type: Number, default: 0 },
@@ -19,10 +23,17 @@ const purchaseOrderSchema = new mongoose.Schema({
   totalAmount: { type: Number, default: 0 },
   status: {
     type: String,
-    enum: ['DRAFT', 'APPROVED', 'SENT', 'PARTIAL', 'RECEIVED', 'CANCELLED'],
+    enum: ['DRAFT', 'APPROVED', 'SENT', 'PARTIAL', 'RECEIVED', 'CLOSED', 'CANCELLED'],
     default: 'DRAFT',
   },
   expectedDeliveryDate: Date,
+  sentAt: Date,
+  cancelledAt: Date,
+  cancelledBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  cancelReason: String,
+  closedAt: Date,
+  closedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  closeReason: String,
   approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   approvedAt: Date,
   paymentStatus: {
@@ -37,7 +48,7 @@ const purchaseOrderSchema = new mongoose.Schema({
     fileName: { type: String, default: '' },
   }],
   ...auditFields,
-});
+}, { optimisticConcurrency: true });
 
 purchaseOrderSchema.pre('save', function (next) {
   let total = 0;
@@ -50,5 +61,8 @@ purchaseOrderSchema.pre('save', function (next) {
 });
 
 purchaseOrderSchema.index({ factoryId: 1, poNumber: 1 }, { unique: true });
+// Perf (large-dataset audit): list/stats queries filter by factory + soft-delete + status and sort by date.
+purchaseOrderSchema.index({ factoryId: 1, isDeleted: 1, status: 1, createdAt: -1 });
+purchaseOrderSchema.index({ factoryId: 1, isDeleted: 1, createdAt: -1 });
 
 export const PurchaseOrder = mongoose.model('PurchaseOrder', purchaseOrderSchema);

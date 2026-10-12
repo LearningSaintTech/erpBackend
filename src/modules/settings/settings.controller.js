@@ -60,7 +60,18 @@ export const factorySettingsSchema = Joi.object({
   body: Joi.object({
     shifts: Joi.array().items(shiftSchema),
     workingDays: Joi.array().items(Joi.number().integer().min(0).max(6)),
-    productionStages: Joi.array().items(Joi.string().trim().min(1)),
+    // Uppercase, unique, non-empty names. QC and COMPLETED are appended by the system and are
+    // reserved; PACKING may be configured explicitly. Names are used as map keys (stageQcPassed),
+    // so dots and '$' are not allowed.
+    productionStages: Joi.array().min(1).unique().items(
+      Joi.string().trim().uppercase().min(1).max(40)
+        .pattern(/^[A-Z0-9][A-Z0-9 _-]*$/)
+        .invalid('QC', 'COMPLETED')
+        .messages({
+          'any.invalid': '{{#label}} is a reserved stage name (QC and COMPLETED are added automatically)',
+          'string.pattern.base': '{{#label}} may only contain letters, digits, spaces, "_" and "-"',
+        }),
+    ),
     defaultWarehouses: Joi.object(),
     numberingPrefixes: Joi.object(),
   }).min(1),

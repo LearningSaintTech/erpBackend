@@ -28,12 +28,36 @@ export const updateSchema = Joi.object({
   }),
 });
 
+export const commentSchema = Joi.object({
+  body: Joi.object({
+    comments: Joi.string().trim().min(3).required(),
+  }),
+});
+
 export async function catalog(req, res, next) {
   try {
     success(res, {
       statuses: BOM_STATUS_LIST,
-      workflow: ['DRAFT', 'APPROVED', 'ACTIVE', 'OBSOLETE'],
+      workflow: ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'ACTIVE', 'OBSOLETE'],
     });
+  } catch (e) { next(e); }
+}
+
+export async function submit(req, res, next) {
+  try {
+    success(res, await bomService.submitBomForApproval(req.params.id, req.factoryId, req.user._id));
+  } catch (e) { next(e); }
+}
+
+export async function reject(req, res, next) {
+  try {
+    success(res, await bomService.rejectBom(req.params.id, req.factoryId, req.user._id, req.body.comments));
+  } catch (e) { next(e); }
+}
+
+export async function requestChanges(req, res, next) {
+  try {
+    success(res, await bomService.requestBomChanges(req.params.id, req.factoryId, req.user._id, req.body.comments));
   } catch (e) { next(e); }
 }
 
@@ -66,6 +90,7 @@ export async function list(req, res, next) {
     const { items, total } = await bomService.listBoms(req.factoryId, {
       status: req.query.status,
       skuId: req.query.skuId,
+      needsReview: req.query.needsReview,
       search: req.query.search || req.query.q,
       page, limit, skip,
     });

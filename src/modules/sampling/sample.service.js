@@ -9,19 +9,19 @@ import {
   syncApprovalApproved,
   syncApprovalRejected,
   syncApprovalRevisionRequested,
+  cancelPendingApproval,
 } from '../../shared/services/approvalSync.js';
 import { nextDocumentNumber } from '../../shared/utils/numbering.js';
 import { NotFoundError, ConflictError, ValidationError, ForbiddenError } from '../../shared/errors/AppError.js';
-import { applySoftDeleteFilter } from '../../shared/utils/schema.js';
+import { applySoftDeleteFilter, queryString, escapeRegex } from '../../shared/utils/schema.js';
 import { notify } from '../notification/notification.service.js';
+import { findUserIdsWithFactoryPermission } from '../user/user.service.js';
 import { reopenPatternForFit, getPatternTechPack } from '../pattern/pattern.service.js';
 import { SAMPLE_TERMINAL_STATUSES, sampleNeedsFitTrial } from './sample.defaults.js';
-import { UserRoleAssignment } from '../user/userRoleAssignment.model.js';
 import { QualityInspection } from '../quality/qualityInspection.model.js';
 
-function escapeRegex(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
+/** 'FIT' → 'Fit', 'PRE_PRODUCTION' → 'Pre-production' — for human-readable timeline notes. */
+const humanSampleType = (t) => { const s = String(t).toLowerCase().replace(/_/g, '-'); return s.charAt(0).toUpperCase() + s.slice(1); };
 
 const SAMPLE_POPULATE = [
   { path: 'designId', select: 'designCode title styleNumber status' },
@@ -54,38 +54,79 @@ function setSampleStatus(sample, nextStatus, userId, action, note) {
   recordTimeline(sample, { action, fromStatus, toStatus: nextStatus, userId, note });
 }
 
+/** Active factory users holding the permission (roles + delegations), like design.submitted. */
 async function notifyUsersWithPermission({
   organizationId,
   factoryId,
   permission,
   excludeUserId,
+  alsoNotify = [],
   eventType,
   title,
   message,
   referenceType,
   referenceId,
 }) {
-  const assignments = await UserRoleAssignment.find({ factoryId, organizationId })
-    .populate('roleId', 'permissions');
-  const notified = new Set();
-  for (const a of assignments) {
-    const uid = String(a.userId);
-    if (excludeUserId && uid === String(excludeUserId)) continue;
-    if (notified.has(uid)) continue;
-    const perms = a.roleId?.permissions || [];
-    if (!perms.includes('*') && !perms.includes(permission)) continue;
-    notified.add(uid);
-    await notify({
-      organizationId,
-      factoryId,
-      userId: a.userId,
-      eventType,
-      title,
-      message,
-      referenceType,
-      referenceId,
-    });
+  const ids = await findUserIdsWithFactoryPermission(factoryId, permission, { excludeUserId });
+  const recipients = new Set(ids.map(String));
+  for (const extra of alsoNotify) {
+    if (extra && String(extra) !== String(excludeUserId || '')) recipients.add(String(extra));
   }
+  await Promise.all([...recipients].map((userId) => notify({
+    organizationId,
+    factoryId,
+    userId,
+    eventType,
+    title,
+    message,
+    referenceType,
+    referenceId,
+  })));
+}
+
+async function patternMasterIdForSample(sample) {
+  const pd = await PatternDevelopment.findOne(applySoftDeleteFilter({
+    designId: sample.designId?._id || sample.designId,
+    factoryId: sample.factoryId,
+  })).select('patternMasterId');
+  return pd?.patternMasterId || null;
+}
+
+/** Assigned pattern master and/or sample creator — the people who own the sample's next move. */
+async function notifySampleOwners(sample, {
+  eventType, title, message, excludeUserId, includeCreator = true, includePatternMaster = true,
+}) {
+  const recipients = new Set();
+  if (includePatternMaster) {
+    const pm = await patternMasterIdForSample(sample);
+    if (pm) recipients.add(String(pm));
+  }
+  if (includeCreator && sample.createdBy) recipients.add(String(sample.createdBy));
+  if (excludeUserId) recipients.delete(String(excludeUserId));
+  await Promise.all([...recipients].map((userId) => notify({
+    organizationId: sample.organizationId,
+    factoryId: sample.factoryId,
+    userId,
+    eventType,
+    title,
+    message,
+    referenceType: 'SAMPLE',
+    referenceId: sample._id,
+  })));
+}
+
+async function notifySampleApprovers(sample, userId, { eventType, title, message }) {
+  await notifyUsersWithPermission({
+    organizationId: sample.organizationId,
+    factoryId: sample.factoryId,
+    permission: 'sampling.approve',
+    excludeUserId: userId,
+    eventType,
+    title,
+    message,
+    referenceType: 'SAMPLE',
+    referenceId: sample._id,
+  });
 }
 
 async function syncSampleInspectionResult(sample, userId, passed) {
@@ -151,10 +192,13 @@ async function attachPatternMasters(samples) {
   });
 }
 
-async function assertPatternDevelopmentComplete(designId, factoryId) {
+async function assertPatternDevelopmentComplete(designId, factoryId, action = 'creating a sample') {
   const pd = await PatternDevelopment.findOne({ designId, factoryId, isDeleted: false });
   if (!pd || pd.status !== 'COMPLETED') {
-    throw new ConflictError('Pattern development must be completed before creating a sample');
+    const state = pd ? `is ${pd.status.replace(/_/g, ' ').toLowerCase()}` : 'has not started';
+    throw new ConflictError(
+      `Pattern development ${state} — the pattern master must complete (re-sign) the pattern before ${action}`,
+    );
   }
   return pd;
 }
@@ -187,11 +231,24 @@ function mergeRequirement(requirements, materialId, requiredQty, unit, unitCost 
   });
 }
 
-/** Sample materials come from the pattern master's signed-off tech pack, not design intent. */
-export function generateMaterialRequirementsFromPattern(techPack) {
+/** Lines without a colour are shared by every variant; with no target colour every line applies. */
+function lineAppliesToColor(lineColor, color) {
+  if (!color || !lineColor?.trim()) return true;
+  return lineColor.trim().toLowerCase() === String(color).trim().toLowerCase();
+}
+
+/**
+ * Sample materials come from the pattern master's signed-off tech pack, not design intent.
+ * Same rule as the BOM suggestion: fabric comes from fabricConsumption (consumption + wastage);
+ * a bomLines entry for a material already taken from fabric is a legacy mirror and is skipped,
+ * so fabric is never counted twice.
+ */
+export function generateMaterialRequirementsFromPattern(techPack, { color } = {}) {
   const requirements = [];
+  const fabricIds = new Set();
   for (const fab of techPack?.fabricConsumption || []) {
-    if (!fab.materialId) continue;
+    if (!fab.materialId || !lineAppliesToColor(fab.color, color)) continue;
+    fabricIds.add(String(fab.materialId));
     const qty = fab.consumption ?? 1;
     const wastage = fab.wastagePercent || 0;
     mergeRequirement(
@@ -203,7 +260,8 @@ export function generateMaterialRequirementsFromPattern(techPack) {
     );
   }
   for (const line of techPack?.bomLines || []) {
-    if (!line.materialId) continue;
+    if (!line.materialId || fabricIds.has(String(line.materialId))) continue;
+    if (!lineAppliesToColor(line.color, color)) continue;
     mergeRequirement(
       requirements,
       line.materialId,
@@ -215,12 +273,17 @@ export function generateMaterialRequirementsFromPattern(techPack) {
   return requirements;
 }
 
-async function buildMaterialRequirements(designId, factoryId) {
+async function buildMaterialRequirements(designId, factoryId, { color } = {}) {
   const techPack = await getPatternTechPack(designId, factoryId);
-  const requirements = generateMaterialRequirementsFromPattern(techPack);
+  const requirements = generateMaterialRequirementsFromPattern(techPack, { color });
   for (const req of requirements) {
     const mat = await Material.findById(req.materialId);
-    if (mat) req.unitCost = mat.unitCost;
+    if (mat) {
+      req.unitCost = mat.unitCost;
+      // Store reserves/issues in the material's own unit — pattern unit codes (M, PC…) are display only.
+      req.unit = mat.unit;
+    }
+    req.requiredQty = Math.round(req.requiredQty * 1000) / 1000;
   }
   return requirements;
 }
@@ -235,6 +298,7 @@ export async function listMaterialOptions(factoryId) {
 
 export async function getSampleStats(factoryId, { patternMasterId } = {}) {
   const base = applySoftDeleteFilter({ factoryId });
+  patternMasterId = queryString(patternMasterId);
   if (patternMasterId) {
     const scopedDesignIds = await designIdsForPatternMaster(factoryId, patternMasterId);
     applyDesignScope(base, scopedDesignIds);
@@ -279,7 +343,11 @@ export async function getSampleStats(factoryId, { patternMasterId } = {}) {
   };
 }
 
-export async function listEligibleDesigns(factoryId) {
+/**
+ * Released designs whose pattern is complete and that have no sample in progress.
+ * `onlyNew`: also skip designs that already have an approved sample (the "ready to sample" queue).
+ */
+export async function listEligibleDesigns(factoryId, { onlyNew = false } = {}) {
   const releasedDesigns = await Design.find(applySoftDeleteFilter({ factoryId, status: 'RELEASED' }))
     .select('designCode title styleNumber status')
     .sort({ designCode: 1 });
@@ -295,7 +363,7 @@ export async function listEligibleDesigns(factoryId) {
 
   const activeSamples = await Sample.find(applySoftDeleteFilter({
     factoryId,
-    status: { $nin: SAMPLE_TERMINAL_STATUSES },
+    status: onlyNew ? { $nin: ['REJECTED', 'CANCELLED'] } : { $nin: SAMPLE_TERMINAL_STATUSES },
   })).select('designId');
 
   const blockedDesignIds = new Set(activeSamples.map((s) => s.designId.toString()));
@@ -357,7 +425,7 @@ export async function createSample(
       fromStatus: '',
       toStatus: 'CREATED',
       userId,
-      note: `${sampleType || 'PROTOTYPE'} sample created`,
+      note: `${humanSampleType(sampleType || 'PROTOTYPE')} sample created`,
     }],
   });
 
@@ -383,7 +451,13 @@ export async function listSamples(factoryId, {
   page, limit, skip, status, sampleType, designId, search, excludeTerminal, patternMasterId,
 }) {
   const filter = applySoftDeleteFilter({ factoryId });
-  if (status) filter.status = status;
+  status = queryString(status);
+  sampleType = queryString(sampleType);
+  designId = queryString(designId);
+  search = queryString(search);
+  patternMasterId = queryString(patternMasterId);
+  // Comma-separated statuses ("A,B") so role queues can page on the server.
+  if (status) filter.status = status.includes(',') ? { $in: status.split(',').map((v) => v.trim()).filter(Boolean) } : status;
   else if (excludeTerminal) filter.status = { $nin: SAMPLE_TERMINAL_STATUSES };
   if (sampleType) filter.sampleType = sampleType;
 
@@ -477,11 +551,24 @@ async function loadSampleForFloorOps(id, factoryId, userId, opts = {}) {
   return sample;
 }
 
+/**
+ * REVISION_REQUESTED still holds the previous iteration's reservations and issued quantities;
+ * only Reopen releases them, so material edits and the RM submit wait for CREATED.
+ */
+function assertMaterialsEditable(sample, action) {
+  if (sample.status === 'REVISION_REQUESTED') {
+    throw new ConflictError(
+      `Reopen the sample for rework before you ${action} — reopening releases the previous iteration's stock`,
+    );
+  }
+  if (sample.status !== 'CREATED') {
+    throw new ConflictError(`Cannot ${action} while the sample is ${sample.status.replace(/_/g, ' ')}`);
+  }
+}
+
 export async function updateSampleMaterials(id, factoryId, body, userId, opts = {}) {
   const sample = await loadSampleForPatternMasterOps(id, factoryId, userId, opts);
-  if (!['CREATED', 'REVISION_REQUESTED'].includes(sample.status)) {
-    throw new ConflictError('Cannot update materials in current status');
-  }
+  assertMaterialsEditable(sample, 'update materials');
 
   const materialIds = [...new Set(body.materialRequirements.map((r) => r.materialId))];
   const materials = await Material.find({ _id: { $in: materialIds }, factoryId, isDeleted: false });
@@ -490,12 +577,21 @@ export async function updateSampleMaterials(id, factoryId, body, userId, opts = 
   }
   const matMap = new Map(materials.map((m) => [m._id.toString(), m]));
 
+  for (const r of body.materialRequirements) {
+    const mat = matMap.get(r.materialId.toString());
+    if (r.unit && mat?.unit && r.unit !== mat.unit) {
+      throw new ValidationError(
+        `${mat.materialCode} is stocked in ${mat.unit} — the sample line must use ${mat.unit}, not ${r.unit}`,
+      );
+    }
+  }
+
   sample.materialRequirements = body.materialRequirements.map((r) => {
     const mat = matMap.get(r.materialId.toString());
     return {
       materialId: r.materialId,
       requiredQty: r.requiredQty,
-      unit: r.unit || mat?.unit || 'PIECES',
+      unit: mat?.unit || r.unit || 'PIECES',
       reservedQty: 0,
       issuedQty: 0,
       unitCost: r.unitCost ?? mat?.unitCost ?? 0,
@@ -513,9 +609,7 @@ export async function updateSampleMaterials(id, factoryId, body, userId, opts = 
 
 export async function refreshMaterialsFromPattern(id, factoryId, userId, opts = {}) {
   const sample = await loadSampleForPatternMasterOps(id, factoryId, userId, opts);
-  if (!['CREATED', 'REVISION_REQUESTED'].includes(sample.status)) {
-    throw new ConflictError('Can only refresh materials before material request is submitted');
-  }
+  assertMaterialsEditable(sample, 'refresh materials');
   const designId = sample.designId?._id || sample.designId;
   const materialRequirements = await buildMaterialRequirements(designId, factoryId);
   if (!materialRequirements.length) {
@@ -529,14 +623,17 @@ export async function refreshMaterialsFromPattern(id, factoryId, userId, opts = 
 
 export async function submitMaterialRequest(id, factoryId, userId, opts = {}) {
   const sample = await loadSampleForPatternMasterOps(id, factoryId, userId, opts);
-  if (!['CREATED', 'REVISION_REQUESTED'].includes(sample.status)) {
-    throw new ConflictError('Sample must be CREATED or REVISION_REQUESTED to submit material request');
-  }
+  assertMaterialsEditable(sample, 'submit the material request');
   if (!sample.materialRequirements?.length) {
     throw new ConflictError('Material requirements are empty — add materials from the design BOM first');
   }
+  await assertPatternDevelopmentComplete(
+    sample.designId?._id || sample.designId,
+    factoryId,
+    'requesting sample materials',
+  );
 
-  setSampleStatus(sample, 'MATERIAL_REQUEST_PENDING', userId, 'submit_material_request', 'Submitted for RM approval');
+  setSampleStatus(sample, 'MATERIAL_REQUEST_PENDING', userId, 'submit_material_request', 'Submitted for material approval');
   sample.updatedBy = userId;
   await sample.save();
 
@@ -546,6 +643,12 @@ export async function submitMaterialRequest(id, factoryId, userId, opts = {}) {
     documentType: 'SAMPLE_MATERIAL',
     documentId: sample._id,
     submittedBy: userId,
+  });
+
+  await notifySampleApprovers(sample, userId, {
+    eventType: 'sample.material_pending',
+    title: 'Sample materials awaiting approval',
+    message: `${sample.sampleCode} — fabric & trims request needs approval`,
   });
   return populateSample(sample);
 }
@@ -561,6 +664,48 @@ export async function approveMaterialRequest(id, factoryId, userId, { syncApprov
   setSampleStatus(sample, 'MATERIAL_REQUEST_APPROVED', userId, 'approve_material_request');
   sample.updatedBy = userId;
   await sample.save();
+
+  // Store keepers reserve and issue next; the pattern master learns the cut can be planned.
+  const pm = await patternMasterIdForSample(sample);
+  await notifyUsersWithPermission({
+    organizationId: sample.organizationId,
+    factoryId: sample.factoryId,
+    permission: 'inventory.update',
+    excludeUserId: userId,
+    alsoNotify: [pm],
+    eventType: 'sample.material_approved',
+    title: 'Sample materials approved',
+    message: `${sample.sampleCode} — reserve and issue fabric & trims to cutting`,
+    referenceType: 'SAMPLE',
+    referenceId: sample._id,
+  });
+  return populateSample(sample);
+}
+
+/** Approver sends the RM request back to the pattern master for edits (not a rejection). */
+export async function requestMaterialRequestChanges(id, factoryId, userId, comments, { syncApproval = true } = {}) {
+  const sample = await loadSampleForUpdate(id, factoryId);
+  if (sample.status !== 'MATERIAL_REQUEST_PENDING') {
+    throw new ConflictError('No pending material request');
+  }
+  if (syncApproval) {
+    await syncApprovalRevisionRequested('SAMPLE_MATERIAL', sample._id, userId, comments);
+  }
+  // CREATED is the editable state the pattern master submits the RM request from.
+  setSampleStatus(sample, 'CREATED', userId, 'material_changes_requested', comments);
+  sample.revisionComments = comments;
+  sample.updatedBy = userId;
+  await sample.save();
+
+  await notifySampleOwners(sample, {
+    eventType: 'sample.revision_requested',
+    title: 'Sample material changes requested',
+    message: comments?.trim()
+      ? `${sample.sampleCode} — update fabric & trims: ${comments.trim()}`
+      : `${sample.sampleCode} — update fabric & trims and resubmit`,
+    excludeUserId: userId,
+    includeCreator: false,
+  });
   return populateSample(sample);
 }
 
@@ -629,20 +774,27 @@ export async function issueMaterials(id, factoryId, userId) {
 
   let materialCost = 0;
   for (const req of sample.materialRequirements) {
+    const qtyToIssue = req.reservedQty || req.requiredQty;
     const mat = await Material.findById(req.materialId);
+    // Idempotent retry: a line already issued by an earlier (partially failed) call is not issued again.
+    if ((req.issuedQty || 0) >= qtyToIssue) {
+      materialCost += req.cost || req.issuedQty * (req.unitCost || mat?.unitCost || 0);
+      continue;
+    }
     await inventoryService.issueMaterial({
       factoryId: sample.factoryId,
       organizationId: sample.organizationId,
       materialId: req.materialId,
-      quantity: req.reservedQty || req.requiredQty,
+      quantity: qtyToIssue,
       unit: req.unit || mat?.unit,
       referenceType: 'SAMPLE',
       referenceId: sample._id,
       userId,
     });
-    req.issuedQty = req.reservedQty || req.requiredQty;
+    req.issuedQty = qtyToIssue;
     req.cost = req.issuedQty * (req.unitCost || mat?.unitCost || 0);
     materialCost += req.cost;
+    await sample.save();
   }
 
   setSampleStatus(sample, 'CUTTING', userId, 'issue_materials', 'Fabric & trims issued — cutting department');
@@ -738,30 +890,16 @@ export async function passSampleQc(id, factoryId, userId, comments, fitAnalysis,
   const nextStatus = sampleNeedsFitTrial(sample.sampleType) ? 'FIT_TRIAL' : 'PENDING_APPROVAL';
   setSampleStatus(sample, nextStatus, userId, 'qc_pass', comments || 'Measurements within tolerance');
 
-  if (nextStatus === 'PENDING_APPROVAL') {
-    await submitForApproval({
-      organizationId: sample.organizationId,
-      factoryId: sample.factoryId,
-      documentType: 'SAMPLE',
-      documentId: sample._id,
-      submittedBy: userId,
-    });
-  }
   await syncSampleInspectionResult(sample, userId, true);
+  // Persist the status first so an approval instance never points at a sample still in QC_PENDING.
   await sample.save();
+  if (nextStatus === 'PENDING_APPROVAL') {
+    await submitSampleApprovalAndNotify(sample, userId);
+  }
   return populateSample(sample);
 }
 
-export async function completeFitTrial(id, factoryId, userId, comments, fitAnalysis, opts = {}) {
-  const sample = await loadSampleForFloorOps(id, factoryId, userId, opts);
-  if (sample.status !== 'FIT_TRIAL') throw new ConflictError('Sample must be in FIT_TRIAL');
-  applyFitAnalysis(sample, fitAnalysis, userId);
-  setSampleStatus(sample, 'PENDING_APPROVAL', userId, 'fit_trial_complete', comments || 'Fit session recorded');
-  if (comments) sample.qcComments = [sample.qcComments, comments].filter(Boolean).join(' · ');
-  sample.updatedBy = userId;
-  await sample.save();
-  await handleFitPatternRevision(sample, factoryId, userId, comments);
-
+async function submitSampleApprovalAndNotify(sample, userId) {
   await submitForApproval({
     organizationId: sample.organizationId,
     factoryId: sample.factoryId,
@@ -769,6 +907,40 @@ export async function completeFitTrial(id, factoryId, userId, comments, fitAnaly
     documentId: sample._id,
     submittedBy: userId,
   });
+  await notifySampleApprovers(sample, userId, {
+    eventType: 'approval.pending',
+    title: 'Sample awaiting approval',
+    message: `${sample.sampleCode} passed QC${sample.fitAnalysis?.overallResult ? ' and fit' : ''} — approve, request revision, or reject`,
+  });
+}
+
+export async function completeFitTrial(id, factoryId, userId, comments, fitAnalysis, opts = {}) {
+  const sample = await loadSampleForFloorOps(id, factoryId, userId, opts);
+  if (sample.status !== 'FIT_TRIAL') throw new ConflictError('Sample must be in FIT_TRIAL');
+  applyFitAnalysis(sample, fitAnalysis, userId);
+  if (comments) sample.qcComments = [sample.qcComments, comments].filter(Boolean).join(' · ');
+  sample.updatedBy = userId;
+
+  if (sample.fitAnalysis?.patternRevisionRequired) {
+    // The pattern goes back to the master; buyer approval would sign off a garment that will change.
+    const note = comments || sample.fitAnalysis.notes || 'Fit trial requires pattern revision';
+    setSampleStatus(sample, 'REVISION_REQUESTED', userId, 'fit_trial_pattern_revision', note);
+    sample.revisionComments = note;
+    sample.iteration = (sample.iteration || 1) + 1;
+    await sample.save();
+    await handleFitPatternRevision(sample, factoryId, userId, comments);
+    await notifySampleOwners(sample, {
+      eventType: 'sample.revision_requested',
+      title: 'Fit trial needs a pattern revision',
+      message: `${sample.sampleCode} — correct the pattern, re-complete it, then reopen the sample (iteration ${sample.iteration})`,
+      excludeUserId: userId,
+    });
+    return populateSample(sample);
+  }
+
+  setSampleStatus(sample, 'PENDING_APPROVAL', userId, 'fit_trial_complete', comments || 'Fit session recorded');
+  await sample.save();
+  await submitSampleApprovalAndNotify(sample, userId);
   return populateSample(sample);
 }
 
@@ -778,16 +950,10 @@ export async function submitSampleForApproval(id, factoryId, userId, opts = {}) 
     throw new ConflictError('Sample must pass QC before final approval submission');
   }
   if (sample.status === 'QC_PASSED') {
-    sample.status = 'PENDING_APPROVAL';
+    setSampleStatus(sample, 'PENDING_APPROVAL', userId, 'submit_for_approval');
     sample.updatedBy = userId;
     await sample.save();
-    await submitForApproval({
-      organizationId: sample.organizationId,
-      factoryId: sample.factoryId,
-      documentType: 'SAMPLE',
-      documentId: sample._id,
-      submittedBy: userId,
-    });
+    await submitSampleApprovalAndNotify(sample, userId);
   }
   return populateSample(sample);
 }
@@ -803,6 +969,14 @@ export async function failSampleQc(id, factoryId, userId, comments, fitAnalysis,
   await syncSampleInspectionResult(sample, userId, false);
   await sample.save();
   await handleFitPatternRevision(sample, factoryId, userId, comments);
+  await notifySampleOwners(sample, {
+    eventType: 'sample.qc_failed',
+    title: 'Sample failed QC',
+    message: comments?.trim()
+      ? `${sample.sampleCode} failed quality inspection: ${comments.trim()}`
+      : `${sample.sampleCode} failed quality inspection`,
+    excludeUserId: userId,
+  });
   return populateSample(sample);
 }
 
@@ -835,6 +1009,11 @@ export async function approveSample(id, factoryId, userId, { syncApproval = true
   if (!['PENDING_APPROVAL', 'QC_PASSED'].includes(sample.status)) {
     throw new ConflictError('Sample must pass QC and be pending approval');
   }
+  await assertPatternDevelopmentComplete(
+    sample.designId?._id || sample.designId,
+    factoryId,
+    'approving the sample',
+  );
   if (syncApproval) {
     await syncApprovalApproved('SAMPLE', sample._id, userId);
   }
@@ -843,6 +1022,12 @@ export async function approveSample(id, factoryId, userId, { syncApproval = true
   sample.approvedAt = new Date();
   sample.updatedBy = userId;
   await sample.save();
+  await notifySampleOwners(sample, {
+    eventType: 'sample.approved',
+    title: 'Sample approved',
+    message: `${sample.sampleCode} approved — ready for SKU creation`,
+    excludeUserId: userId,
+  });
   return populateSample(sample);
 }
 
@@ -858,6 +1043,14 @@ export async function rejectSample(id, factoryId, userId, comments, { syncApprov
   sample.rejectionComments = comments;
   sample.updatedBy = userId;
   await sample.save();
+  await notifySampleOwners(sample, {
+    eventType: 'sample.rejected',
+    title: 'Sample rejected',
+    message: comments?.trim()
+      ? `${sample.sampleCode} was rejected: ${comments.trim()}`
+      : `${sample.sampleCode} was rejected`,
+    excludeUserId: userId,
+  });
   return populateSample(sample);
 }
 
@@ -875,19 +1068,37 @@ export async function requestSampleRevision(id, factoryId, userId, comments, { s
   sample.updatedBy = userId;
   await sample.save();
 
-  if (sample.createdBy) {
-    await notify({
-      organizationId: sample.organizationId,
-      factoryId: sample.factoryId,
-      userId: sample.createdBy,
-      eventType: 'sample.revision_requested',
-      title: 'Sample revision requested',
-      message: `${sample.sampleCode} needs revision (iteration ${sample.iteration})`,
-      referenceType: 'SAMPLE',
-      referenceId: sample._id,
-    });
-  }
+  // The assigned pattern master reworks the sample; the creator tracks it.
+  await notifySampleOwners(sample, {
+    eventType: 'sample.revision_requested',
+    title: 'Sample revision requested',
+    message: comments?.trim()
+      ? `${sample.sampleCode} needs revision (iteration ${sample.iteration}): ${comments.trim()}`
+      : `${sample.sampleCode} needs revision (iteration ${sample.iteration})`,
+    excludeUserId: userId,
+  });
   return populateSample(sample);
+}
+
+/** Release ACTIVE reservations and zero the iteration's reserve/issue/cost bookkeeping. */
+async function releaseSampleStock(sample, userId, { keepIssued = false } = {}) {
+  await inventoryService.releaseReservations({
+    factoryId: sample.factoryId,
+    organizationId: sample.organizationId,
+    referenceType: 'SAMPLE',
+    referenceId: sample._id,
+    userId,
+  });
+  for (const req of sample.materialRequirements || []) {
+    if (keepIssued) {
+      // Issued stock is consumed — keep it (and its cost) on the record; only the hold is gone.
+      req.reservedQty = req.issuedQty || 0;
+      continue;
+    }
+    req.reservedQty = 0;
+    req.issuedQty = 0;
+    req.cost = 0;
+  }
 }
 
 export async function reopenSampleForRevision(id, factoryId, userId, opts = {}) {
@@ -895,21 +1106,47 @@ export async function reopenSampleForRevision(id, factoryId, userId, opts = {}) 
   if (sample.status !== 'REVISION_REQUESTED') {
     throw new ConflictError('Sample must be in REVISION_REQUESTED status');
   }
-  const hasReservations = sample.materialRequirements.some((r) => (r.reservedQty || 0) > 0 && !(r.issuedQty || 0));
-  if (hasReservations) {
-    await inventoryService.releaseReservations({
-      factoryId: sample.factoryId,
-      organizationId: sample.organizationId,
-      referenceType: 'SAMPLE',
-      referenceId: sample._id,
-      userId,
-    });
-    for (const req of sample.materialRequirements) {
-      if (!(req.issuedQty || 0)) req.reservedQty = 0;
-    }
-  }
+  // Next iteration reserves and issues fresh stock — the previous iteration's quantities are history.
+  await releaseSampleStock(sample, userId);
   setSampleStatus(sample, 'CREATED', userId, 'reopen_revision', 'Ready to update materials and resubmit RM');
   sample.updatedBy = userId;
   await sample.save();
+  return populateSample(sample);
+}
+
+/**
+ * Abandon a sample from any non-terminal status: free reserved stock, close open approval
+ * instances, and park it as REJECTED (terminal) with the reason so the design can start a new one.
+ */
+export async function cancelSample(id, factoryId, userId, reason) {
+  const sample = await loadSampleForUpdate(id, factoryId);
+  if ([...SAMPLE_TERMINAL_STATUSES, 'COMPLETED'].includes(sample.status)) {
+    throw new ConflictError(`Sample is already ${sample.status.replace(/_/g, ' ').toLowerCase()}`);
+  }
+  const note = reason?.trim() || 'Sample cancelled';
+  await releaseSampleStock(sample, userId, { keepIssued: true });
+  await cancelPendingApproval('SAMPLE', sample._id, userId, note);
+  await cancelPendingApproval('SAMPLE_MATERIAL', sample._id, userId, note);
+  // Drop any open sample QC inspection so it doesn't linger in the quality queue.
+  await QualityInspection.updateMany(
+    {
+      factoryId: sample.factoryId,
+      referenceType: 'SAMPLE',
+      referenceId: sample._id,
+      status: { $ne: 'COMPLETED' },
+      isDeleted: false,
+    },
+    { $set: { isDeleted: true, updatedBy: userId } },
+  );
+  setSampleStatus(sample, 'REJECTED', userId, 'cancel', note);
+  sample.rejectionComments = `Cancelled: ${note}`;
+  sample.updatedBy = userId;
+  await sample.save();
+  await notifySampleOwners(sample, {
+    eventType: 'sample.cancelled',
+    title: 'Sample cancelled',
+    message: `${sample.sampleCode} was cancelled: ${note}`,
+    excludeUserId: userId,
+  });
   return populateSample(sample);
 }

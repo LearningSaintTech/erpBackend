@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 import { UnauthorizedError } from '../shared/errors/AppError.js';
 import { User } from '../modules/user/user.model.js';
+import { isAccountLocked } from '../modules/user/user.service.js';
 
 export function signAccessToken(payload) {
   return jwt.sign(payload, env.jwtSecret, { expiresIn: env.jwtAccessExpiry });
@@ -28,10 +29,10 @@ export async function authMiddleware(req, res, next) {
     const token = header.slice(7);
     const decoded = verifyAccessToken(token);
     const user = await User.findById(decoded.sub).select('-passwordHash');
-    if (!user || user.status === 'INACTIVE') {
+    if (!user || user.isDeleted || user.status === 'INACTIVE') {
       throw new UnauthorizedError('User not active');
     }
-    if (user.status === 'LOCKED' && user.lockedUntil && user.lockedUntil > new Date()) {
+    if (isAccountLocked(user)) {
       throw new UnauthorizedError('Account locked');
     }
     req.user = user;

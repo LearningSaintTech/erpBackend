@@ -37,6 +37,12 @@ export async function catalog(req, res, next) {
   } catch (e) { next(e); }
 }
 
+export async function formOptions(req, res, next) {
+  try {
+    success(res, await wasteService.getWasteFormOptions(req.factoryId));
+  } catch (e) { next(e); }
+}
+
 export async function stats(req, res, next) {
   try {
     success(res, await wasteService.getWasteStats(req.factoryId));

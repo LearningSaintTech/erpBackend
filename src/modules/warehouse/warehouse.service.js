@@ -8,8 +8,10 @@ import { InventoryTransaction } from '../inventory/inventoryTransaction.model.js
 import { Material } from '../inventory/material.model.js';
 import { Sku } from '../sku/sku.model.js';
 import { NotFoundError, ConflictError } from '../../shared/errors/AppError.js';
-import { applySoftDeleteFilter } from '../../shared/utils/schema.js';
+import { applySoftDeleteFilter, pickFields } from '../../shared/utils/schema.js';
 import { getOrCreateRmBalance } from '../inventory/inventoryStock.service.js';
+
+const ROUND3 = (n) => Math.round((n || 0) * 1000) / 1000;
 
 // Ensure populate targets are registered when this module loads first
 void Material;
@@ -70,7 +72,13 @@ export async function createWarehouse(data, userId) {
   if (data.isDefault) {
     await Warehouse.updateMany({ factoryId: data.factoryId, type: data.type, isDefault: true }, { isDefault: false });
   }
-  return Warehouse.create({ ...data, createdBy: userId, updatedBy: userId });
+  return Warehouse.create({
+    ...pickFields(data, ['warehouseCode', 'name', 'type', 'address', 'isDefault']),
+    factoryId: data.factoryId,
+    organizationId: data.organizationId,
+    createdBy: userId,
+    updatedBy: userId,
+  });
 }
 
 export async function listWarehouses(factoryId, { page, limit, skip, search, type }) {
@@ -115,6 +123,14 @@ export async function getDefaultWarehouse(factoryId, type = 'RAW_MATERIAL') {
   return wh;
 }
 
+/** zone is the populated Zone doc reached via shelf/rack — it must exist and sit in the bin's warehouse. */
+function assertZoneInWarehouse(zone, warehouseId) {
+  if (!zone?.warehouseId || zone.isDeleted) throw new NotFoundError('Zone not found');
+  if (zone.warehouseId.toString() !== String(warehouseId)) {
+    throw new ConflictError('Zone does not belong to this warehouse');
+  }
+}
+
 async function resolveBinPlacement(data, factoryId) {
   const resolved = { ...data };
   if (data.shelfId) {
@@ -125,10 +141,12 @@ async function resolveBinPlacement(data, factoryId) {
     resolved.rackId = shelf.rackId?._id || shelf.rackId;
     resolved.zoneId = shelf.rackId?.zoneId?._id || shelf.rackId?.zoneId;
     resolved.zoneCode = shelf.rackId?.zoneId?.zoneCode || resolved.zoneCode;
+    assertZoneInWarehouse(shelf.rackId?.zoneId, data.warehouseId);
   } else if (data.rackId) {
     const rack = await Rack.findOne(applySoftDeleteFilter({ _id: data.rackId, factoryId }))
       .populate('zoneId');
     if (!rack) throw new NotFoundError('Rack not found');
+    assertZoneInWarehouse(rack.zoneId, data.warehouseId);
     resolved.rackId = rack._id;
     resolved.zoneId = rack.zoneId?._id || rack.zoneId;
     resolved.zoneCode = rack.zoneId?.zoneCode || resolved.zoneCode;
@@ -160,7 +178,12 @@ export async function createStorageBin(data, userId) {
     binCode: data.binCode,
   }));
   if (existing) throw new ConflictError('Bin code already exists in this warehouse');
-  const placement = await resolveBinPlacement(data, data.factoryId);
+  const placement = await resolveBinPlacement({
+    ...pickFields(data, ['zoneCode', 'zoneId', 'rackId', 'shelfId', 'binCode', 'barcode', 'capacity', 'status']),
+    warehouseId: data.warehouseId,
+    factoryId: data.factoryId,
+    organizationId: data.organizationId,
+  }, data.factoryId);
   // Drop empty optional placement FKs so Mongo doesn't store ""
   for (const key of ['zoneId', 'rackId', 'shelfId']) {
     if (!placement[key]) delete placement[key];
@@ -394,24 +417,39 @@ export async function transferStock({
   await assertBinWarehouseType(toBin, 'RAW_MATERIAL');
 
   const fromBinKey = fromBinId || null;
-  const fromBalance = await InventoryBalance.findOne({
+  if (fromBinKey && String(fromBinKey) === String(toBin._id)) {
+    throw new ConflictError('Source and destination bins must differ');
+  }
+  const sourceFilter = {
     factoryId,
     materialId,
     inventoryType: 'RAW_MATERIAL',
     storageBinId: fromBinKey,
     isDeleted: false,
-  });
-  if (!fromBalance || fromBalance.onHand <= 0) throw new ConflictError('No stock to transfer');
+  };
+  const sourceBalance = await InventoryBalance.findOne(sourceFilter);
+  if (!sourceBalance || sourceBalance.onHand <= 0) throw new ConflictError('No stock to transfer');
 
-  const maxTransfer = fromBalance.onHand - (fromBalance.reserved || 0);
+  const maxTransfer = ROUND3(sourceBalance.onHand - (sourceBalance.reserved || 0));
   const transferQty = quantity ?? maxTransfer;
-  if (transferQty <= 0 || maxTransfer < transferQty) {
-    throw new ConflictError('Cannot transfer reserved stock or zero quantity');
+  if (transferQty <= 0 || maxTransfer <= 0) {
+    throw new ConflictError('Nothing to transfer — all stock at the source is reserved');
+  }
+  if (transferQty > maxTransfer) {
+    throw new ConflictError(
+      `Only ${maxTransfer} ${sourceBalance.unit || ''} can be moved from the source (${sourceBalance.reserved || 0} reserved) — requested ${transferQty}`.replace(/\s+/g, ' '),
+    );
   }
 
-  fromBalance.onHand -= transferQty;
-  fromBalance.available = fromBalance.onHand - fromBalance.reserved;
-  fromBalance.updatedBy = userId;
+  // Atomic take: a concurrent transfer / issue between the read and the write cannot drive the source negative.
+  const fromBalance = await InventoryBalance.findOneAndUpdate(
+    { _id: sourceBalance._id, $expr: { $gte: [{ $subtract: ['$onHand', { $ifNull: ['$reserved', 0] }] }, transferQty] } },
+    { $inc: { onHand: -transferQty }, $set: { updatedBy: userId, updatedAt: new Date() } },
+    { new: true },
+  );
+  if (!fromBalance) throw new ConflictError('Source stock changed — refresh and retry');
+  fromBalance.onHand = ROUND3(fromBalance.onHand);
+  fromBalance.available = ROUND3(fromBalance.onHand - (fromBalance.reserved || 0));
   await fromBalance.save();
 
   const toBalance = await getOrCreateRmBalance(
@@ -421,12 +459,13 @@ export async function transferStock({
     fromBalance.unit,
     toBin._id,
   );
-  toBalance.onHand += transferQty;
+  toBalance.onHand = ROUND3(toBalance.onHand + transferQty);
   toBalance.locationId = toBin._id;
-  toBalance.available = toBalance.onHand - toBalance.reserved;
+  toBalance.available = ROUND3(toBalance.onHand - (toBalance.reserved || 0));
   toBalance.updatedBy = userId;
   await toBalance.save();
 
+  const fromBin = fromBinKey ? await StorageBin.findById(fromBinKey).select('binCode').lean() : null;
   await InventoryTransaction.create({
     organizationId,
     factoryId,
@@ -436,6 +475,8 @@ export async function transferStock({
     unit: fromBalance.unit,
     referenceType: 'BIN_TRANSFER',
     referenceId: toBin._id,
+    storageBinId: toBin._id,
+    note: `${fromBin?.binCode || 'Unallocated dock'} → ${toBin.binCode}`,
     performedBy: userId,
     createdBy: userId,
     updatedBy: userId,
@@ -455,9 +496,12 @@ export async function putAwayFinishedGoods({ factoryId, organizationId, skuId, b
   const balance = await InventoryBalance.findOne({
     factoryId, skuId, inventoryType: 'FINISHED_GOODS', isDeleted: false,
   });
-  if (!balance || balance.onHand < quantity) {
+  if (!balance || balance.onHand <= 0 || (quantity != null && balance.onHand < quantity)) {
     throw new ConflictError('Insufficient finished goods to put away');
   }
+  // One FG balance row per SKU — the whole row moves to the bin, so log the full on-hand actually moved
+  // (QC completion and the UI pass partial quantities, so rejecting quantity !== onHand would break them)
+  const moveQty = balance.onHand;
 
   balance.storageBinId = bin._id;
   balance.locationId = bin.warehouseId;
@@ -470,7 +514,7 @@ export async function putAwayFinishedGoods({ factoryId, organizationId, skuId, b
     factoryId,
     type: 'TRANSFER',
     skuId,
-    quantity,
+    quantity: moveQty,
     unit: balance.unit,
     referenceType: 'FG_PUT_AWAY',
     referenceId: bin._id,

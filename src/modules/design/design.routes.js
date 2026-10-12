@@ -139,7 +139,7 @@ router.get('/designs/lookups', rbac('design.read'), async (req, res, next) => {
 router.post('/designs', rbac('design.create'), validate(createSchema), async (req, res, next) => {
   try {
     const design = await designService.createDesign({
-      ...req.body,
+      ...designService.stripServerFields(req.body),
       factoryId: req.factoryId,
       organizationId: req.user.organizationId || req.organizationId,
     }, req.user._id);
@@ -187,6 +187,7 @@ router.get('/designs/:id', rbac('design.read'), async (req, res, next) => {
 router.post('/designs/:id/generate-sku', rbac('design.update'), async (req, res, next) => {
   try {
     success(res, await designService.regenerateDesignSkus(req.params.id, req.user._id, {
+      factoryId: req.factoryId,
       viewer: req.user,
       permissions: req.permissions || [],
     }));
@@ -215,19 +216,25 @@ router.post('/designs/:id/submit', rbacAny('design.update', 'design.approve'), a
 
 router.post('/designs/:id/approve', rbac('design.approve'), forbidDesignAuthorReview, async (req, res, next) => {
   try {
-    success(res, await designService.approveDesign(req.params.id, req.user._id));
+    success(res, await designService.approveDesign(req.params.id, req.user._id, {
+      factoryId: req.factoryId,
+    }));
   } catch (e) { next(e); }
 });
 
 router.post('/designs/:id/reject', rbac('design.approve'), forbidDesignAuthorReview, validate(reviewCommentsSchema), async (req, res, next) => {
   try {
-    success(res, await designService.rejectDesign(req.params.id, req.user._id, req.body.comments));
+    success(res, await designService.rejectDesign(req.params.id, req.user._id, req.body.comments, {
+      factoryId: req.factoryId,
+    }));
   } catch (e) { next(e); }
 });
 
 router.post('/designs/:id/revision', rbac('design.approve'), forbidDesignAuthorReview, validate(reviewCommentsSchema), async (req, res, next) => {
   try {
-    success(res, await designService.requestRevision(req.params.id, req.user._id, req.body.comments));
+    success(res, await designService.requestRevision(req.params.id, req.user._id, req.body.comments, {
+      factoryId: req.factoryId,
+    }));
   } catch (e) { next(e); }
 });
 
@@ -235,6 +242,7 @@ router.post('/designs/:id/release', rbac('design.approve'), forbidDesignAuthorRe
   try {
     success(res, await designService.releaseDesign(req.params.id, req.user._id, {
       patternMasterId: req.body?.patternMasterId,
+      factoryId: req.factoryId,
     }));
   } catch (e) { next(e); }
 });
@@ -242,6 +250,7 @@ router.post('/designs/:id/release', rbac('design.approve'), forbidDesignAuthorRe
 router.post('/designs/:id/clone', rbac('design.create'), async (req, res, next) => {
   try {
     success(res, await designService.cloneDesign(req.params.id, req.user._id, {
+      factoryId: req.factoryId,
       viewer: req.user,
       permissions: req.permissions || [],
     }), null, 201);
@@ -251,6 +260,7 @@ router.post('/designs/:id/clone', rbac('design.create'), async (req, res, next) 
 router.get('/designs/:id/versions', rbac('design.read'), async (req, res, next) => {
   try {
     success(res, await designService.listDesignVersions(req.params.id, {
+      factoryId: req.factoryId,
       viewer: req.user,
       permissions: req.permissions || [],
     }));
@@ -270,6 +280,7 @@ router.get('/designs/:id/timeline', rbac('design.read'), async (req, res, next) 
 router.get('/designs/:id/versions/:version', rbac('design.read'), async (req, res, next) => {
   try {
     success(res, await designService.getDesignVersion(req.params.id, Number(req.params.version), {
+      factoryId: req.factoryId,
       viewer: req.user,
       permissions: req.permissions || [],
     }));
@@ -279,6 +290,7 @@ router.get('/designs/:id/versions/:version', rbac('design.read'), async (req, re
 router.get('/designs/:id/samples', rbac('design.read'), async (req, res, next) => {
   try {
     success(res, await designService.listDesignSamples(req.params.id, {
+      factoryId: req.factoryId,
       viewer: req.user,
       permissions: req.permissions || [],
     }));
@@ -288,6 +300,7 @@ router.get('/designs/:id/samples', rbac('design.read'), async (req, res, next) =
 router.post('/designs/:id/assets', rbacAny('design.update', 'design.approve'), validate(assetSchema), async (req, res, next) => {
   try {
     const asset = await designService.uploadDesignAsset(req.params.id, req.body, req.user._id, {
+      factoryId: req.factoryId,
       viewer: req.user,
       permissions: req.permissions || [],
     });
@@ -298,6 +311,8 @@ router.post('/designs/:id/assets', rbacAny('design.update', 'design.approve'), v
 router.delete('/designs/:id/assets/:assetId', rbacAny('design.update', 'design.approve'), async (req, res, next) => {
   try {
     success(res, await designService.deleteDesignAsset(req.params.assetId, req.user._id, {
+      designId: req.params.id,
+      factoryId: req.factoryId,
       viewer: req.user,
       permissions: req.permissions || [],
     }));

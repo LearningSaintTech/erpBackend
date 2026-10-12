@@ -25,5 +25,7 @@ const approvalInstanceSchema = new mongoose.Schema({
 });
 
 approvalInstanceSchema.index({ documentType: 1, documentId: 1 });
+// Perf (large-dataset audit): list/stats queries filter by factory + soft-delete + status and sort by date.
+approvalInstanceSchema.index({ factoryId: 1, status: 1, submittedAt: -1 });
 
 export const ApprovalInstance = mongoose.model('ApprovalInstance', approvalInstanceSchema);

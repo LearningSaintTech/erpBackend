@@ -19,9 +19,12 @@ router.post('/purchase-requisitions', rbac('purchase.create'), validate(ctrl.cre
 router.post('/purchase-requisitions/from-mrp', rbac('purchase.create', 'purchase.approve'), validate(ctrl.fromMrpSchema), ctrl.createPrFromMrp);
 router.get('/purchase-requisitions', rbac('purchase.read'), ctrl.listPrs);
 router.get('/purchase-requisitions/:id', rbac('purchase.read'), ctrl.getPr);
+router.patch('/purchase-requisitions/:id', rbac('purchase.update'), validate(ctrl.updatePrSchema), ctrl.updatePr);
 router.post('/purchase-requisitions/:id/submit', rbac('purchase.update'), ctrl.submitPr);
 router.post('/purchase-requisitions/:id/approve', rbac('purchase.authorize'), ctrl.approvePr);
 router.post('/purchase-requisitions/:id/reject', rbac('purchase.authorize'), validate(ctrl.commentSchema), ctrl.rejectPr);
+router.post('/purchase-requisitions/:id/request-changes', rbac('purchase.authorize'), validate(ctrl.commentSchema), ctrl.requestPrChanges);
+router.post('/purchase-requisitions/:id/cancel', rbac('purchase.update'), ctrl.cancelPr);
 
 router.post('/purchase-orders', rbac('purchase.create', 'purchase.approve'), validate(ctrl.createPoSchema), ctrl.createPo);
 router.get('/purchase-orders', rbac('purchase.read'), ctrl.listPos);
@@ -30,6 +33,8 @@ router.get('/purchase-orders/:id/receipts/:index/file', rbac('purchase.read'), c
 router.get('/purchase-orders/:id', rbac('purchase.read'), ctrl.getPo);
 router.post('/purchase-orders/:id/approve', rbac('purchase.approve'), ctrl.approvePo);
 router.post('/purchase-orders/:id/send', rbac('purchase.update', 'purchase.approve'), ctrl.sendPo);
+router.post('/purchase-orders/:id/cancel', rbac('purchase.update', 'purchase.approve'), validate(ctrl.reasonSchema), ctrl.cancelPo);
+router.post('/purchase-orders/:id/close', rbac('purchase.update', 'purchase.approve'), validate(ctrl.reasonSchema), ctrl.closePo);
 router.post('/purchase-orders/:id/mark-paid', rbac('purchase.pay'), ctrl.markPoPaid);
 router.patch('/purchase-orders/:id/receipts', rbacAny('purchase.create', 'purchase.update', 'purchase.pay'), validate(ctrl.setReceiptsSchema), ctrl.setPoReceipts);
 
@@ -38,15 +43,9 @@ router.get('/goods-receipts', rbac('purchase.read'), ctrl.listGrns);
 router.get('/goods-receipts/:id/receipts/:index/file', rbac('purchase.read'), ctrl.downloadGrnReceipt);
 router.get('/goods-receipts/:id', rbac('purchase.read'), ctrl.getGrn);
 router.post('/goods-receipts/:id/submit-qc', rbac('purchase.update'), ctrl.submitGrnQc);
+router.post('/goods-receipts/:id/cancel', rbac('purchase.update'), ctrl.cancelGrn);
 router.patch('/goods-receipts/:id/receipts', rbacAny('purchase.create', 'purchase.update'), validate(ctrl.setReceiptsSchema), ctrl.setGrnReceipts);
 
-router.post('/rfqs/from-pr', rbac('purchase.create', 'purchase.approve'), validate(ctrl.rfqFromPrSchema), ctrl.createRfqFromPr);
-router.get('/rfqs', rbac('purchase.read'), ctrl.listRfqs);
-router.get('/rfqs/:id', rbac('purchase.read'), ctrl.getRfq);
-router.post('/rfqs/:id/send', rbac('purchase.update', 'purchase.approve'), ctrl.sendRfq);
-router.post('/rfqs/:id/quotations', rbac('purchase.create', 'purchase.approve'), validate(ctrl.quotationSchema), ctrl.addQuotation);
-router.get('/rfqs/:id/quotations/compare', rbac('purchase.read'), ctrl.compareQuotations);
 
-router.post('/quotations/:id/select', rbac('purchase.approve'), ctrl.selectQuotation);
 
 export default router;

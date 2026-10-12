@@ -58,6 +58,8 @@ const bomLineSchema = new mongoose.Schema({
   unit: String,
   category: String,
   notes: String,
+  /** Design colour variant this line applies to — blank means every colour. */
+  color: String,
 }, { _id: false });
 
 const accessorySchema = new mongoose.Schema({
@@ -70,6 +72,8 @@ const accessorySchema = new mongoose.Schema({
   unit: String,
   unitCost: { type: Number, default: 0 },
   approved: { type: Boolean, default: false },
+  /** Design colour variant this trim applies to (blank = all colours); `color` is the trim's own shade. */
+  variantColor: String,
 }, { _id: false });
 
 /** Fabric technicals the pattern master confirms against the actual sourced cloth. */

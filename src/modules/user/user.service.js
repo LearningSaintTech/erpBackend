@@ -6,10 +6,10 @@ import { Delegation } from './delegation.model.js';
 import { Session } from '../auth/session.model.js';
 import { Factory } from '../organization/factory.model.js';
 import {
-  UnauthorizedError, NotFoundError, ConflictError, ForbiddenError,
+  UnauthorizedError, NotFoundError, ConflictError, ForbiddenError, BadRequestError,
 } from '../../shared/errors/AppError.js';
 import { signAccessToken, signRefreshToken } from '../../middleware/auth.js';
-import { applySoftDeleteFilter } from '../../shared/utils/schema.js';
+import { applySoftDeleteFilter, escapeRegex, pickFields } from '../../shared/utils/schema.js';
 import { validatePermissionCodes } from './permissionUtils.js';
 import { logRbacEvent } from './rbacAudit.js';
 import { getRedis, isRedisReady } from '../../shared/services/redis.service.js';
@@ -21,6 +21,33 @@ const now = () => new Date();
 
 function isAssignmentActive(assignment, at = now()) {
   return !assignment.expiresAt || assignment.expiresAt >= at;
+}
+
+/** LOCKED with no expiry = locked by an admin (indefinite); with an expiry = auto-lock after failed logins. */
+export function isAccountLocked(user, at = new Date()) {
+  if (user.status !== 'LOCKED') return false;
+  return !user.lockedUntil || user.lockedUntil > at;
+}
+
+/** An actor may only grant/revoke a role whose permissions they hold themselves in that factory. */
+async function assertCanGrantRole(actor, role, factoryId) {
+  if (!actor || actor.isSuperAdmin) return;
+  const actorPerms = await getUserPermissions(actor._id, factoryId);
+  if (actorPerms.includes('*')) return;
+  const missing = (role.permissions || []).filter((p) => !actorPerms.includes(p));
+  if (missing.length) {
+    throw new ForbiddenError('Cannot grant or revoke a role with permissions you do not hold');
+  }
+}
+
+function assertNotSuperAdminTarget(user, actor) {
+  if (user.isSuperAdmin && !actor?.isSuperAdmin) {
+    throw new ForbiddenError('Only a super admin can modify a super admin');
+  }
+}
+
+async function revokeAllSessions(userId) {
+  await Session.updateMany({ userId, isRevoked: false }, { isRevoked: true });
 }
 
 export async function getUserPermissions(userId, factoryId) {
@@ -128,7 +155,7 @@ export async function login(email, password, meta = {}) {
   if (!user) throw new UnauthorizedError('Invalid credentials');
 
   if (user.status === 'INACTIVE') throw new UnauthorizedError('Account inactive');
-  if (user.status === 'LOCKED' && user.lockedUntil && user.lockedUntil > now()) {
+  if (isAccountLocked(user, now())) {
     throw new UnauthorizedError('Account locked. Try again later.');
   }
 
@@ -147,9 +174,10 @@ export async function login(email, password, meta = {}) {
 }
 
 export async function issueAuthSession(user, meta = {}) {
+  if (isAccountLocked(user, now())) throw new UnauthorizedError('Account locked');
+  if (user.status === 'LOCKED') user.status = 'ACTIVE'; // expired auto-lock
   user.failedLoginAttempts = 0;
   user.lockedUntil = null;
-  if (user.status === 'LOCKED') user.status = 'ACTIVE';
   user.lastLoginAt = now();
   await user.save();
 
@@ -194,7 +222,7 @@ export async function issueAuthSession(user, meta = {}) {
 }
 
 export async function logout(refreshToken) {
-  if (!refreshToken) return;
+  if (!refreshToken || typeof refreshToken !== 'string') return;
   await Session.updateOne(
     { refreshTokenHash: hashToken(refreshToken), isRevoked: false },
     { isRevoked: true }
@@ -202,7 +230,7 @@ export async function logout(refreshToken) {
 }
 
 export async function refreshAccessToken(refreshToken) {
-  if (!refreshToken) throw new UnauthorizedError('Refresh token required');
+  if (!refreshToken || typeof refreshToken !== 'string') throw new UnauthorizedError('Refresh token required');
 
   const session = await Session.findOne({
     refreshTokenHash: hashToken(refreshToken),
@@ -212,8 +240,8 @@ export async function refreshAccessToken(refreshToken) {
   if (!session) throw new UnauthorizedError('Invalid refresh token');
 
   const user = await User.findById(session.userId);
-  if (!user || user.status === 'INACTIVE') throw new UnauthorizedError('User inactive');
-  if (user.status === 'LOCKED' && user.lockedUntil && user.lockedUntil > now()) {
+  if (!user || user.isDeleted || user.status === 'INACTIVE') throw new UnauthorizedError('User inactive');
+  if (isAccountLocked(user, now())) {
     throw new UnauthorizedError('Account locked');
   }
 
@@ -265,7 +293,7 @@ export async function createUser(data, createdBy, actorEmail) {
 }
 
 export async function assignRole({
-  userId, roleId, factoryId, organizationId, assignedBy, expiresAt, actorEmail,
+  userId, roleId, factoryId, organizationId, assignedBy, expiresAt, actorEmail, actor,
 }) {
   const user = await User.findOne({ _id: userId, organizationId, isDeleted: false });
   if (!user) throw new NotFoundError('User not found');
@@ -278,6 +306,9 @@ export async function assignRole({
 
   const factory = await Factory.findOne({ _id: factoryId, organizationId, isDeleted: false });
   if (!factory) throw new NotFoundError('Factory not found');
+
+  assertNotSuperAdminTarget(user, actor);
+  await assertCanGrantRole(actor, role, factoryId);
 
   const assignment = await UserRoleAssignment.findOneAndUpdate(
     { userId, roleId, factoryId },
@@ -301,9 +332,9 @@ export async function assignRole({
 
 export async function listUsers(organizationId, { page, limit, skip, status, search, factoryId }) {
   const filter = { organizationId, isDeleted: false };
-  if (status) filter.status = status;
-  if (search?.trim()) {
-    const re = new RegExp(search.trim(), 'i');
+  if (typeof status === 'string' && status) filter.status = status;
+  if (typeof search === 'string' && search.trim()) {
+    const re = new RegExp(escapeRegex(search.trim()), 'i');
     filter.$or = [{ email: re }, { firstName: re }, { lastName: re }, { employeeId: re }];
   }
   const [items, total] = await Promise.all([
@@ -361,8 +392,9 @@ export async function getUser(id, organizationId) {
   return user;
 }
 
-export async function updateUser(id, organizationId, data, updatedBy, actorEmail) {
+export async function updateUser(id, organizationId, data, updatedBy, actorEmail, actor) {
   const user = await getUser(id, organizationId);
+  assertNotSuperAdminTarget(user, actor);
   if (data.firstName) user.firstName = data.firstName;
   if (data.lastName) user.lastName = data.lastName;
   if (data.phone !== undefined) {
@@ -375,9 +407,15 @@ export async function updateUser(id, organizationId, data, updatedBy, actorEmail
     user.phone = phone;
     if (previous !== phone) user.isNumberVerified = false;
   }
-  if (data.status) user.status = data.status;
+  const statusChanged = Boolean(data.status) && data.status !== user.status;
+  if (data.status) {
+    user.status = data.status;
+    // Admin lock is indefinite until explicitly unlocked.
+    if (data.status === 'LOCKED') user.lockedUntil = null;
+  }
   user.updatedBy = updatedBy;
   await user.save();
+  if (statusChanged && data.status !== 'ACTIVE') await revokeAllSessions(user._id);
 
   await logRbacEvent({
     organizationId,
@@ -402,6 +440,8 @@ export async function deleteUser(id, organizationId, deletedBy, actorEmail) {
   await user.save();
 
   await UserRoleAssignment.deleteMany({ userId: id, organizationId });
+  // Delegations must not outlive the delegator.
+  await Delegation.updateMany({ delegatorId: id, status: 'ACTIVE' }, { status: 'REVOKED' });
   await Session.updateMany({ userId: id, isRevoked: false }, { isRevoked: true });
 
   await logRbacEvent({
@@ -417,14 +457,16 @@ export async function deleteUser(id, organizationId, deletedBy, actorEmail) {
   return { deleted: true };
 }
 
-export async function resetPassword(id, organizationId, newPassword, updatedBy, actorEmail) {
+export async function resetPassword(id, organizationId, newPassword, updatedBy, actorEmail, actor) {
   const user = await User.findOne({ _id: id, organizationId, isDeleted: false }).select('+passwordHash');
   if (!user) throw new NotFoundError('User not found');
+  assertNotSuperAdminTarget(user, actor);
 
   user.passwordHash = await User.hashPassword(newPassword);
   user.passwordResetRequired = true;
   user.updatedBy = updatedBy;
   await user.save();
+  await revokeAllSessions(user._id);
 
   await logRbacEvent({
     organizationId,
@@ -438,8 +480,9 @@ export async function resetPassword(id, organizationId, newPassword, updatedBy, 
   return { reset: true };
 }
 
-export async function unlockUser(id, organizationId, updatedBy, actorEmail) {
+export async function unlockUser(id, organizationId, updatedBy, actorEmail, actor) {
   const user = await getUser(id, organizationId);
+  assertNotSuperAdminTarget(user, actor);
   user.status = 'ACTIVE';
   user.lockedUntil = null;
   user.failedLoginAttempts = 0;
@@ -463,18 +506,25 @@ export async function changePassword(userId, currentPassword, newPassword) {
   if (!user) throw new NotFoundError('User not found');
 
   const valid = await user.comparePassword(currentPassword);
-  if (!valid) throw new UnauthorizedError('Current password is incorrect');
+  // 400, not 401: a wrong current password must not look like an expired session (the SPA signs out on 401).
+  if (!valid) throw new BadRequestError('Current password is incorrect');
 
   user.passwordHash = await User.hashPassword(newPassword);
   user.passwordResetRequired = false;
   await user.save();
+  await revokeAllSessions(user._id);
 
   return { changed: true };
 }
 
 export async function createRole(data, createdBy, actorEmail) {
   validatePermissionCodes(data.permissions);
-  const role = await Role.create({ ...data, isCustom: true });
+  const role = await Role.create({
+    ...pickFields(data, ['code', 'name', 'description', 'permissions']),
+    organizationId: data.organizationId,
+    isSystem: false,
+    isCustom: true,
+  });
 
   await logRbacEvent({
     organizationId: data.organizationId,
@@ -553,16 +603,24 @@ export async function listRoleMembers(roleId, organizationId) {
     .sort({ assignedAt: -1 });
 }
 
-export async function revokeAssignment(assignmentId, organizationId, revokedBy, actorEmail) {
-  const assignment = await UserRoleAssignment.findOne({ _id: assignmentId, organizationId });
+export async function revokeAssignment(assignmentId, organizationId, revokedBy, actorEmail, actor) {
+  const assignment = await UserRoleAssignment.findOne({ _id: assignmentId, organizationId }).populate('roleId');
   if (!assignment) throw new NotFoundError('Assignment not found');
+  const target = await User.findById(assignment.userId);
+  if (target) assertNotSuperAdminTarget(target, actor);
+  if (assignment.roleId) await assertCanGrantRole(actor, assignment.roleId, assignment.factoryId);
 
   const meta = {
     userId: assignment.userId,
-    roleId: assignment.roleId,
+    roleId: assignment.roleId?._id || assignment.roleId,
     factoryId: assignment.factoryId,
   };
   await assignment.deleteOne();
+  // The delegator may no longer hold what they delegated in that factory.
+  await Delegation.updateMany(
+    { delegatorId: assignment.userId, factoryId: assignment.factoryId, status: 'ACTIVE' },
+    { status: 'REVOKED' },
+  );
 
   await logRbacEvent({
     organizationId,

@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { User } from '../user/user.model.js';
 import { Organization } from '../organization/organization.model.js';
-import { issueAuthSession } from '../user/user.service.js';
+import { issueAuthSession, isAccountLocked } from '../user/user.service.js';
 import {
   BadRequestError,
   ConflictError,
@@ -49,12 +49,19 @@ async function defaultOrganization() {
   return Organization.findOne({ isDeleted: { $ne: true } }).sort({ createdAt: 1 });
 }
 
+/** Legacy self-registrations predate the flag: synthetic otp.* email and never verified. */
+function isPendingRegistration(user) {
+  if (user.registrationPending) return true;
+  return !user.isNumberVerified && /^otp\.\d+@otp\.local$/.test(user.email || '');
+}
+
 function assertSendableUser(user) {
-  if (!user) throw new NotFoundError('Phone number not Registered.Please register first');
-  if (user.status === 'LOCKED' && user.lockedUntil && user.lockedUntil > new Date()) {
+  if (!user) throw new NotFoundError('This mobile number is not registered. Ask your factory administrator to add it to your account.');
+  if (isAccountLocked(user)) {
     throw new UnauthorizedError('Account locked. Try again later.');
   }
-  if (user.status === 'INACTIVE' && user.isNumberVerified) {
+  // An admin-deactivated account must not be reactivated by verifying an OTP.
+  if (user.status === 'INACTIVE' && !isPendingRegistration(user)) {
     throw new UnauthorizedError('Account inactive');
   }
 }
@@ -74,6 +81,7 @@ async function ensureReviewUser(phoneNumber, countryCode) {
     phone: mobile,
     countryCode: countryCode || '+91',
     isNumberVerified: false,
+    registrationPending: true,
     status: 'INACTIVE',
   });
   return user;
@@ -94,9 +102,14 @@ export async function registerOtp({ name, countryCode = '+91', phoneNumber }) {
     user.isDeleted = false;
     user.deletedAt = undefined;
     user.isNumberVerified = false;
+    user.registrationPending = true;
     user.status = 'INACTIVE';
   }
   if (user && !user.isDeleted && (user.isNumberVerified || user.status === 'ACTIVE')) {
+    throw new ConflictError('User already registered.Please login');
+  }
+
+  if (user && !isPendingRegistration(user)) {
     throw new ConflictError('User already registered.Please login');
   }
 
@@ -121,6 +134,7 @@ export async function registerOtp({ name, countryCode = '+91', phoneNumber }) {
         phone: mobile,
         countryCode: countryCode || '+91',
         isNumberVerified: false,
+        registrationPending: true,
         status: 'INACTIVE',
       });
     } catch (err) {
@@ -162,19 +176,15 @@ export async function resendOtp({ userId }) {
 export async function verifyNumberOtp({ userId, otp }, meta = {}) {
   const user = await User.findById(userId);
   if (!user || user.isDeleted) throw new NotFoundError('User not found');
-  if (user.status === 'LOCKED' && user.lockedUntil && user.lockedUntil > new Date()) {
-    throw new UnauthorizedError('Account locked. Try again later.');
-  }
-  if (user.status === 'INACTIVE' && user.isNumberVerified) {
-    throw new UnauthorizedError('Account inactive');
-  }
+  assertSendableUser(user);
 
   await verifyOtp({ subjectId: user._id, purpose: OTP_PURPOSE, otp, phoneNumber: user.phone });
 
   user.isNumberVerified = true;
-  user.status = 'ACTIVE';
-  user.failedLoginAttempts = 0;
-  user.lockedUntil = null;
+  if (isPendingRegistration(user)) {
+    user.status = 'ACTIVE';
+    user.registrationPending = false;
+  }
   await user.save();
 
   return issueAuthSession(user, meta);

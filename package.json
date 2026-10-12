@@ -11,6 +11,7 @@
     "seed:rbac": "node src/scripts/seed-rbac.js",
     "seed:demo": "node src/scripts/seed-demo.js",
     "seed:light": "node src/scripts/seed-light.js",
+    "seed:large": "node src/scripts/seed-large.js",
     "seed:verify": "node src/scripts/seed-verify.js",
     "db:purge": "node src/scripts/purge-transactional.js",
     "feed:raw-materials": "node src/scripts/feed-raw-materials.js",
@@ -18,8 +19,15 @@
     "feed:material-images": "node src/scripts/feed-material-images.js",
     "smoke-test": "node src/scripts/smoke-test.js",
     "rbac-test": "node src/scripts/rbac-test.js",
+    "security-test": "node src/scripts/security-regression-test.js",
     "panel-audit-test": "node src/scripts/panel-audit-test.js",
-    "walkthrough": "node src/scripts/print-walkthrough.js"
+    "test:unit": "node --test \"test/unit/*.test.js\"",
+    "test:concurrency": "node --test --test-concurrency=2 \"test/concurrency/*.test.js\"",
+    "test:scripts": "node test/run-api-scripts.js",
+    "test": "npm run test:unit && npm run test:concurrency && npm run test:scripts",
+    "walkthrough": "node src/scripts/print-walkthrough.js",
+    "deploy:check-phones": "node src/scripts/check-duplicate-phones.js",
+    "deploy:backfill-qc": "node src/scripts/backfill-qc-quantities.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

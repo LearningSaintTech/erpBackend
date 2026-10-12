@@ -8,7 +8,11 @@ import {
 
 const levelSchema = Joi.object({
   level: Joi.number().integer().min(1),
-  approverRoles: Joi.array().items(Joi.string()).min(1).required(),
+  // Only real approver permissions — an arbitrary code (e.g. chat.read) would let anyone approve.
+  approverRoles: Joi.array()
+    .items(Joi.string().valid(...new Set(APPROVER_PERMISSION_OPTIONS.map((o) => o.permission))))
+    .min(1)
+    .required(),
   approvalType: Joi.string().valid('ANY', 'ALL'),
   slaHours: Joi.number().integer().min(1).max(720),
   escalationRole: Joi.string().allow(''),
@@ -17,10 +21,10 @@ const levelSchema = Joi.object({
 export const submitSchema = Joi.object({
   body: Joi.object({
     documentType: Joi.string().valid(...APPROVAL_DOCUMENT_TYPES).required(),
-    documentId: Joi.string().required(),
-    organizationId: Joi.string().required(),
-    factoryId: Joi.string().required(),
-    workflowId: Joi.string(),
+    documentId: Joi.string().hex().length(24).required(),
+    organizationId: Joi.string(),
+    factoryId: Joi.string(),
+    workflowId: Joi.string().hex().length(24),
   }),
 });
 
@@ -44,8 +48,8 @@ export const requestChangesSchema = Joi.object({
 
 export const workflowSchema = Joi.object({
   body: Joi.object({
-    organizationId: Joi.string().required(),
-    factoryId: Joi.string().required(),
+    organizationId: Joi.string(),
+    factoryId: Joi.string(),
     documentType: Joi.string().valid(...APPROVAL_DOCUMENT_TYPES).required(),
     name: Joi.string().trim().min(2).required(),
     levels: Joi.array().items(levelSchema).min(1).max(5).required(),
@@ -65,8 +69,13 @@ async function actionContext(req) {
 
 export async function submit(req, res, next) {
   try {
-    const instance = await approvalService.submitForApproval({
-      ...req.body,
+    const { documentType, documentId, workflowId } = req.body;
+    const instance = await approvalService.submitDocumentForApproval({
+      documentType,
+      documentId,
+      workflowId,
+      organizationId: req.organizationId,
+      factoryId: req.factoryId,
       submittedBy: req.user._id,
     });
     return success(res, instance, null, 201);
@@ -161,7 +170,11 @@ export async function stats(req, res, next) {
 
 export async function createWorkflow(req, res, next) {
   try {
-    const workflow = await approvalService.createWorkflow(req.body);
+    const workflow = await approvalService.createWorkflow({
+      ...req.body,
+      organizationId: req.organizationId,
+      factoryId: req.factoryId,
+    });
     return success(res, workflow, null, 201);
   } catch (err) {
     next(err);

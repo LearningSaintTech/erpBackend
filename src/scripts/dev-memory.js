@@ -20,14 +20,35 @@ async function start() {
   process.env.MONGODB_URI = uri;
 
   const { connectDatabase } = await import('../config/database.js');
-  const { default: app } = await import('../app.js');
+  const { default: app, corsOptions } = await import('../app.js');
   const { env } = await import('../config/env.js');
+  const http = await import('http');
+  const { Server } = await import('socket.io');
+  const { initRealtime } = await import('../shared/services/realtime.js');
+  const { initChatSocket } = await import('../modules/chat/chat.socket.js');
+  // env.js was already evaluated by this file's static imports (seed.js → … → env.js), so it
+  // captured MONGODB_URI from .env. Point it at the in-memory server explicitly — otherwise
+  // "dev:mem" would connect to (and seed) whatever database .env names.
+  env.mongodbUri = uri;
 
   await connectDatabase();
 
   await seedIfEmpty();
 
-  const server = app.listen(env.port, () => {
+  // Opt-in performance dataset (in-memory only): SEED_LARGE=true npm run dev:mem
+  if (process.env.SEED_LARGE === 'true') {
+    const { seedLarge, isLocalMongoUri } = await import('./seed-large.js');
+    if (!isLocalMongoUri(uri)) throw new Error('SEED_LARGE refused: database is not local');
+    await seedLarge();
+  }
+
+  // Same realtime wiring as src/index.js, so live notifications and chat work locally too.
+  const server = http.createServer(app);
+  const io = new Server(server, { cors: corsOptions });
+  initRealtime(io);
+  initChatSocket(io);
+
+  server.listen(env.port, () => {
     console.log(`API running on http://localhost:${env.port} (in-memory MongoDB — data resets on restart)`);
     console.log('\n--- Demo credentials ---');
     for (const row of DEMO_CREDENTIALS_SUMMARY) {

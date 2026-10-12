@@ -19,17 +19,23 @@ router.get('/organizations/:orgId/factories', rbac('factory.read'), ctrl.listFac
 router.get('/factories/:id', rbac('factory.read'), ctrl.getFactory);
 router.get('/factories/:id/settings', rbac('factory.configure'), async (req, res, next) => {
   try {
+    const factory = await orgService.getFactory(req.params.id);
+    ctrl.assertOrgAccess(req, factory.organizationId);
+    await ctrl.assertFactoryAccess(req, factory._id);
     const settings = await orgService.getFactorySettings(req.params.id);
     return success(res, settings);
   } catch (e) { next(e); }
 });
 router.put('/factories/:id/settings', rbac('factory.configure'), validate(factorySettingsSchema), async (req, res, next) => {
   try {
+    const factory = await orgService.getFactory(req.params.id);
+    ctrl.assertOrgAccess(req, factory.organizationId);
+    await ctrl.assertFactoryAccess(req, factory._id);
     const settings = await orgService.updateFactorySettings(req.params.id, req.body, req.user._id);
     return success(res, settings);
   } catch (e) { next(e); }
 });
-router.post('/organizations/:orgId/financial-years', rbac('organization.configure'), ctrl.createFinancialYear);
+router.post('/organizations/:orgId/financial-years', rbac('organization.configure'), validate(ctrl.financialYearSchema), ctrl.createFinancialYear);
 router.get('/organizations/:orgId/financial-years', rbac('organization.read'), ctrl.listFinancialYears);
 
 export default router;

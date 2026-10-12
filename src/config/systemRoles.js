@@ -69,7 +69,8 @@ export const SYSTEM_ROLES = [
       'production.create', 'production.read', 'production.update', 'production.approve', 'production.configure',
       'batch.create', 'batch.read', 'batch.update',
       'waste.create', 'waste.read', 'waste.update', 'waste.export',
-      'bom.read',
+      // Picking the SKU is the first field of a new production order.
+      'bom.read', 'sku.read',
       ...notify,
     ),
   },
@@ -192,7 +193,8 @@ export const SYSTEM_ROLES = [
       ...factoryRead,
       'production.create', 'production.read', 'production.update', 'production.approve', 'production.configure',
       'batch.create', 'batch.read', 'batch.update',
-      'bom.read',
+      // Picking the SKU is the first field of a new production order.
+      'bom.read', 'sku.read',
       'waste.create', 'waste.read', 'waste.update',
       'approval.read', 'approval.approve',
       ...notify,
@@ -260,7 +262,7 @@ export const SYSTEM_ROLES = [
     permissions: p(
       ...factoryRead,
       'batch.read', 'batch.update',
-      'production.read', 'production.update',
+      'production.read',
       ...notify,
     ),
   },

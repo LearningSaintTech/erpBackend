@@ -14,8 +14,11 @@ import { Defect } from '../quality/defect.model.js';
 import { ApprovalInstance } from '../approval/approvalInstance.model.js';
 import { WasteRecord } from '../waste/wasteRecord.model.js';
 import { Machine } from '../production/machine.model.js';
+import { StockReservation } from '../inventory/stockReservation.model.js';
 import { UserRoleAssignment } from '../user/userRoleAssignment.model.js';
-import { applySoftDeleteFilter } from '../../shared/utils/schema.js';
+import '../user/role.model.js'; // registers Role for the employee dashboard populate
+import { csvDate, csvDocument, humanizeEnum, humanizeKey } from './csv.util.js';
+import { applySoftDeleteFilter, asObjectId } from '../../shared/utils/schema.js';
 import * as productionService from '../production/production.service.js';
 import * as inventoryService from '../inventory/inventory.service.js';
 import * as purchaseService from '../purchase/purchase.service.js';
@@ -52,9 +55,17 @@ function dateMatch(range, field = 'createdAt') {
   return { [field]: { $gte: range.from, $lte: range.to } };
 }
 
+/** Material-level low / out-of-stock rows — the single rule shared with Inventory (computeMaterialStockAlerts). */
+async function materialStockAlerts(factoryId) {
+  const rows = await inventoryService.computeMaterialStockAlerts(factoryId);
+  return rows.filter((r) => r.isLowStock || r.isOutOfStock);
+}
+
+const RUNNING_BATCH_STATUSES = ['IN_PROGRESS', 'REWORK'];
+
 async function countByStatus(Model, factoryId, statusField = 'status', extra = {}) {
   const rows = await Model.aggregate([
-    { $match: { factoryId, isDeleted: false, ...extra } },
+    { $match: { factoryId: asObjectId(factoryId), isDeleted: false, ...extra } },
     { $group: { _id: `$${statusField}`, count: { $sum: 1 } } },
   ]);
   return Object.fromEntries(rows.map((r) => [r._id, r.count]));
@@ -81,7 +92,7 @@ export async function getReportStats(factoryId, filters = {}) {
   let periodSpend = purchase.openPoValue;
   if (range) {
     const spend = await PurchaseOrder.aggregate([
-      { $match: { factoryId, isDeleted: false, ...dateMatch(range) } },
+      { $match: { factoryId: asObjectId(factoryId), isDeleted: false, ...dateMatch(range) } },
       { $group: { _id: null, total: { $sum: '$totalAmount' } } },
     ]);
     periodSpend = spend[0]?.total || 0;
@@ -91,7 +102,9 @@ export async function getReportStats(factoryId, filters = {}) {
     period: range ? { from: range.from, to: range.to } : null,
     production: {
       ordersTotal: production.ordersTotal,
+      ordersCancelled: production.ordersCancelled,
       batchesInProgress: production.batchesInProgress,
+      batchesCancelled: production.batchesCancelled,
       fulfillmentPct: production.fulfillmentPct,
       overdueOrders: production.overdueOrders,
     },
@@ -105,6 +118,7 @@ export async function getReportStats(factoryId, filters = {}) {
       poOpen: purchase.poOpen,
       grnPendingQc: purchase.grnPendingQc,
       openPoValue: purchase.openPoValue,
+      unpaidValue: purchase.unpaidValue,
       periodSpend: Math.round(periodSpend),
     },
     quality: {
@@ -146,13 +160,7 @@ export async function getFactoryDashboard(factoryId, filters = {}) {
     PurchaseRequisition.countDocuments({ factoryId, status: { $in: ['SUBMITTED', 'DRAFT'] }, isDeleted: false }),
     PurchaseOrder.countDocuments({ factoryId, status: { $in: ['APPROVED', 'SENT', 'PARTIAL'] }, isDeleted: false }),
     QualityInspection.countDocuments({ factoryId, status: { $in: ['PENDING', 'IN_PROGRESS'] }, isDeleted: false }),
-    InventoryBalance.aggregate([
-      { $match: { factoryId, inventoryType: 'RAW_MATERIAL', isDeleted: false } },
-      { $lookup: { from: 'materials', localField: 'materialId', foreignField: '_id', as: 'mat' } },
-      { $unwind: '$mat' },
-      { $match: { $expr: { $lte: ['$available', '$mat.reorderLevel'] } } },
-      { $count: 'count' },
-    ]),
+    materialStockAlerts(factoryId),
     productionService.getProductionStats(factoryId),
     qualityService.getQualityStats(factoryId),
     purchaseService.getPurchaseStats(factoryId),
@@ -181,10 +189,11 @@ export async function getFactoryDashboard(factoryId, filters = {}) {
       openPRs,
       openPOs,
       qcQueue,
-      lowStockAlerts: lowStock[0]?.count || 0,
+      lowStockAlerts: lowStock.length,
       fulfillmentPct: productionStats.fulfillmentPct,
       firstPassYield: qualityStats.firstPassYield,
       openPoValue: purchaseStats.openPoValue,
+      unpaidValue: purchaseStats.unpaidValue,
       periodOrders,
     },
     designsByStatus,
@@ -197,25 +206,45 @@ export async function getProductionDashboard(factoryId, filters = {}) {
   const range = resolveDateRange(filters);
   const stats = await productionService.getProductionStats(factoryId);
   const byStatus = await countByStatus(ProductionOrder, factoryId, 'status', dateMatch(range));
+  // IN_PROGRESS + REWORK — the same "on the floor" set as batchesInProgress.
   const batchesByStage = await ProductionBatch.aggregate([
-    { $match: { factoryId, isDeleted: false, status: 'IN_PROGRESS' } },
+    { $match: { factoryId: asObjectId(factoryId), isDeleted: false, status: { $in: RUNNING_BATCH_STATUSES } } },
     { $group: { _id: '$currentStage', count: { $sum: 1 } } },
   ]);
+  // Quantities / fulfillment over the non-cancelled orders created in range.
   const qtyAgg = await ProductionOrder.aggregate([
-    { $match: { factoryId, isDeleted: false, ...dateMatch(range) } },
-    { $group: { _id: null, qty: { $sum: '$plannedQuantity' }, produced: { $sum: '$producedQuantity' } } },
+    {
+      $match: {
+        factoryId: asObjectId(factoryId), isDeleted: false, status: { $ne: 'CANCELLED' }, ...dateMatch(range),
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        qty: { $sum: '$plannedQuantity' },
+        produced: { $sum: '$producedQuantity' },
+        passed: { $sum: { $ifNull: ['$passedQuantity', 0] } },
+        rejected: { $sum: { $ifNull: ['$rejectedQuantity', 0] } },
+      },
+    },
   ]);
+  const planned = qtyAgg[0]?.qty || 0;
+  const passed = qtyAgg[0]?.passed || 0;
   return {
     period: range ? { from: range.from, to: range.to } : null,
     ordersByStatus: byStatus,
     batchesByStage: Object.fromEntries(batchesByStage.map((r) => [r._id, r.count])),
-    totalPlannedQty: qtyAgg[0]?.qty || 0,
+    totalPlannedQty: planned,
     totalProducedQty: qtyAgg[0]?.produced || 0,
-    fulfillmentPct: stats.fulfillmentPct,
+    totalPassedQty: passed,
+    totalRejectedQty: qtyAgg[0]?.rejected || 0,
+    fulfillmentPct: planned > 0 ? Math.min(100, Math.round((passed / planned) * 100)) : 0,
     overdueOrders: stats.overdueOrders,
+    ordersCancelled: stats.ordersCancelled,
     batchesInProgress: stats.batchesInProgress,
     batchesCompleted: stats.batchesCompleted,
     batchesRework: stats.batchesRework,
+    batchesCancelled: stats.batchesCancelled,
     machineCount: stats.machineCount,
     totalCapacityPerHour: stats.totalCapacityPerHour,
   };
@@ -224,16 +253,26 @@ export async function getProductionDashboard(factoryId, filters = {}) {
 export async function getInventoryDashboard(factoryId) {
   const stats = await inventoryService.getInventoryStats(factoryId);
   const whStats = await warehouseService.getWarehouseStats(factoryId);
-  const fgAgg = await InventoryBalance.aggregate([
-    { $match: { factoryId, inventoryType: 'FINISHED_GOODS', isDeleted: false } },
-    { $group: { _id: null, onHand: { $sum: '$onHand' }, reserved: { $sum: '$reserved' } } },
+  const [fgAgg, rmReservedAgg] = await Promise.all([
+    InventoryBalance.aggregate([
+      { $match: { factoryId: asObjectId(factoryId), inventoryType: 'FINISHED_GOODS', isDeleted: false } },
+      { $group: { _id: null, onHand: { $sum: '$onHand' }, reserved: { $sum: '$reserved' } } },
+    ]),
+    StockReservation.aggregate([
+      { $match: { factoryId: asObjectId(factoryId), status: 'ACTIVE', isDeleted: false } },
+      { $group: { _id: null, qty: { $sum: '$quantity' } } },
+    ]),
   ]);
+  const rmReserved = Math.round((rmReservedAgg[0]?.qty || 0) * 1000) / 1000;
   return {
     materialCount: stats.materialCount,
     balanceCount: stats.balanceCount,
     rmOnHand: stats.totalOnHand,
     fgOnHand: fgAgg[0]?.onHand || 0,
-    totalReserved: (fgAgg[0]?.reserved || 0) + stats.activeReservations,
+    // Quantities per inventory type — never mixed with document counts (activeReservations).
+    totalReserved: rmReserved,
+    rmReserved,
+    fgReserved: fgAgg[0]?.reserved || 0,
     stockValue: stats.stockValue,
     lowStock: stats.lowStock,
     outOfStock: stats.outOfStock,
@@ -249,7 +288,7 @@ export async function getPurchaseDashboard(factoryId, filters = {}) {
   const prByStatus = await countByStatus(PurchaseRequisition, factoryId, 'status', dateMatch(range));
   const poByStatus = await countByStatus(PurchaseOrder, factoryId, 'status', dateMatch(range));
   const spendAgg = await PurchaseOrder.aggregate([
-    { $match: { factoryId, isDeleted: false, ...dateMatch(range) } },
+    { $match: { factoryId: asObjectId(factoryId), isDeleted: false, ...dateMatch(range) } },
     { $group: { _id: null, total: { $sum: '$totalAmount' } } },
   ]);
   return {
@@ -261,7 +300,7 @@ export async function getPurchaseDashboard(factoryId, filters = {}) {
     suppliers: stats.suppliers,
     poOpen: stats.poOpen,
     openPoValue: stats.openPoValue,
-    rfqOpen: stats.rfqOpen,
+    unpaidValue: stats.unpaidValue,
   };
 }
 
@@ -275,7 +314,7 @@ export async function getQualityDashboard(factoryId, filters = {}) {
     });
   }
   const byType = await QualityInspection.aggregate([
-    { $match: { factoryId, isDeleted: false, ...dateMatch(range) } },
+    { $match: { factoryId: asObjectId(factoryId), isDeleted: false, ...dateMatch(range) } },
     { $group: { _id: '$inspectionType', count: { $sum: 1 } } },
   ]);
   return {
@@ -298,7 +337,7 @@ export async function getQualityDashboard(factoryId, filters = {}) {
 
 export async function getWasteDashboard(factoryId, filters = {}) {
   const range = resolveDateRange(filters);
-  const match = { factoryId, isDeleted: false, ...dateMatch(range) };
+  const match = { factoryId: asObjectId(factoryId), isDeleted: false, ...dateMatch(range) };
   const records = await WasteRecord.find(match);
   const byType = {};
   let totalCost = 0;
@@ -321,15 +360,25 @@ export async function getMachineDashboard(factoryId) {
   const stats = await productionService.getProductionStats(factoryId);
   const machines = await Machine.find(applySoftDeleteFilter({ factoryId }));
   const byStatus = await countByStatus(Machine, factoryId);
-  const active = machines.filter((m) => m.status === 'ACTIVE').length;
+  const activeMachines = machines.filter((m) => m.status === 'ACTIVE');
+  const active = activeMachines.length;
   const maintenance = machines.filter((m) => m.status === 'MAINTENANCE').length;
   const totalCapacity = machines.reduce((s, m) => s + (m.capacityPerHour || 0), 0);
-  const utilizationPct = totalCapacity > 0 && stats.batchesInProgress > 0
-    ? Math.min(100, Math.round((stats.batchesInProgress / machines.length) * 100))
-    : 0;
+  // Utilization = distinct ACTIVE machines running a batch / ACTIVE machines.
+  const busyMachineIds = active
+    ? await ProductionBatch.distinct('machineId', {
+      factoryId,
+      isDeleted: false,
+      status: { $in: RUNNING_BATCH_STATUSES },
+      machineId: { $in: activeMachines.map((m) => m._id) },
+    })
+    : [];
+  const busyMachines = busyMachineIds.filter(Boolean).length;
+  const utilizationPct = active > 0 ? Math.min(100, Math.round((busyMachines / active) * 100)) : 0;
   return {
     total: machines.length,
     active,
+    busyMachines,
     maintenance,
     totalCapacityPerHour: totalCapacity,
     machinesByStatus: byStatus,
@@ -340,11 +389,14 @@ export async function getMachineDashboard(factoryId) {
 }
 
 export async function getEmployeeDashboard(factoryId) {
-  const assignments = await UserRoleAssignment.find({ factoryId }).populate('userId', 'firstName lastName status email');
+  const assignments = await UserRoleAssignment.find({ factoryId })
+    .populate('userId', 'firstName lastName status email')
+    .populate('roleId', 'name code');
   const active = assignments.filter((a) => a.userId?.status === 'ACTIVE').length;
   const byRole = {};
   for (const a of assignments) {
-    const role = a.roleCode || a.roleId?.toString() || 'UNASSIGNED';
+    // Keyed by the role's display name — raw role ids are meaningless in charts and CSV exports.
+    const role = a.roleId?.name || a.roleId?.code || a.roleCode || 'Unassigned';
     byRole[role] = (byRole[role] || 0) + 1;
   }
   return {
@@ -358,11 +410,11 @@ export async function getEmployeeDashboard(factoryId) {
 export async function getFinancialDashboard(factoryId, filters = {}) {
   const range = resolveDateRange(filters) || resolveDateRange({ preset: 'mtd' });
   const spendAgg = await PurchaseOrder.aggregate([
-    { $match: { factoryId, isDeleted: false, ...dateMatch(range) } },
+    { $match: { factoryId: asObjectId(factoryId), isDeleted: false, ...dateMatch(range) } },
     { $group: { _id: null, total: { $sum: '$totalAmount' } } },
   ]);
   const wasteAgg = await WasteRecord.aggregate([
-    { $match: { factoryId, isDeleted: false, ...dateMatch(range) } },
+    { $match: { factoryId: asObjectId(factoryId), isDeleted: false, ...dateMatch(range) } },
     { $group: { _id: null, total: { $sum: '$totalCost' } } },
   ]);
   const invStats = await inventoryService.getInventoryStats(factoryId);
@@ -386,7 +438,7 @@ export async function getApprovalDashboard(factoryId, filters = {}) {
     ApprovalInstance.countDocuments({ factoryId, status: 'CHANGES_REQUESTED', ...dateFilter }),
   ]);
   const byType = await ApprovalInstance.aggregate([
-    { $match: { factoryId, status: 'PENDING' } },
+    { $match: { factoryId: asObjectId(factoryId), status: 'PENDING' } },
     { $group: { _id: '$documentType', count: { $sum: 1 } } },
   ]);
   return {
@@ -401,28 +453,22 @@ export async function getApprovalDashboard(factoryId, filters = {}) {
 }
 
 export async function listLowStockItems(factoryId, { page, limit, skip }) {
-  const balances = await InventoryBalance.find({
-    factoryId,
-    inventoryType: 'RAW_MATERIAL',
-    isDeleted: false,
-  }).populate('materialId', 'materialCode name reorderLevel unit unitCost');
-
-  const lowItems = balances
-    .filter((b) => {
-      const reorder = b.materialId?.reorderLevel ?? 0;
-      return reorder > 0 && (b.available ?? 0) <= reorder;
-    })
-    .map((b) => ({
-      materialId: b.materialId?._id,
-      materialCode: b.materialId?.materialCode,
-      name: b.materialId?.name,
-      onHand: b.onHand,
-      available: b.available,
-      reorderLevel: b.materialId?.reorderLevel,
-      unit: b.materialId?.unit,
-      stockValue: Math.round((b.onHand || 0) * (b.materialId?.unitCost || 0)),
+  const lowItems = (await materialStockAlerts(factoryId))
+    .map((r) => ({
+      materialId: r.materialId,
+      materialCode: r.materialCode,
+      name: r.name,
+      onHand: r.onHand,
+      reserved: r.reserved,
+      available: r.available,
+      reorderLevel: r.reorderLevel,
+      unit: r.unit,
+      onOrderQty: r.onOrderQty,
+      isLowStock: r.isLowStock,
+      isOutOfStock: r.isOutOfStock,
+      stockValue: Math.round(r.stockValue || 0),
     }))
-    .sort((a, b) => (a.available ?? 0) - (b.available ?? 0));
+    .sort((x, y) => (x.available ?? 0) - (y.available ?? 0));
 
   const total = lowItems.length;
   const items = lowItems.slice(skip, skip + limit);
@@ -455,7 +501,7 @@ export async function listPendingApprovals(factoryId, { page, limit, skip }) {
 
 export async function listTopDefects(factoryId, limit = 10, filters = {}) {
   const range = resolveDateRange(filters);
-  const match = { factoryId, isDeleted: false, ...dateMatch(range) };
+  const match = { factoryId: asObjectId(factoryId), isDeleted: false, ...dateMatch(range) };
   const rows = await Defect.aggregate([
     { $match: match },
     { $group: { _id: '$categoryId', count: { $sum: '$quantity' }, occurrences: { $sum: 1 } } },
@@ -497,15 +543,88 @@ export async function exportReportCsv(factoryId, type, filters = {}) {
   const fn = DASHBOARD_EXPORT_MAP[type];
   if (!fn) throw new Error('Unknown report type');
   const dash = await fn(factoryId, filters);
-  const lines = ['key,value'];
-  const flatten = (obj, prefix = '') => {
-    for (const [k, v] of Object.entries(obj)) {
-      const key = prefix ? `${prefix}.${k}` : k;
-      if (v instanceof Date) lines.push(`${key},${v.toISOString()}`);
-      else if (v && typeof v === 'object' && !Array.isArray(v)) flatten(v, key);
-      else lines.push(`${key},${v ?? ''}`);
+  return reportToCsv(dash);
+}
+
+/** Labels that match what the Reports page shows where the field name alone would mislead. */
+const REPORT_LABELS = {
+  openPoValue: 'Open payment value',
+  poOpen: 'Unpaid payments',
+  spendMtd: 'Period spend',
+  grnPendingQc: 'Receipts awaiting QC',
+  pendingGrns: 'Receipts awaiting QC',
+  prByStatus: 'Requisitions by status',
+  poByStatus: 'Payments by status',
+  totalPassedQty: 'Passed final QC',
+  assignedUsers: 'People with roles',
+  usersByRole: 'People by role',
+  count: 'Waste records',
+  byType: 'By type',
+  summary: 'Summary',
+};
+const reportLabel = (k) => REPORT_LABELS[k] || humanizeKey(k);
+
+/** Plain objects only — ObjectIds / Dates / Decimal128 must not be walked field by field. */
+const isPlainObject = (v) => v != null && typeof v === 'object' && !Array.isArray(v)
+  && (Object.getPrototypeOf(v) === Object.prototype || Object.getPrototypeOf(v) === null);
+
+function scalarValue(v) {
+  if (v == null) return '';
+  if (v instanceof Date) return csvDate(v);
+  if (typeof v === 'number') return Number.isFinite(v) ? v : '';
+  if (typeof v === 'object') {
+    if (typeof v.toHexString === 'function') return ''; // never leak raw ids
+    return v.name || v.code || v.number || '';
+  }
+  return v;
+}
+
+/** Row label for array entries (tables inside a dashboard, e.g. top defects). */
+const rowLabel = (row, i) => scalarValue(row.name ?? row.label ?? row.code ?? row.number ?? row.status ?? row.stage ?? row.type) || `#${i + 1}`;
+
+/**
+ * Long-format CSV: Section, Metric, Value — readable labels, enum keys humanised, no raw ids,
+ * arrays expanded into one line per row/field instead of "[object Object]".
+ */
+export function reportToCsv(dash) {
+  const rows = [];
+  const walk = (obj, section) => {
+    for (const [k, v] of Object.entries(obj || {})) {
+      if (k === 'period') {
+        if (isPlainObject(v)) {
+          rows.push(['Period', 'From', csvDate(v.from)]);
+          rows.push(['Period', 'To', csvDate(v.to)]);
+        }
+        continue;
+      }
+      if (Array.isArray(v)) {
+        const sec = reportLabel(k);
+        v.forEach((item, i) => {
+          if (isPlainObject(item)) {
+            const label = rowLabel(item, i);
+            for (const [f, fv] of Object.entries(item)) {
+              if (['_id', 'id', 'name', 'label'].includes(f) || /Id$/.test(f) || isPlainObject(fv) || Array.isArray(fv)) continue;
+              rows.push([sec, `${label} · ${reportLabel(f)}`, scalarValue(fv)]);
+            }
+          } else {
+            rows.push([sec, `#${i + 1}`, scalarValue(item)]);
+          }
+        });
+        continue;
+      }
+      if (isPlainObject(v)) {
+        // Breakdown records (ordersByStatus, byType…) are keyed by enum values; nested groups by field names.
+        const isBreakdown = /By[A-Z]|^by[A-Z]/.test(k);
+        if (isBreakdown) {
+          for (const [ek, ev] of Object.entries(v)) rows.push([reportLabel(k), /^[A-Z0-9_]+$/.test(ek) ? humanizeEnum(ek) : ek, scalarValue(ev)]);
+        } else {
+          walk(v, reportLabel(k));
+        }
+        continue;
+      }
+      rows.push([section, reportLabel(k), scalarValue(v)]);
     }
   };
-  flatten(dash);
-  return lines.join('\n');
+  walk(dash, 'Overview');
+  return csvDocument(['Section', 'Metric', 'Value'], rows);
 }

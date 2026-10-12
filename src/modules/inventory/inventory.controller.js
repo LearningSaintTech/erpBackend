@@ -1,7 +1,9 @@
 import Joi from 'joi';
+import mongoose from 'mongoose';
 import * as inventoryService from './inventory.service.js';
 import * as materialMasterRequestService from './materialMasterRequest.service.js';
 import { success, paginate, buildMeta } from '../../shared/utils/response.js';
+import { pickFields, queryString } from '../../shared/utils/schema.js';
 import {
   MATERIAL_CATEGORIES, MATERIAL_UNITS, INVENTORY_TYPES, TRANSACTION_TYPES,
 } from './inventory.defaults.js';
@@ -62,7 +64,8 @@ export const receiptSchema = Joi.object({
     materialId: Joi.string().required(),
     quantity: Joi.number().greater(0).required(),
     unit: Joi.string().valid(...MATERIAL_UNITS),
-    storageBinId: Joi.string(),
+    storageBinId: Joi.string().hex().length(24),
+    unitCost: Joi.number().min(0),
   }),
 });
 
@@ -71,8 +74,11 @@ export const reserveSchema = Joi.object({
     materialId: Joi.string().required(),
     quantity: Joi.number().greater(0).required(),
     unit: Joi.string().valid(...MATERIAL_UNITS),
-    referenceType: Joi.string().required(),
-    referenceId: Joi.string().required(),
+    // Manual endpoint: SAMPLE / PRODUCTION_ORDER holds must go through their own modules
+    referenceType: Joi.string().valid('MANUAL').default('MANUAL'),
+    // Optional: a hold to top up / group under; generated when omitted
+    referenceId: Joi.string().hex().length(24).allow('', null),
+    note: Joi.string().trim().max(300).allow(''),
   }),
 });
 
@@ -83,15 +89,16 @@ export const issueSchema = Joi.object({
     unit: Joi.string().valid(...MATERIAL_UNITS),
     referenceType: Joi.string().required(),
     referenceId: Joi.string().required(),
-    reservationReferenceType: Joi.string(),
+    // Only MANUAL holds can be drawn down from this endpoint
+    reservationReferenceType: Joi.string().valid('MANUAL'),
     reservationReferenceId: Joi.string(),
   }),
 });
 
 export const releaseSchema = Joi.object({
   body: Joi.object({
-    referenceType: Joi.string().required(),
-    referenceId: Joi.string().required(),
+    referenceType: Joi.string().valid('MANUAL').default('MANUAL'),
+    referenceId: Joi.string().hex().length(24).required(),
   }),
 });
 
@@ -169,8 +176,8 @@ export async function listMaterials(req, res, next) {
     const { page, limit, skip } = paginate(req.query);
     const { items, total } = await inventoryService.listMaterials(req.factoryId, {
       page, limit, skip,
-      search: req.query.search || req.query.q,
-      category: req.query.category,
+      search: queryString(req.query.search) || queryString(req.query.q),
+      category: queryString(req.query.category),
     });
     success(res, items, buildMeta(page, limit, total));
   } catch (e) { next(e); }
@@ -202,7 +209,9 @@ export async function receipt(req, res, next) {
       quantity: req.body.quantity,
       unit: req.body.unit,
       storageBinId: req.body.storageBinId,
+      unitCost: req.body.unitCost,
       userId: req.user._id,
+      strictUnit: true,
     });
     success(res, balance, null, 201);
   } catch (e) { next(e); }
@@ -215,9 +224,10 @@ export async function balances(req, res, next) {
       page: req.query.page ? page : undefined,
       limit: req.query.page ? limit : undefined,
       skip: req.query.page ? skip : undefined,
-      search: req.query.search || req.query.q,
+      search: queryString(req.query.search) || queryString(req.query.q),
       lowStockOnly: req.query.lowStockOnly === 'true',
-      inventoryType: req.query.inventoryType,
+      inventoryType: queryString(req.query.inventoryType),
+      includeEmpty: req.query.includeEmpty === 'true',
     });
     if (req.query.page) {
       success(res, items, buildMeta(page, limit, total));
@@ -232,8 +242,8 @@ export async function transactions(req, res, next) {
     const { page, limit, skip } = paginate(req.query);
     const { items, total } = await inventoryService.listTransactions(req.factoryId, {
       page, limit, skip,
-      materialId: req.query.materialId,
-      type: req.query.type,
+      materialId: queryString(req.query.materialId),
+      type: queryString(req.query.type),
     });
     success(res, items, buildMeta(page, limit, total));
   } catch (e) { next(e); }
@@ -241,7 +251,7 @@ export async function transactions(req, res, next) {
 
 export async function availability(req, res, next) {
   try {
-    const materialId = req.query.materialId;
+    const materialId = queryString(req.query.materialId);
     if (!materialId) {
       return res.status(400).json({ success: false, message: 'materialId required' });
     }
@@ -252,9 +262,13 @@ export async function availability(req, res, next) {
 export async function reserve(req, res, next) {
   try {
     const reservation = await inventoryService.reserveMaterial({
+      ...pickFields(req.body, ['materialId', 'quantity', 'unit']),
+      referenceType: 'MANUAL',
+      // MANUAL holds have no source document — generate an id; the purpose goes in `note`
+      referenceId: req.body.referenceId || new mongoose.Types.ObjectId(),
+      note: req.body.note || undefined,
       factoryId: req.factoryId,
       organizationId: req.user.organizationId,
-      ...req.body,
       userId: req.user._id,
     });
     success(res, reservation, null, 201);
@@ -264,9 +278,12 @@ export async function reserve(req, res, next) {
 export async function issue(req, res, next) {
   try {
     const balance = await inventoryService.issueMaterial({
+      ...pickFields(req.body, [
+        'materialId', 'quantity', 'unit', 'referenceType', 'referenceId',
+        'reservationReferenceType', 'reservationReferenceId',
+      ]),
       factoryId: req.factoryId,
       organizationId: req.user.organizationId,
-      ...req.body,
       userId: req.user._id,
     });
     success(res, balance);
@@ -278,11 +295,19 @@ export async function releaseReservations(req, res, next) {
     const count = await inventoryService.releaseReservations({
       factoryId: req.factoryId,
       organizationId: req.user.organizationId,
-      referenceType: req.body.referenceType,
+      referenceType: 'MANUAL',
       referenceId: req.body.referenceId,
       userId: req.user._id,
     });
     success(res, { released: count });
+  } catch (e) { next(e); }
+}
+
+export async function manualReservations(req, res, next) {
+  try {
+    success(res, await inventoryService.listManualReservations(req.factoryId, {
+      materialId: queryString(req.query.materialId),
+    }));
   } catch (e) { next(e); }
 }
 
@@ -296,8 +321,8 @@ export async function listMaterialMasterRequests(req, res, next) {
     const { page, limit, skip } = paginate(req.query);
     const { items, total } = await materialMasterRequestService.listMaterialMasterRequests(req.factoryId, {
       page, limit, skip,
-      status: req.query.status,
-      designId: req.query.designId,
+      status: queryString(req.query.status),
+      designId: queryString(req.query.designId),
       canSeeAll: canSeeAllMasterRequests(req),
       userId: req.user._id,
     });

@@ -13,6 +13,8 @@ export const listSchema = Joi.object({
     status: Joi.string().valid(...NOTIFICATION_STATUS_LIST),
     eventType: Joi.string(),
     search: Joi.string().trim(),
+    from: Joi.string().isoDate(),
+    to: Joi.string().isoDate(),
   }),
 });
 
@@ -42,6 +44,8 @@ export async function list(req, res, next) {
       status: req.query.status,
       eventType: req.query.eventType,
       search: req.query.search,
+      from: req.query.from,
+      to: req.query.to,
     });
     success(res, items, buildMeta(page, limit, total));
   } catch (e) { next(e); }

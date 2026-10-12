@@ -16,7 +16,10 @@ router.post('/boms', rbac('bom.create'), validate(ctrl.createSchema), ctrl.creat
 router.get('/boms/:id/mrp-preview', rbac('bom.read'), ctrl.mrpPreview);
 router.get('/boms/:id', rbac('bom.read'), ctrl.get);
 router.put('/boms/:id', rbac('bom.update'), validate(ctrl.updateSchema), ctrl.update);
+router.post('/boms/:id/submit', rbac('bom.update'), ctrl.submit);
 router.post('/boms/:id/approve', rbac('bom.approve'), ctrl.approve);
+router.post('/boms/:id/reject', rbac('bom.approve'), validate(ctrl.commentSchema), ctrl.reject);
+router.post('/boms/:id/request-changes', rbac('bom.approve'), validate(ctrl.commentSchema), ctrl.requestChanges);
 router.post('/boms/:id/finalize', rbac('bom.update'), ctrl.finalize);
 router.get('/skus/:skuId/bom', rbac('bom.read'), ctrl.activeForSku);
 

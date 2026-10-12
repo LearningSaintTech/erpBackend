@@ -4,6 +4,8 @@ import { success, paginate, buildMeta } from '../../shared/utils/response.js';
 import {
   SAMPLE_STATUS_LIST, SAMPLE_TYPE_LIST, SAMPLE_WORKFLOW_PHASES,
 } from './sample.defaults.js';
+import { FIT_EVALUATION_MODES } from '../pattern/pattern.defaults.js';
+import { MATERIAL_UNITS } from '../inventory/inventory.defaults.js';
 
 const superAdminFlag = (req) => ({
   isSuperAdmin: !!req.user?.isSuperAdmin,
@@ -13,8 +15,14 @@ const superAdminFlag = (req) => ({
 const materialLineSchema = Joi.object({
   materialId: Joi.string().required(),
   requiredQty: Joi.number().min(0).required(),
-  unit: Joi.string().trim().required(),
+  unit: Joi.string().trim().valid(...MATERIAL_UNITS).required(),
   unitCost: Joi.number().min(0),
+});
+
+export const cancelSchema = Joi.object({
+  body: Joi.object({
+    reason: Joi.string().trim().min(3).required(),
+  }),
 });
 
 export const createSchema = Joi.object({
@@ -51,7 +59,7 @@ const qcMeasurementSchema = Joi.object({
 });
 
 const fitAnalysisSchema = Joi.object({
-  evaluatedOn: Joi.string().valid('MANNEQUIN', 'LIVE_MODEL', 'FLAT_MEASURE', 'DRESS_FORM', 'CUSTOMER_REP'),
+  evaluatedOn: Joi.string().valid(...FIT_EVALUATION_MODES),
   overallResult: Joi.string().valid('PASS', 'MINOR_ISSUES', 'MAJOR_ISSUES', 'FAIL'),
   issues: Joi.array().items(fitIssueSchema),
   patternRevisionRequired: Joi.boolean(),
@@ -100,7 +108,7 @@ export async function stats(req, res, next) {
 
 export async function eligibleDesigns(req, res, next) {
   try {
-    success(res, await sampleService.listEligibleDesigns(req.factoryId));
+    success(res, await sampleService.listEligibleDesigns(req.factoryId, { onlyNew: req.query.onlyNew === 'true' }));
   } catch (e) { next(e); }
 }
 
@@ -181,6 +189,22 @@ export async function rejectMaterialRequest(req, res, next) {
   try {
     success(res, await sampleService.rejectMaterialRequest(
       req.params.id, req.factoryId, req.user._id, req.body.comments,
+    ));
+  } catch (e) { next(e); }
+}
+
+export async function requestMaterialChanges(req, res, next) {
+  try {
+    success(res, await sampleService.requestMaterialRequestChanges(
+      req.params.id, req.factoryId, req.user._id, req.body.comments,
+    ));
+  } catch (e) { next(e); }
+}
+
+export async function cancel(req, res, next) {
+  try {
+    success(res, await sampleService.cancelSample(
+      req.params.id, req.factoryId, req.user._id, req.body.reason,
     ));
   } catch (e) { next(e); }
 }

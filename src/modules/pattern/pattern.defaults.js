@@ -5,7 +5,8 @@ export const PATTERN_WORKFLOW_STEPS = [
   { id: 'verify', label: 'Verification & sign-off' },
 ];
 
-export const FIT_EVALUATION_MODES = ['MANNEQUIN', 'LIVE_MODEL', 'FLAT_MEASURE'];
+/** Must match Sample.fitAnalysis.evaluatedOn enum, the sample Joi schema and FitAnalysisForm. */
+export const FIT_EVALUATION_MODES = ['MANNEQUIN', 'LIVE_MODEL', 'FLAT_MEASURE', 'DRESS_FORM', 'CUSTOMER_REP'];
 
 export const FIT_OVERALL_RESULTS = ['PASS', 'MINOR_ISSUES', 'MAJOR_ISSUES', 'FAIL'];
 

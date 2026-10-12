@@ -17,5 +17,9 @@ const skuSchema = new mongoose.Schema({
 });
 
 skuSchema.index({ organizationId: 1, skuCode: 1 }, { unique: true });
+// Perf (large-dataset audit): list/stats queries filter by factory + soft-delete + status and sort by date.
+skuSchema.index({ factoryId: 1, isDeleted: 1, status: 1, createdAt: -1 });
+skuSchema.index({ factoryId: 1, isDeleted: 1, createdAt: -1 });
+skuSchema.index({ designId: 1 });
 
 export const Sku = mongoose.model('Sku', skuSchema);

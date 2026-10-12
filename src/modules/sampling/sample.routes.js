@@ -21,6 +21,8 @@ router.post('/samples/:id/refresh-materials', rbac('sampling.update'), ctrl.refr
 router.post('/samples/:id/submit-material-request', rbac('sampling.update'), ctrl.submitMaterialRequest);
 router.post('/samples/:id/approve-material-request', rbac('sampling.approve'), ctrl.approveMaterialRequest);
 router.post('/samples/:id/reject-material-request', rbac('sampling.approve'), validate(ctrl.commentSchema), ctrl.rejectMaterialRequest);
+router.post('/samples/:id/request-material-changes', rbac('sampling.approve'), validate(ctrl.commentSchema), ctrl.requestMaterialChanges);
+router.post('/samples/:id/cancel', rbacAny('sampling.approve', 'sampling.create'), validate(ctrl.cancelSchema), ctrl.cancel);
 router.post('/samples/:id/submit-for-approval', rbacAny('sampling.update', 'sampling.create'), ctrl.submitForApproval);
 router.post('/samples/:id/reserve-materials', rbac('inventory.update'), ctrl.reserveMaterials);
 router.post('/samples/:id/issue-materials', rbac('inventory.update'), ctrl.issueMaterials);

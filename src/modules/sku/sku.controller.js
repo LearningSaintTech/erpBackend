@@ -82,6 +82,7 @@ export async function list(req, res, next) {
       status: req.query.status,
       designId: req.query.designId,
       sampleId: req.query.sampleId,
+      hasActiveBom: req.query.hasActiveBom,
       search: req.query.search || req.query.q,
       page, limit, skip,
     });

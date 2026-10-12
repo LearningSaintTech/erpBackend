@@ -1,8 +1,16 @@
 import { env } from '../../config/env.js';
 
-const STATIC_OTP_BY_PHONE = {
-  '9829699382': '123456',
-};
+/**
+ * Fixed OTPs for internal/test phones. Opt-in only, never hardcoded:
+ *   STATIC_OTP_PHONES=9999999999:123456,8888888888:654321
+ */
+const STATIC_OTP_BY_PHONE = Object.fromEntries(
+  String(env.staticOtpPhones || '')
+    .split(',')
+    .map((pair) => pair.split(':').map((v) => v.trim()))
+    .filter(([phone, otp]) => phone && otp)
+    .map(([phone, otp]) => [normalizeMobile(phone), otp]),
+);
 
 export function normalizeMobile(phone) {
   const digits = String(phone || '').replace(/\D/g, '');

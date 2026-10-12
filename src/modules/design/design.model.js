@@ -202,6 +202,8 @@ designSchema.index({ factoryId: 1, designCode: 1 }, { unique: true });
 designSchema.index({ factoryId: 1, status: 1 });
 designSchema.index({ factoryId: 1, category: 1 });
 designSchema.index({ tags: 1 });
+// Perf (large-dataset audit): list/stats queries filter by factory + soft-delete + status and sort by date.
+designSchema.index({ factoryId: 1, isDeleted: 1, collectionId: 1, styleNumber: 1, createdAt: -1 });
 // Uniqueness only when style number is set — drafts may omit it until merchandising assigns one.
 designSchema.index(
   { factoryId: 1, collectionId: 1, styleNumber: 1 },

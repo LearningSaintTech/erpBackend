@@ -1,9 +1,9 @@
 import Joi from 'joi';
 import * as purchaseService from './purchase.service.js';
-import * as rfqService from './rfq.service.js';
+import { queryString } from '../../shared/utils/schema.js';
 import { success, paginate, buildMeta } from '../../shared/utils/response.js';
 import {
-  PR_STATUS_LIST, PO_STATUS_LIST, GRN_STATUS_LIST, RFQ_STATUS_LIST, SUPPLIER_STATUS_LIST,
+  PR_STATUS_LIST, PO_STATUS_LIST, GRN_STATUS_LIST, SUPPLIER_STATUS_LIST,
 } from './purchase.defaults.js';
 
 const lineSchema = Joi.object({
@@ -53,6 +53,13 @@ export const createPrSchema = Joi.object({
   }),
 });
 
+/** Requester edits a DRAFT / REJECTED PR (e.g. after "Request changes"). Lines replace the old ones. */
+export const updatePrSchema = Joi.object({
+  body: Joi.object({
+    lines: Joi.array().items(lineSchema).min(1).required(),
+  }),
+});
+
 const receiptItemSchema = Joi.object({
   url: Joi.string().allow(''),
   fileName: Joi.string().allow(''),
@@ -61,11 +68,20 @@ const receiptItemSchema = Joi.object({
   dataUrl: Joi.string().allow(''),
 });
 
+// With prId, a line may only override unitPrice (qty defaults to the PR line qty)
+const poLineSchema = Joi.object({
+  materialId: Joi.string().required(),
+  orderedQty: Joi.number().greater(0),
+  quantity: Joi.number().greater(0),
+  unit: Joi.string(),
+  unitPrice: Joi.number().min(0),
+});
+
 export const createPoSchema = Joi.object({
   body: Joi.object({
     supplierId: Joi.string().required(),
     prId: Joi.string(),
-    lines: Joi.array().items(lineSchema),
+    lines: Joi.array().items(poLineSchema),
     receipts: Joi.array().items(receiptItemSchema).max(12),
   }),
 });
@@ -96,29 +112,16 @@ export const commentSchema = Joi.object({
   }),
 });
 
+export const reasonSchema = Joi.object({
+  body: Joi.object({
+    reason: Joi.string().trim().allow('').max(500),
+  }).default({}),
+});
+
 export const fromMrpSchema = Joi.object({
   body: Joi.object({ mrpId: Joi.string().required() }),
 });
 
-export const rfqFromPrSchema = Joi.object({
-  body: Joi.object({
-    prId: Joi.string().required(),
-    supplierIds: Joi.array().items(Joi.string()).min(1),
-  }),
-});
-
-export const quotationSchema = Joi.object({
-  body: Joi.object({
-    supplierId: Joi.string().required(),
-    lines: Joi.array().items(Joi.object({
-      materialId: Joi.string().required(),
-      quantity: Joi.number().greater(0).required(),
-      unit: Joi.string(),
-      unitPrice: Joi.number().min(0).required(),
-    })).min(1).required(),
-    validUntil: Joi.date(),
-  }),
-});
 
 export async function catalog(req, res, next) {
   try {
@@ -126,7 +129,6 @@ export async function catalog(req, res, next) {
       prStatuses: PR_STATUS_LIST,
       poStatuses: PO_STATUS_LIST,
       grnStatuses: GRN_STATUS_LIST,
-      rfqStatuses: RFQ_STATUS_LIST,
     });
   } catch (e) { next(e); }
 }
@@ -153,8 +155,8 @@ export async function listSuppliers(req, res, next) {
     const { page, limit, skip } = paginate(req.query);
     const { items, total } = await purchaseService.listSuppliers(req.factoryId, {
       page, limit, skip,
-      search: req.query.search || req.query.q,
-      status: req.query.status,
+      search: queryString(req.query.search) || queryString(req.query.q),
+      status: queryString(req.query.status),
     });
     success(res, items, buildMeta(page, limit, total));
   } catch (e) { next(e); }
@@ -188,10 +190,10 @@ export async function listPrs(req, res, next) {
     const { page, limit, skip } = paginate(req.query);
     const { items, total } = await purchaseService.listPurchaseRequisitions(req.factoryId, {
       page, limit, skip,
-      status: req.query.status,
-      excludeStatus: req.query.excludeStatus,
-      search: req.query.search || req.query.q,
-      sourceType: req.query.sourceType,
+      status: queryString(req.query.status),
+      excludeStatus: queryString(req.query.excludeStatus),
+      search: queryString(req.query.search) || queryString(req.query.q),
+      sourceType: queryString(req.query.sourceType),
     });
     success(res, items, buildMeta(page, limit, total));
   } catch (e) { next(e); }
@@ -229,6 +231,26 @@ export async function rejectPr(req, res, next) {
   } catch (e) { next(e); }
 }
 
+export async function requestPrChanges(req, res, next) {
+  try {
+    success(res, await purchaseService.requestPurchaseRequisitionChanges(
+      req.params.id, req.factoryId, req.user._id, req.body.comments,
+    ));
+  } catch (e) { next(e); }
+}
+
+export async function updatePr(req, res, next) {
+  try {
+    success(res, await purchaseService.updatePurchaseRequisition(req.params.id, req.factoryId, req.body, req.user._id));
+  } catch (e) { next(e); }
+}
+
+export async function cancelPr(req, res, next) {
+  try {
+    success(res, await purchaseService.cancelPurchaseRequisition(req.params.id, req.factoryId, req.user._id));
+  } catch (e) { next(e); }
+}
+
 export async function createPo(req, res, next) {
   try {
     const po = await purchaseService.createPurchaseOrder({
@@ -245,11 +267,11 @@ export async function listPos(req, res, next) {
     const { page, limit, skip } = paginate(req.query);
     const { items, total } = await purchaseService.listPurchaseOrders(req.factoryId, {
       page, limit, skip,
-      status: req.query.status,
-      excludeStatus: req.query.excludeStatus,
-      search: req.query.search || req.query.q,
-      supplierId: req.query.supplierId,
-      paymentStatus: req.query.paymentStatus,
+      status: queryString(req.query.status),
+      excludeStatus: queryString(req.query.excludeStatus),
+      search: queryString(req.query.search) || queryString(req.query.q),
+      supplierId: queryString(req.query.supplierId),
+      paymentStatus: queryString(req.query.paymentStatus),
     });
     success(res, items, buildMeta(page, limit, total));
   } catch (e) { next(e); }
@@ -291,6 +313,22 @@ export async function sendPo(req, res, next) {
   } catch (e) { next(e); }
 }
 
+export async function cancelPo(req, res, next) {
+  try {
+    success(res, await purchaseService.cancelPurchaseOrder(
+      req.params.id, req.factoryId, req.user._id, req.body?.reason,
+    ));
+  } catch (e) { next(e); }
+}
+
+export async function closePo(req, res, next) {
+  try {
+    success(res, await purchaseService.closePurchaseOrder(
+      req.params.id, req.factoryId, req.user._id, req.body?.reason,
+    ));
+  } catch (e) { next(e); }
+}
+
 export async function markPoPaid(req, res, next) {
   try {
     success(res, await purchaseService.markPurchaseOrderPaid(req.params.id, req.factoryId, req.user._id));
@@ -321,9 +359,9 @@ export async function listGrns(req, res, next) {
     const { page, limit, skip } = paginate(req.query);
     const { items, total } = await purchaseService.listGoodsReceipts(req.factoryId, {
       page, limit, skip,
-      status: req.query.status,
-      excludeStatus: req.query.excludeStatus,
-      search: req.query.search || req.query.q,
+      status: queryString(req.query.status),
+      excludeStatus: queryString(req.query.excludeStatus),
+      search: queryString(req.query.search) || queryString(req.query.q),
     });
     success(res, items, buildMeta(page, limit, total));
   } catch (e) { next(e); }
@@ -341,6 +379,12 @@ export async function submitGrnQc(req, res, next) {
   } catch (e) { next(e); }
 }
 
+export async function cancelGrn(req, res, next) {
+  try {
+    success(res, await purchaseService.cancelGoodsReceipt(req.params.id, req.factoryId, req.user._id));
+  } catch (e) { next(e); }
+}
+
 export async function setGrnReceipts(req, res, next) {
   try {
     success(res, await purchaseService.setGoodsReceiptReceipts(
@@ -349,63 +393,3 @@ export async function setGrnReceipts(req, res, next) {
   } catch (e) { next(e); }
 }
 
-export async function createRfqFromPr(req, res, next) {
-  try {
-    const rfq = await rfqService.createRfqFromPr({
-      factoryId: req.factoryId,
-      organizationId: req.user.organizationId,
-      prId: req.body.prId,
-      supplierIds: req.body.supplierIds,
-    }, req.user._id);
-    success(res, rfq, null, 201);
-  } catch (e) { next(e); }
-}
-
-export async function listRfqs(req, res, next) {
-  try {
-    const { page, limit, skip } = paginate(req.query);
-    const { items, total } = await rfqService.listRfqs(req.factoryId, {
-      page, limit, skip,
-      status: req.query.status,
-      search: req.query.search || req.query.q,
-    });
-    success(res, items, buildMeta(page, limit, total));
-  } catch (e) { next(e); }
-}
-
-export async function getRfq(req, res, next) {
-  try {
-    success(res, await rfqService.getRfq(req.params.id, req.factoryId));
-  } catch (e) { next(e); }
-}
-
-export async function sendRfq(req, res, next) {
-  try {
-    success(res, await rfqService.sendRfq(req.params.id, req.factoryId, req.user._id));
-  } catch (e) { next(e); }
-}
-
-export async function addQuotation(req, res, next) {
-  try {
-    const quote = await rfqService.addQuotation({
-      rfqId: req.params.id,
-      factoryId: req.factoryId,
-      supplierId: req.body.supplierId,
-      lines: req.body.lines,
-      validUntil: req.body.validUntil,
-    }, req.user._id);
-    success(res, quote, null, 201);
-  } catch (e) { next(e); }
-}
-
-export async function compareQuotations(req, res, next) {
-  try {
-    success(res, await rfqService.compareQuotations(req.params.id, req.factoryId));
-  } catch (e) { next(e); }
-}
-
-export async function selectQuotation(req, res, next) {
-  try {
-    success(res, await rfqService.selectQuotation(req.params.id, req.factoryId, req.user._id));
-  } catch (e) { next(e); }
-}

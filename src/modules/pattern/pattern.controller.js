@@ -62,6 +62,7 @@ const bomLineSchema = Joi.object({
   unit: Joi.string().allow(''),
   category: Joi.string().allow(''),
   notes: Joi.string().allow(''),
+  color: Joi.string().allow(''),
 });
 
 const accessorySchema = Joi.object({
@@ -74,6 +75,7 @@ const accessorySchema = Joi.object({
   unit: Joi.string().allow(''),
   unitCost: Joi.number().min(0),
   approved: Joi.boolean(),
+  variantColor: Joi.string().allow(''),
 });
 
 const fabricSpecsSchema = Joi.object({
@@ -129,6 +131,8 @@ export const assignSchema = Joi.object({
   body: Joi.object({
     designId: Joi.string().required(),
     patternMasterId: Joi.string().required(),
+    /** Required to hand an already-assigned development to a different pattern master. */
+    reassign: Joi.boolean(),
   }),
 });
 
@@ -184,6 +188,7 @@ export async function assign(req, res, next) {
       designId: req.body.designId,
       factoryId: req.factoryId,
       patternMasterId: req.body.patternMasterId,
+      reassign: req.body.reassign === true,
     }, req.user._id);
     success(res, pd, null, 201);
   } catch (e) { next(e); }

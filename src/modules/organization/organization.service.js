@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Organization } from './organization.model.js';
 import { Factory } from './factory.model.js';
 import { FactorySettings } from './factorySettings.model.js';
@@ -11,8 +12,8 @@ export async function createOrganization(data, createdBy) {
   return Organization.create({ ...data, code: data.code.toUpperCase(), createdBy });
 }
 
-export async function listOrganizations({ page, limit, skip }) {
-  const filter = applySoftDeleteFilter();
+export async function listOrganizations({ page, limit, skip, onlyId = null }) {
+  const filter = applySoftDeleteFilter(onlyId ? { _id: onlyId } : {});
   const [items, total] = await Promise.all([
     Organization.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),
     Organization.countDocuments(filter),
@@ -31,9 +32,11 @@ export async function createFactory(organizationId, data, createdBy) {
   const exists = await Factory.findOne({ organizationId, code, isDeleted: false });
   if (exists) throw new ConflictError('Factory code already exists in organization');
 
+  // Pre-generate the id so settings are never left behind with factoryId:null (unique index).
+  const factoryId = new mongoose.Types.ObjectId();
   const settings = await FactorySettings.create({
     organizationId,
-    factoryId: null,
+    factoryId,
     shifts: [{ name: 'General', startTime: '09:00', endTime: '18:00' }],
     workingDays: [1, 2, 3, 4, 5, 6],
     productionStages: ['CUTTING', 'PRINTING', 'EMBROIDERY', 'STITCHING', 'WASHING', 'IRONING', 'FINISHING'],
@@ -42,20 +45,22 @@ export async function createFactory(organizationId, data, createdBy) {
     },
   });
 
-  const factory = await Factory.create({
-    organizationId,
-    code,
-    name: data.name,
-    address: data.address,
-    contact: data.contact,
-    capacity: data.capacity,
-    settingsId: settings._id,
-    createdBy,
-  });
-
-  settings.factoryId = factory._id;
-  await settings.save();
-  return factory;
+  try {
+    return await Factory.create({
+      _id: factoryId,
+      organizationId,
+      code,
+      name: data.name,
+      address: data.address,
+      contact: data.contact,
+      capacity: data.capacity,
+      settingsId: settings._id,
+      createdBy,
+    });
+  } catch (err) {
+    await FactorySettings.deleteOne({ _id: settings._id });
+    throw err;
+  }
 }
 
 export async function listFactories(organizationId, { page, limit, skip }) {
@@ -77,7 +82,7 @@ export async function createFinancialYear(organizationId, data) {
   if (data.isActive) {
     await FinancialYear.updateMany({ organizationId }, { isActive: false });
   }
-  return FinancialYear.create({ organizationId, ...data });
+  return FinancialYear.create({ ...data, organizationId });
 }
 
 export async function listFinancialYears(organizationId) {

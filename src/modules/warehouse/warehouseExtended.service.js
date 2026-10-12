@@ -10,10 +10,9 @@ import { Material } from '../inventory/material.model.js';
 import { Sku } from '../sku/sku.model.js';
 import { Factory } from '../organization/factory.model.js';
 import { nextDocumentNumber } from '../../shared/utils/numbering.js';
-import { NotFoundError, ConflictError } from '../../shared/errors/AppError.js';
-import { applySoftDeleteFilter } from '../../shared/utils/schema.js';
+import { NotFoundError, ConflictError, ValidationError } from '../../shared/errors/AppError.js';
+import { applySoftDeleteFilter, pickFields } from '../../shared/utils/schema.js';
 import * as warehouseService from './warehouse.service.js';
-import { aggregateRmTotals } from '../inventory/inventoryStock.service.js';
 
 async function findBalancesForWarehouse(factoryId, warehouseId, warehouseDoc) {
   const wh = warehouseDoc || await warehouseService.getWarehouse(warehouseId, factoryId);
@@ -47,7 +46,14 @@ export async function createZone(data, userId) {
     zoneCode: data.zoneCode,
   }));
   if (existing) throw new ConflictError('Zone code already exists');
-  return Zone.create({ ...data, createdBy: userId, updatedBy: userId });
+  return Zone.create({
+    ...pickFields(data, ['zoneCode', 'name']),
+    warehouseId: data.warehouseId,
+    factoryId: data.factoryId,
+    organizationId: data.organizationId,
+    createdBy: userId,
+    updatedBy: userId,
+  });
 }
 
 export async function listZones(factoryId, warehouseId) {
@@ -170,10 +176,15 @@ export async function pickStock({ factoryId, organizationId, materialId, skuId, 
     if (binId) filter.storageBinId = binId;
     const balance = await InventoryBalance.findOne(filter);
     if (!balance) throw new ConflictError('Finished goods not found in the selected location');
+    // FG leaves the warehouse only through the dispatch flow (staged → ready → picked/dispatched).
+    if (balance.dispatchStatus !== 'READY_FOR_DISPATCH') {
+      throw new ConflictError('Finished goods must be READY_FOR_DISPATCH before picking');
+    }
     const unreserved = balance.onHand - (balance.reserved || 0);
     if (unreserved < quantity) throw new ConflictError('Insufficient unreserved finished goods to pick');
     balance.onHand -= quantity;
     balance.available = balance.onHand - balance.reserved;
+    if (balance.onHand <= 0) balance.dispatchStatus = 'DISPATCHED';
     balance.updatedBy = userId;
     await balance.save();
     await InventoryTransaction.create({
@@ -194,9 +205,6 @@ export async function pickStock({ factoryId, organizationId, materialId, skuId, 
 
   if (!materialId) throw new ConflictError('materialId or skuId required');
 
-  const totals = await aggregateRmTotals(factoryId, materialId);
-  if (totals.available < quantity) throw new ConflictError('Insufficient unreserved stock to pick');
-
   let remaining = quantity;
   const filter = {
     factoryId,
@@ -210,6 +218,11 @@ export async function pickStock({ factoryId, organizationId, materialId, skuId, 
   const balances = await InventoryBalance.find(filter).sort({ storageBinId: 1 });
   if (binId && balances.length === 0) {
     throw new ConflictError('Material is not located in the selected bin');
+  }
+  // Precheck against the rows we will actually draw from, before mutating anything
+  const pickable = balances.reduce((s, b) => s + Math.max(0, b.onHand - (b.reserved || 0)), 0);
+  if (pickable < quantity) {
+    throw new ConflictError(`Insufficient unreserved stock in selected location (pickable: ${pickable})`);
   }
 
   for (const balance of balances) {
@@ -306,31 +319,45 @@ export async function startCycleCount(id, userId, factoryId) {
   return cc;
 }
 
+const refIdOf = (v) => (v && typeof v === 'object' && v._id ? v._id : v)?.toString() || '';
+
 export async function completeCycleCount(id, { lines, applyAdjustments = false }, userId, factoryId) {
   const cc = await getCycleCount(id, factoryId);
-  if (cc.status === 'COMPLETED') throw new ConflictError('Cycle count already completed');
+  if (cc.status !== 'IN_PROGRESS') throw new ConflictError('Cycle count must be IN_PROGRESS to complete');
 
-  const merged = (lines || cc.lines).map((l) => {
+  // Only countedQty comes from the client — item identity and systemQty come from the stored snapshot
+  const lineKey = (l) => (refIdOf(l.skuId) ? `s:${refIdOf(l.skuId)}` : `m:${refIdOf(l.materialId)}`);
+  const submitted = new Map();
+  for (const l of lines || []) {
+    const key = lineKey(l);
+    if (key === 'm:') throw new ValidationError('Each line needs a materialId or skuId');
+    submitted.set(key, l);
+  }
+  const storedKeys = new Set(cc.lines.map(lineKey));
+  for (const key of submitted.keys()) {
+    if (!storedKeys.has(key)) throw new ValidationError('Submitted line is not part of this cycle count');
+  }
+
+  const merged = cc.lines.map((l) => {
     const systemQty = l.systemQty ?? 0;
-    const countedQty = l.countedQty ?? 0;
+    const sub = submitted.get(lineKey(l));
+    const countedQty = sub?.countedQty ?? l.countedQty ?? systemQty;
     return {
-      materialId: l.materialId,
-      skuId: l.skuId,
+      materialId: refIdOf(l.materialId) || undefined,
+      skuId: refIdOf(l.skuId) || undefined,
       systemQty,
       countedQty,
       variance: countedQty - systemQty,
     };
   });
-  cc.lines = merged;
-  cc.status = 'COMPLETED';
-  cc.updatedBy = userId;
-  await cc.save();
 
+  // Plan every adjustment before mutating anything so a blocked removal fails cleanly
+  const plans = [];
   if (applyAdjustments) {
-    const wh = await warehouseService.getWarehouse(cc.warehouseId, cc.factoryId);
+    const wh = await warehouseService.getWarehouse(cc.warehouseId?._id || cc.warehouseId, cc.factoryId);
     const isFg = wh.type === 'FINISHED_GOODS';
     const invType = isFg ? 'FINISHED_GOODS' : 'RAW_MATERIAL';
-    const bins = await StorageBin.find(applySoftDeleteFilter({ factoryId: cc.factoryId, warehouseId: cc.warehouseId })).select('_id');
+    const bins = await StorageBin.find(applySoftDeleteFilter({ factoryId: cc.factoryId, warehouseId: wh._id })).select('_id');
     const binIdSet = new Set(bins.map((b) => b._id.toString()));
     const inScope = (balance) => {
       if (!balance.storageBinId) return !isFg;
@@ -352,48 +379,73 @@ export async function completeCycleCount(id, { lines, applyAdjustments = false }
 
       const totalOnHand = balances.reduce((s, b) => s + (b.onHand || 0), 0);
       const target = Math.max(0, line.countedQty);
-      let delta = target - totalOnHand;
+      const delta = target - totalOnHand;
       if (delta === 0) continue;
 
-      if (delta > 0) {
-        const pool = balances.find((b) => !b.storageBinId) || balances[0];
-        pool.onHand += delta;
-        pool.available = pool.onHand - pool.reserved;
-        pool.updatedBy = userId;
-        await pool.save();
-      } else {
-        let toRemove = Math.abs(delta);
-        for (const balance of balances) {
-          if (toRemove <= 0) break;
-          const removable = Math.max(0, balance.onHand - balance.reserved);
-          const take = Math.min(removable, toRemove);
-          if (take <= 0) continue;
-          balance.onHand -= take;
-          balance.available = balance.onHand - balance.reserved;
-          balance.updatedBy = userId;
-          await balance.save();
-          toRemove -= take;
+      if (delta < 0) {
+        const removable = balances.reduce((s, b) => s + Math.max(0, b.onHand - (b.reserved || 0)), 0);
+        if (removable < Math.abs(delta)) {
+          throw new ConflictError(
+            `Cannot reduce stock by ${Math.abs(delta)} for ${isFg ? 'SKU' : 'material'} ${isFg ? line.skuId : line.materialId}: `
+            + `only ${removable} unreserved — release reservations first`,
+          );
         }
       }
-
-      await InventoryTransaction.create({
-        organizationId: cc.organizationId,
-        factoryId: cc.factoryId,
-        type: 'ADJUSTMENT',
-        materialId: isFg ? undefined : line.materialId,
-        skuId: isFg ? line.skuId : undefined,
-        quantity: Math.abs(line.variance),
-        unit: balances[0].unit,
-        referenceType: 'CYCLE_COUNT',
-        referenceId: cc._id,
-        performedBy: userId,
-        createdBy: userId,
-        updatedBy: userId,
-      });
+      plans.push({ line, balances, delta, isFg });
     }
   }
 
-  return cc;
+  // Claim the count atomically so a double submit can't apply adjustments twice
+  const claimed = await CycleCount.updateOne(
+    { _id: cc._id, factoryId: cc.factoryId, status: 'IN_PROGRESS', isDeleted: false },
+    { $set: { status: 'COMPLETED', lines: merged, updatedBy: userId, updatedAt: new Date() }, $inc: { __v: 1 } },
+  );
+  if (!claimed.modifiedCount) throw new ConflictError('Cycle count already completed');
+
+  for (const { line, balances, delta, isFg } of plans) {
+    let applied = 0;
+    if (delta > 0) {
+      const pool = balances.find((b) => !b.storageBinId) || balances[0];
+      pool.onHand += delta;
+      pool.available = pool.onHand - pool.reserved;
+      pool.updatedBy = userId;
+      await pool.save();
+      applied = delta;
+    } else {
+      let toRemove = Math.abs(delta);
+      for (const balance of balances) {
+        if (toRemove <= 0) break;
+        const removable = Math.max(0, balance.onHand - balance.reserved);
+        const take = Math.min(removable, toRemove);
+        if (take <= 0) continue;
+        balance.onHand -= take;
+        balance.available = balance.onHand - balance.reserved;
+        balance.updatedBy = userId;
+        await balance.save();
+        toRemove -= take;
+        applied -= take;
+      }
+    }
+    if (!applied) continue;
+
+    await InventoryTransaction.create({
+      organizationId: cc.organizationId,
+      factoryId: cc.factoryId,
+      type: 'ADJUSTMENT',
+      direction: applied > 0 ? 'IN' : 'OUT',
+      materialId: isFg ? undefined : line.materialId,
+      skuId: isFg ? line.skuId : undefined,
+      quantity: Math.abs(applied),
+      unit: balances[0].unit,
+      referenceType: 'CYCLE_COUNT',
+      referenceId: cc._id,
+      performedBy: userId,
+      createdBy: userId,
+      updatedBy: userId,
+    });
+  }
+
+  return getCycleCount(cc._id, factoryId);
 }
 
 function escapeRegex(str) {

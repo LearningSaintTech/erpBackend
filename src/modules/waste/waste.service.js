@@ -2,24 +2,57 @@ import { WasteRecord } from './wasteRecord.model.js';
 import { Material } from '../inventory/material.model.js';
 import { Factory } from '../organization/factory.model.js';
 import { nextDocumentNumber } from '../../shared/utils/numbering.js';
-import { NotFoundError } from '../../shared/errors/AppError.js';
-import { applySoftDeleteFilter } from '../../shared/utils/schema.js';
+import { ProductionBatch } from '../production/productionBatch.model.js';
+import { Sku } from '../sku/sku.model.js';
+import { InventoryBalance } from '../inventory/inventoryBalance.model.js';
+import { InventoryTransaction } from '../inventory/inventoryTransaction.model.js';
+import { NotFoundError, ConflictError } from '../../shared/errors/AppError.js';
+import { csvDocument, humanizeEnum } from '../report/csv.util.js';
+import {
+  applySoftDeleteFilter, asObjectId, escapeRegex, queryString,
+} from '../../shared/utils/schema.js';
 
-function escapeRegex(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/**
+ * Lookups for the Record waste form. Waste recorders (production manager, QC) don't hold
+ * inventory / SKU read rights, so the form gets its pick lists from here instead.
+ */
+export async function getWasteFormOptions(factoryId) {
+  const [materials, skus, batches] = await Promise.all([
+    Material.find({ factoryId, isDeleted: false }).select('materialCode name unit unitCost').sort({ materialCode: 1 }).limit(500).lean(),
+    Sku.find({ factoryId, isDeleted: false }).select('skuCode name').sort({ skuCode: 1 }).limit(500).lean(),
+    ProductionBatch.find({ factoryId, isDeleted: false }).select('batchNumber status').sort({ createdAt: -1 }).limit(200).lean(),
+  ]);
+  return { materials, skus, batches };
+}
+
+/** Server-owned / workflow fields a client must never set on create. */
+const SERVER_FIELDS = [
+  '_id', 'isDeleted', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy', 'organizationId', 'factoryId', '__v',
+  'wasteCode', 'status', 'recoveryAction', 'totalCost',
+];
+
+async function assertInFactory(Model, id, factoryId, label) {
+  if (!id) return;
+  const exists = await Model.exists({ _id: id, factoryId, isDeleted: false });
+  if (!exists) throw new NotFoundError(`${label} not found`);
 }
 
 function buildListFilter(factoryId, { search, wasteType, status, from, to } = {}) {
   const filter = applySoftDeleteFilter({ factoryId });
-  if (wasteType) filter.wasteType = wasteType;
-  if (status) filter.status = status;
-  if (search?.trim()) {
-    filter.wasteCode = new RegExp(escapeRegex(search.trim()), 'i');
+  const typeQ = queryString(wasteType);
+  const statusQ = queryString(status);
+  const searchQ = queryString(search)?.trim();
+  const fromQ = queryString(from);
+  const toQ = queryString(to);
+  if (typeQ) filter.wasteType = typeQ;
+  if (statusQ) filter.status = statusQ;
+  if (searchQ) {
+    filter.wasteCode = new RegExp(escapeRegex(searchQ), 'i');
   }
-  if (from || to) {
+  if (fromQ || toQ) {
     filter.createdAt = {};
-    if (from) filter.createdAt.$gte = new Date(from);
-    if (to) filter.createdAt.$lte = new Date(to);
+    if (fromQ) filter.createdAt.$gte = new Date(fromQ);
+    if (toQ) filter.createdAt.$lte = new Date(toQ);
   }
   return filter;
 }
@@ -31,17 +64,27 @@ const POPULATE = [
 ];
 
 export async function createWasteRecord(data, userId) {
-  const factory = await Factory.findById(data.factoryId);
-  const wasteCode = await nextDocumentNumber(data.factoryId, 'WASTE', `WST-${factory.code}-`);
+  const { factoryId, organizationId } = data;
+  const body = { ...data };
+  for (const key of SERVER_FIELDS) delete body[key];
 
-  let unitCost = data.unitCost || 0;
-  if (data.materialId && !unitCost) {
-    const mat = await Material.findById(data.materialId);
+  await assertInFactory(ProductionBatch, body.batchId, factoryId, 'Batch');
+  await assertInFactory(Material, body.materialId, factoryId, 'Material');
+  await assertInFactory(Sku, body.skuId, factoryId, 'SKU');
+
+  const factory = await Factory.findById(factoryId);
+  const wasteCode = await nextDocumentNumber(factoryId, 'WASTE', `WST-${factory.code}-`);
+
+  let unitCost = body.unitCost || 0;
+  if (body.materialId && !unitCost) {
+    const mat = await Material.findOne({ _id: body.materialId, factoryId });
     unitCost = mat?.unitCost || 0;
   }
 
   return WasteRecord.create({
-    ...data,
+    ...body,
+    factoryId,
+    organizationId,
     wasteCode,
     unitCost,
     createdBy: userId,
@@ -64,13 +107,55 @@ export async function getWasteRecord(id, factoryId) {
   return record;
 }
 
+/**
+ * Recovery closes a waste record once (atomic RECORDED → RECOVERED claim) and takes the recovered
+ * quantity off the matching SCRAP / REJECTED stock row when one exists (clamped at its on-hand).
+ */
 export async function recordRecovery(id, { recoveryAction }, userId, factoryId) {
-  const record = await WasteRecord.findOne(applySoftDeleteFilter({ _id: id, factoryId }));
-  if (!record) throw new NotFoundError('Waste record not found');
-  record.recoveryAction = recoveryAction;
-  record.status = 'RECOVERED';
-  record.updatedBy = userId;
-  await record.save();
+  const existing = await WasteRecord.findOne(applySoftDeleteFilter({ _id: id, factoryId }));
+  if (!existing) throw new NotFoundError('Waste record not found');
+
+  const record = await WasteRecord.findOneAndUpdate(
+    { _id: existing._id, factoryId, isDeleted: false, status: 'RECORDED' },
+    { $set: { recoveryAction, status: 'RECOVERED', updatedBy: userId, updatedAt: new Date() } },
+    { new: true },
+  );
+  if (!record) throw new ConflictError('Waste record already recovered');
+
+  if (recoveryAction && recoveryAction !== 'NONE' && (record.quantity || 0) > 0) {
+    const stockFilter = { factoryId: record.factoryId, isDeleted: false };
+    if (record.materialId) {
+      Object.assign(stockFilter, { inventoryType: 'SCRAP', materialId: record.materialId });
+    } else if (record.skuId) {
+      Object.assign(stockFilter, {
+        inventoryType: record.wasteType === 'REJECTED_PIECES' ? 'REJECTED' : 'SCRAP',
+        skuId: record.skuId,
+      });
+    }
+    const balance = stockFilter.inventoryType ? await InventoryBalance.findOne(stockFilter) : null;
+    const take = Math.min(record.quantity, balance?.onHand || 0);
+    if (balance && take > 0) {
+      const res = await InventoryBalance.updateOne(
+        { _id: balance._id, onHand: { $gte: take } },
+        { $inc: { onHand: -take, available: -take }, $set: { updatedBy: userId, updatedAt: new Date() } },
+      );
+      if (res.modifiedCount) {
+        await InventoryTransaction.create({
+          organizationId: record.organizationId,
+          factoryId: record.factoryId,
+          type: 'ISSUE',
+          materialId: record.materialId,
+          skuId: record.materialId ? undefined : record.skuId,
+          quantity: take,
+          unit: balance.unit || record.unit,
+          referenceType: 'WASTE_RECOVERY',
+          referenceId: record._id,
+          performedBy: userId,
+          createdBy: userId,
+        });
+      }
+    }
+  }
   return record.populate(POPULATE);
 }
 
@@ -88,15 +173,15 @@ export async function getWasteStats(factoryId) {
     WasteRecord.countDocuments({ ...base, status: 'RECORDED' }),
     WasteRecord.countDocuments({ ...base, status: 'RECOVERED' }),
     WasteRecord.aggregate([
-      { $match: { factoryId, isDeleted: false } },
+      { $match: { factoryId: asObjectId(factoryId), isDeleted: false } },
       { $group: { _id: null, totalCost: { $sum: '$totalCost' }, recoveredCost: { $sum: { $cond: [{ $eq: ['$status', 'RECOVERED'] }, '$totalCost', 0] } } } },
     ]),
     WasteRecord.aggregate([
-      { $match: { factoryId, isDeleted: false } },
+      { $match: { factoryId: asObjectId(factoryId), isDeleted: false } },
       { $group: { _id: '$wasteType', quantity: { $sum: '$quantity' }, cost: { $sum: '$totalCost' } } },
     ]),
     WasteRecord.aggregate([
-      { $match: { factoryId, isDeleted: false } },
+      { $match: { factoryId: asObjectId(factoryId), isDeleted: false } },
       { $group: { _id: '$status', count: { $sum: 1 } } },
     ]),
   ]);
@@ -117,7 +202,7 @@ export async function getWasteStats(factoryId) {
   const now = new Date();
   const last7 = new Date(now.getTime() - 7 * 86400000);
   const periodCost7d = await WasteRecord.aggregate([
-    { $match: { factoryId, isDeleted: false, createdAt: { $gte: last7 } } },
+    { $match: { factoryId: asObjectId(factoryId), isDeleted: false, createdAt: { $gte: last7 } } },
     { $group: { _id: null, total: { $sum: '$totalCost' } } },
   ]);
 
@@ -147,25 +232,41 @@ export async function getWasteSummary(factoryId) {
 
 export async function exportWasteCsv(factoryId, filters = {}) {
   const { items } = await listWasteRecords(factoryId, { page: 1, limit: 5000, skip: 0, ...filters });
-  const lines = ['wasteCode,wasteType,quantity,unit,totalCost,status,recoveryAction,reasonCode,createdAt'];
-  for (const r of items) {
-    lines.push([
-      r.wasteCode,
-      r.wasteType,
-      r.quantity,
-      r.unit || '',
-      r.totalCost,
-      r.status,
-      r.recoveryAction || '',
-      r.reasonCode || '',
-      r.createdAt?.toISOString?.() || '',
-    ].join(','));
-  }
-  return lines.join('\n');
+  const headers = [
+    'Code', 'Type', 'Material / SKU', 'Batch', 'Stage', 'Quantity', 'Unit', 'Unit cost', 'Total cost',
+    'Status', 'Recovery action', 'Reason', 'Recorded at (UTC)',
+  ];
+  const round2 = (n) => (Number.isFinite(n) ? Math.round(n * 100) / 100 : '');
+  const source = (r) => {
+    if (r.materialId && typeof r.materialId === 'object') return [r.materialId.materialCode, r.materialId.name].filter(Boolean).join(' — ');
+    if (r.skuId && typeof r.skuId === 'object') return [r.skuId.skuCode, r.skuId.name].filter(Boolean).join(' — ');
+    return '';
+  };
+  const rows = items.map((r) => [
+    r.wasteCode,
+    humanizeEnum(r.wasteType),
+    source(r),
+    r.batchId && typeof r.batchId === 'object' ? r.batchId.batchNumber || '' : '',
+    humanizeEnum(r.stage),
+    r.quantity ?? '',
+    r.unit || '',
+    round2(r.unitCost ?? 0),
+    round2(r.totalCost ?? 0),
+    r.status === 'RECORDED' ? 'Awaiting recovery' : humanizeEnum(r.status),
+    r.status === 'RECORDED' ? '' : humanizeEnum(r.recoveryAction),
+    humanizeEnum(r.reasonCode),
+    r.createdAt ? new Date(r.createdAt).toISOString().slice(0, 16).replace('T', ' ') : '',
+  ]);
+  return csvDocument(headers, rows);
 }
 
+/**
+ * @param {number} [unitCost] cost per piece for SKU-level rejects (no materialId) — e.g. the batch's
+ *   actual material cost per piece; materialId-based records fall back to the material master rate.
+ */
 export async function createQcWasteRecord({
-  factoryId, organizationId, wasteType, batchId, stage, skuId, materialId, quantity, unit, reasonCode, userId,
+  factoryId, organizationId, wasteType, batchId, stage, skuId, materialId, quantity, unit, reasonCode,
+  unitCost, userId,
 }) {
   return createWasteRecord({
     factoryId,
@@ -177,6 +278,7 @@ export async function createQcWasteRecord({
     materialId,
     quantity,
     unit: unit || 'PIECES',
+    unitCost: unitCost > 0 ? unitCost : undefined,
     reasonCode: reasonCode || 'QC_REJECT',
   }, userId);
 }

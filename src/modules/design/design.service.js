@@ -8,7 +8,7 @@ import { SizeChart } from './sizeChart.model.js';
 import { Factory } from '../organization/factory.model.js';
 import { nextDocumentNumber } from '../../shared/utils/numbering.js';
 import { NotFoundError, ConflictError, ValidationError, ForbiddenError } from '../../shared/errors/AppError.js';
-import { applySoftDeleteFilter } from '../../shared/utils/schema.js';
+import { applySoftDeleteFilter, queryString, pickFields } from '../../shared/utils/schema.js';
 import { submitForApproval } from '../approval/approval.service.js';
 import {
   syncApprovalApproved,
@@ -32,22 +32,16 @@ import {
 } from '../sku/skuGeneration.service.js';
 
 
-async function applySkuPipeline(design, { overwriteExisting = false, excludeDesignId } = {}) {
-  if (!design.collectionId || !design.styleNumber?.trim()) return;
-  if (!design.colorVariants?.length) return;
-  await autoFillSkusForDesign(design, { overwriteExisting });
-  await validateGeneratedSkus(design, { excludeDesignId });
-}
-
 async function assertStyleNumberUnique(design) {
   if (!design.styleNumber?.trim() || !design.collectionId) return;
-  const existing = await Design.findOne({
+  const filter = {
     factoryId: design.factoryId,
     collectionId: design.collectionId,
     styleNumber: design.styleNumber.trim(),
-    _id: { $ne: design._id },
     isDeleted: false,
-  }).select('_id designCode');
+  };
+  if (design._id) filter._id = { $ne: design._id };
+  const existing = await Design.findOne(filter).select('_id designCode');
   if (existing) {
     throw new ConflictError('Style number already exists in this collection');
   }
@@ -136,6 +130,20 @@ function stripPatternOwned(payload, existing) {
     }
   }
   return payload;
+}
+
+/** Workflow / tenant / audit fields the server owns — never accepted from a request body. */
+const SERVER_CONTROLLED_FIELDS = [
+  '_id', 'isDeleted', 'status', 'designCode', 'currentVersion',
+  'submittedAt', 'approvedBy', 'approvedAt', 'releasedAt', 'releasedBy', 'releasedVersion',
+  'rejectionComments', 'revisionComments',
+  'createdAt', 'updatedAt', 'createdBy', 'updatedBy', 'organizationId', 'factoryId',
+];
+
+export function stripServerFields(data = {}) {
+  const out = { ...data };
+  for (const key of SERVER_CONTROLLED_FIELDS) delete out[key];
+  return out;
 }
 
 const FIELD_LABELS = {
@@ -375,14 +383,17 @@ export async function createDesign(data, userId) {
   const factory = await Factory.findById(data.factoryId);
   if (!factory) throw new NotFoundError('Factory not found');
   const prefix = `DSN-${factory.code}-`;
-  const designCode = await nextDocumentNumber(data.factoryId, 'DESIGN', prefix);
-  const payload = stripPatternOwned({ ...data });
+  const payload = stripPatternOwned(stripServerFields(data));
+  payload.factoryId = data.factoryId;
+  payload.organizationId = data.organizationId;
   await applyCatalogCollectionSeason(payload, {
     organizationId: data.organizationId,
     factoryId: data.factoryId,
     userId,
   });
   if (!payload.collectionId) throw new ValidationError('Collection is required');
+  await assertStyleNumberUnique(payload);
+  const designCode = await nextDocumentNumber(data.factoryId, 'DESIGN', prefix);
   const design = await Design.create({
     ...payload,
     designCode,
@@ -391,7 +402,6 @@ export async function createDesign(data, userId) {
     createdBy: userId,
     updatedBy: userId,
   });
-  await assertStyleNumberUnique(design);
   recomputeCosting(design);
   await design.save();
   await saveVersionSnapshot(design, userId, 'Initial Design');
@@ -402,6 +412,13 @@ export async function listDesigns(factoryId, {
   status, category, collectionId, seasonId, gender, tags, search, page, limit, skip, viewer, permissions,
 }) {
   const filter = applySoftDeleteFilter({ factoryId });
+  status = queryString(status);
+  category = queryString(category);
+  collectionId = queryString(collectionId);
+  seasonId = queryString(seasonId);
+  gender = queryString(gender);
+  tags = queryString(tags);
+  search = queryString(search);
   if (status) filter.status = status;
   if (category) filter.category = category;
   if (collectionId) {
@@ -418,7 +435,7 @@ export async function listDesigns(factoryId, {
     if (tagList.length) filter.tags = { $in: tagList };
   }
   if (search?.trim()) {
-    const re = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    const re = new RegExp(escapeRegex(search.trim()), 'i');
     filter.$or = [
       { title: re },
       { designCode: re },
@@ -439,7 +456,41 @@ export async function listDesigns(factoryId, {
       .sort({ collectionId: 1, styleNumber: 1, createdAt: -1 }),
     Design.countDocuments(filter),
   ]);
-  return { items: items.map(migrateFabricOnRead), total };
+  const thumbs = await listThumbnailUrls(items.map((d) => d._id));
+  return {
+    items: items.map((d) => {
+      const obj = migrateFabricOnRead(d);
+      const thumbnailUrl = thumbs.get(String(d._id));
+      return thumbnailUrl ? { ...obj, thumbnailUrl } : obj;
+    }),
+    total,
+  };
+}
+
+/** Preferred preview per design for list / gallery views (front image first, then sketch). */
+const THUMBNAIL_PRIORITY = ['FRONT_IMAGE', 'IMAGE', 'TECHNICAL_SKETCH', 'SKETCH', 'SIDE_IMAGE', 'BACK_IMAGE', 'ZOOM_IMAGE'];
+/** Inline (stub-storage) data URLs above this size are left out of list payloads. */
+const MAX_INLINE_THUMBNAIL_CHARS = 400_000;
+
+export async function listThumbnailUrls(designIds) {
+  const out = new Map();
+  if (!designIds.length) return out;
+  const assets = await DesignAsset.find(applySoftDeleteFilter({
+    designId: { $in: designIds },
+    assetType: { $in: THUMBNAIL_PRIORITY },
+  })).select('designId assetType url mimeType').lean();
+  const rank = new Map();
+  for (const a of assets) {
+    if (!a.url || (a.mimeType && !a.mimeType.startsWith('image/'))) continue;
+    if (a.url.startsWith('data:') && a.url.length > MAX_INLINE_THUMBNAIL_CHARS) continue;
+    const key = String(a.designId);
+    const r = THUMBNAIL_PRIORITY.indexOf(a.assetType);
+    if (!rank.has(key) || r < rank.get(key)) {
+      rank.set(key, r);
+      out.set(key, a.url);
+    }
+  }
+  return out;
 }
 
 export async function getDesign(id, { factoryId, viewer, permissions } = {}) {
@@ -619,6 +670,13 @@ export async function submitDesign(id, userId, { factoryId, viewer, permissions 
   if (!design.sizeChartData?.sizeLabels?.length) {
     throw new ValidationError('Pick the size range for this style before submission');
   }
+  // SKU codes are built from the style number and colour codes — catch gaps before approval.
+  if (!design.styleNumber?.trim()) {
+    throw new ValidationError('Style number is required before submission');
+  }
+  if (!design.colorVariants?.some((v) => v?.name?.trim() || v?.code?.trim())) {
+    throw new ValidationError('Add at least one colour variant before submission');
+  }
   design.status = 'IN_REVIEW';
   design.submittedAt = new Date();
   design.updatedBy = userId;
@@ -651,9 +709,8 @@ export async function submitDesign(id, userId, { factoryId, viewer, permissions 
   return design;
 }
 
-export async function approveDesign(id, userId, { syncApproval = true } = {}) {
-  const design = await Design.findOne(applySoftDeleteFilter({ _id: id }));
-  if (!design) throw new NotFoundError('Design not found');
+export async function approveDesign(id, userId, { syncApproval = true, factoryId } = {}) {
+  const design = await getDesignDoc(id, factoryId);
   if (!['SUBMITTED', 'IN_REVIEW'].includes(design.status)) {
     throw new ConflictError('Design not in review');
   }
@@ -681,9 +738,8 @@ export async function approveDesign(id, userId, { syncApproval = true } = {}) {
   return design;
 }
 
-export async function rejectDesign(id, userId, comments, { syncApproval = true } = {}) {
-  const design = await Design.findOne(applySoftDeleteFilter({ _id: id }));
-  if (!design) throw new NotFoundError('Design not found');
+export async function rejectDesign(id, userId, comments, { syncApproval = true, factoryId } = {}) {
+  const design = await getDesignDoc(id, factoryId);
   if (!['SUBMITTED', 'IN_REVIEW'].includes(design.status)) {
     throw new ConflictError('Design not in review');
   }
@@ -712,9 +768,8 @@ export async function rejectDesign(id, userId, comments, { syncApproval = true }
   return design;
 }
 
-export async function requestRevision(id, userId, comments, { syncApproval = true } = {}) {
-  const design = await Design.findOne(applySoftDeleteFilter({ _id: id }));
-  if (!design) throw new NotFoundError('Design not found');
+export async function requestRevision(id, userId, comments, { syncApproval = true, factoryId } = {}) {
+  const design = await getDesignDoc(id, factoryId);
   if (!['SUBMITTED', 'IN_REVIEW'].includes(design.status)) {
     throw new ConflictError('Design not in review');
   }
@@ -743,9 +798,8 @@ export async function requestRevision(id, userId, comments, { syncApproval = tru
   return design;
 }
 
-export async function releaseDesign(id, userId, { patternMasterId } = {}) {
-  const design = await Design.findOne(applySoftDeleteFilter({ _id: id }));
-  if (!design) throw new NotFoundError('Design not found');
+export async function releaseDesign(id, userId, { patternMasterId, factoryId } = {}) {
+  const design = await getDesignDoc(id, factoryId);
   if (design.status !== 'APPROVED') {
     throw new ConflictError('Only APPROVED designs can be released');
   }
@@ -762,6 +816,30 @@ export async function releaseDesign(id, userId, { patternMasterId } = {}) {
       throw new ValidationError('Selected user is not a pattern master for this factory');
     }
   }
+  design.status = 'RELEASED';
+  design.releasedAt = new Date();
+  design.releasedBy = userId;
+  design.releasedVersion = design.currentVersion;
+  design.updatedBy = userId;
+  await design.save();
+  // Assignment needs a RELEASED design; if it fails, roll the release back so the design
+  // never sits RELEASED without the pattern master the releaser picked.
+  if (patternMasterId && assignPatternMaster) {
+    try {
+      await assignPatternMaster({
+        designId: design._id,
+        factoryId: design.factoryId,
+        patternMasterId,
+      }, userId);
+    } catch (err) {
+      design.status = 'APPROVED';
+      design.releasedAt = undefined;
+      design.releasedBy = undefined;
+      design.releasedVersion = undefined;
+      await design.save();
+      throw err;
+    }
+  }
   const versionRecord = await DesignVersion.findOne({ designId: design._id, version: design.currentVersion });
   if (versionRecord) {
     versionRecord.released = true;
@@ -771,12 +849,6 @@ export async function releaseDesign(id, userId, { patternMasterId } = {}) {
   } else {
     await saveVersionSnapshot(design, userId, 'Released version');
   }
-  design.status = 'RELEASED';
-  design.releasedAt = new Date();
-  design.releasedBy = userId;
-  design.releasedVersion = design.currentVersion;
-  design.updatedBy = userId;
-  await design.save();
   if (design.createdBy) {
     await notify({
       organizationId: design.organizationId,
@@ -790,25 +862,18 @@ export async function releaseDesign(id, userId, { patternMasterId } = {}) {
     });
   }
   emitDesignUpdated(design, { actorId: userId });
-  if (patternMasterId && assignPatternMaster) {
-    await assignPatternMaster({
-      designId: design._id,
-      factoryId: design.factoryId,
-      patternMasterId,
-    }, userId);
-  }
-  return getDesign(id);
+  return getDesign(id, { factoryId });
 }
 
-export async function listDesignVersions(designId, { viewer, permissions } = {}) {
-  await getDesign(designId, { viewer, permissions });
+export async function listDesignVersions(designId, { factoryId, viewer, permissions } = {}) {
+  await getDesign(designId, { factoryId, viewer, permissions });
   return DesignVersion.find({ designId })
     .populate('createdBy', 'firstName lastName email')
     .sort({ version: -1 });
 }
 
-export async function getDesignVersion(designId, version, { viewer, permissions } = {}) {
-  await getDesign(designId, { viewer, permissions });
+export async function getDesignVersion(designId, version, { factoryId, viewer, permissions } = {}) {
+  await getDesign(designId, { factoryId, viewer, permissions });
   const record = await DesignVersion.findOne({ designId, version })
     .populate('createdBy', 'firstName lastName email');
   if (!record) throw new NotFoundError('Version not found');
@@ -928,8 +993,8 @@ export async function listDesignTimeline(designId, { factoryId, viewer, permissi
   return entries;
 }
 
-export async function cloneDesign(id, userId, { viewer, permissions } = {}) {
-  const source = await getDesignDoc(id);
+export async function cloneDesign(id, userId, { factoryId, viewer, permissions } = {}) {
+  const source = await getDesignDoc(id, factoryId);
   if (viewer && !canViewAllDesigns(permissions, viewer.isSuperAdmin)) {
     if (source.createdBy?.toString() !== viewer._id.toString()) {
       throw new ForbiddenError('You can only clone your own designs');
@@ -939,6 +1004,17 @@ export async function cloneDesign(id, userId, { viewer, permissions } = {}) {
   const prefix = `DSN-${factory.code}-`;
   const designCode = await nextDocumentNumber(source.factoryId, 'DESIGN', prefix);
   const snap = buildDesignSnapshot(source);
+  // A clone must mint its own SKUs — copied codes would collide with the source design.
+  delete snap.skuCodeInputs;
+  if (Array.isArray(snap.colorVariants)) {
+    snap.colorVariants = snap.colorVariants.map((variant) => {
+      const { skuCodeInputs, ...rest } = variant;
+      return {
+        ...rest,
+        sizes: (variant.sizes || []).map((size) => ({ ...size, sku: '' })),
+      };
+    });
+  }
   const styleNumber = await nextCloneStyleNumber(source);
   const cloned = await Design.create({
     ...snap,
@@ -959,18 +1035,18 @@ export async function cloneDesign(id, userId, { viewer, permissions } = {}) {
   });
   await cloneDesignAssets(source._id, cloned._id, userId, source.organizationId, source.factoryId);
   await saveVersionSnapshot(cloned, userId, 'Cloned from ' + source.designCode);
-  return getDesign(cloned._id, { viewer, permissions });
+  return getDesign(cloned._id, { factoryId, viewer, permissions });
 }
 
-export async function listDesignSamples(designId, { viewer, permissions } = {}) {
-  await getDesign(designId, { viewer, permissions });
+export async function listDesignSamples(designId, { factoryId, viewer, permissions } = {}) {
+  await getDesign(designId, { factoryId, viewer, permissions });
   const { Sample } = await import('../sampling/sample.model.js');
   return Sample.find(applySoftDeleteFilter({ designId }))
     .sort({ createdAt: -1 });
 }
 
-export async function uploadDesignAsset(designId, { fileName, mimeType, contentBase64, assetType }, userId, { viewer, permissions } = {}) {
-  const design = await getDesignDoc(designId);
+export async function uploadDesignAsset(designId, { fileName, mimeType, contentBase64, assetType }, userId, { factoryId, viewer, permissions } = {}) {
+  const design = await getDesignDoc(designId, factoryId);
   assertCanEditDesign(design, viewer, permissions);
   if (!['DRAFT', 'REVISION_REQUESTED'].includes(design.status)) {
     throw new ConflictError('Assets can only be added to editable designs');
@@ -982,23 +1058,14 @@ export async function uploadDesignAsset(designId, { fileName, mimeType, contentB
     throw new ValidationError(`File exceeds ${MAX_ASSET_BYTES / 1024 / 1024}MB limit`);
   }
 
-  if (SINGLE_SLOT_ASSET_TYPES.includes(normalizedType) || SINGLE_SLOT_ASSET_TYPES.includes(assetType)) {
-    const slotTypes = normalizedType === 'FRONT_IMAGE'
-      ? ['FRONT_IMAGE', 'IMAGE']
-      : [normalizedType];
-    await DesignAsset.updateMany(
-      { designId: design._id, assetType: { $in: slotTypes }, isDeleted: false },
-      { isDeleted: true, updatedBy: userId },
-    );
-  }
-
-  const key = `designs/${design.factoryId}/${designId}/${Date.now()}-${fileName}`;
+  const safeFileName = String(fileName).replace(/[^\w.\-]/g, '_');
+  const key = `designs/${design.factoryId}/${design._id}/${Date.now()}-${safeFileName}`;
   const uploaded = await uploadFile({ key, body: buffer, contentType: mimeType });
   const url = uploaded.mode === 'stub' && mimeType?.startsWith('image/')
     ? `data:${mimeType};base64,${contentBase64}`
     : uploaded.url;
 
-  return DesignAsset.create({
+  const asset = await DesignAsset.create({
     organizationId: design.organizationId,
     factoryId: design.factoryId,
     designId: design._id,
@@ -1010,12 +1077,31 @@ export async function uploadDesignAsset(designId, { fileName, mimeType, contentB
     createdBy: userId,
     updatedBy: userId,
   });
+
+  // Retire the previous slot image only after the replacement is stored, so a failed upload keeps it.
+  if (SINGLE_SLOT_ASSET_TYPES.includes(normalizedType) || SINGLE_SLOT_ASSET_TYPES.includes(assetType)) {
+    const slotTypes = normalizedType === 'FRONT_IMAGE'
+      ? ['FRONT_IMAGE', 'IMAGE']
+      : [normalizedType];
+    await DesignAsset.updateMany(
+      {
+        designId: design._id, assetType: { $in: slotTypes }, isDeleted: false, _id: { $ne: asset._id },
+      },
+      { isDeleted: true, updatedBy: userId },
+    );
+  }
+  return asset;
 }
 
-export async function deleteDesignAsset(assetId, userId, { viewer, permissions } = {}) {
-  const asset = await DesignAsset.findOne(applySoftDeleteFilter({ _id: assetId }));
+export async function deleteDesignAsset(assetId, userId, {
+  designId, factoryId, viewer, permissions,
+} = {}) {
+  const assetFilter = { _id: assetId };
+  if (designId) assetFilter.designId = designId;
+  if (factoryId) assetFilter.factoryId = factoryId;
+  const asset = await DesignAsset.findOne(applySoftDeleteFilter(assetFilter));
   if (!asset) throw new NotFoundError('Asset not found');
-  const design = await getDesignDoc(asset.designId);
+  const design = await getDesignDoc(asset.designId, factoryId);
   assertCanEditDesign(design, viewer, permissions);
   if (!['DRAFT', 'REVISION_REQUESTED'].includes(design.status)) {
     throw new ConflictError('Cannot delete assets from this design');
@@ -1031,7 +1117,11 @@ export async function listCollections(organizationId) {
 }
 
 export async function createCollection(data, userId) {
-  return DesignCollection.create({ ...data, createdBy: userId, updatedBy: userId });
+  return DesignCollection.create({
+    ...pickFields(data, ['code', 'name', 'description', 'seasonId', 'organizationId', 'factoryId']),
+    createdBy: userId,
+    updatedBy: userId,
+  });
 }
 
 export async function listSeasons(organizationId) {
@@ -1039,7 +1129,11 @@ export async function listSeasons(organizationId) {
 }
 
 export async function createSeason(data, userId) {
-  return Season.create({ ...data, createdBy: userId, updatedBy: userId });
+  return Season.create({
+    ...pickFields(data, ['code', 'name', 'year', 'startDate', 'endDate', 'organizationId', 'factoryId']),
+    createdBy: userId,
+    updatedBy: userId,
+  });
 }
 
 export async function listSizeCharts(factoryId) {
@@ -1070,13 +1164,20 @@ export async function listMaterialOptions(factoryId) {
 }
 
 export async function createSizeChart(data, userId) {
-  return SizeChart.create({ ...data, createdBy: userId, updatedBy: userId });
+  return SizeChart.create({
+    ...pickFields(data, ['name', 'unit', 'sizeLabels', 'rows', 'measurements', 'organizationId', 'factoryId']),
+    createdBy: userId,
+    updatedBy: userId,
+  });
 }
 
 
-export async function regenerateDesignSkus(id, userId, { viewer, permissions } = {}) {
-  const design = await getDesignDoc(id);
+export async function regenerateDesignSkus(id, userId, { factoryId, viewer, permissions } = {}) {
+  const design = await getDesignDoc(id, factoryId);
   assertCanEditDesign(design, viewer, permissions);
+  if (design.status !== 'DRAFT' && design.status !== 'REVISION_REQUESTED') {
+    throw new ConflictError('SKUs can only be regenerated on DRAFT or REVISION_REQUESTED designs');
+  }
   if (!design.collectionId) throw new ValidationError('Collection is required');
   if (!design.styleNumber?.trim()) throw new ValidationError('Style number is required');
   await autoFillSkusForDesign(design, { overwriteExisting: true });
@@ -1084,6 +1185,6 @@ export async function regenerateDesignSkus(id, userId, { viewer, permissions } =
   design.updatedBy = userId;
   design.updatedAt = new Date();
   await design.save();
-  return getDesign(id, { viewer, permissions });
+  return getDesign(id, { factoryId, viewer, permissions });
 }
 

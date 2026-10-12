@@ -10,14 +10,15 @@ function normalizeToken(value) {
   return String(value || '').trim().toUpperCase().replace(/\s+/g, '');
 }
 
-function getSizeLabels(design) {
-  const labels = design.sizeChartData?.sizeLabels;
+function getSizeLabels(design, override) {
+  const labels = override?.length ? override : design.sizeChartData?.sizeLabels;
   if (labels?.length) return labels.map((s) => normalizeToken(s));
   return [];
 }
 
-export function ensureSizeMatrix(design) {
-  const sizeLabels = getSizeLabels(design);
+/** `sizeLabels` overrides the designer range (e.g. the pattern master's graded chart after release). */
+export function ensureSizeMatrix(design, { sizeLabels: overrideLabels } = {}) {
+  const sizeLabels = getSizeLabels(design, overrideLabels);
   if (!design.colorVariants?.length || !sizeLabels.length) return;
 
   for (const variant of design.colorVariants) {
@@ -28,7 +29,7 @@ export function ensureSizeMatrix(design) {
     const existing = new Map(variant.sizes.map((row) => [normalizeToken(row.size), row]));
     variant.sizes = sizeLabels.map((size) => {
       const prev = existing.get(size);
-      return prev ? { ...prev, size } : { size, sku: '' };
+      return prev ? { ...(prev.toObject?.() ?? prev), size } : { size, sku: '' };
     });
   }
 }
@@ -115,7 +116,11 @@ export async function generateSkuForSize(design, variantIndex, sizeIndex, formul
   return segments.join('-');
 }
 
-export async function autoFillSkusForDesign(design, { overwriteExisting = false } = {}) {
+/**
+ * `overwriteExisting`: true regenerates every code; a function `(currentSku) => boolean`
+ * decides per row (e.g. replace only codes no Sku document uses yet).
+ */
+export async function autoFillSkusForDesign(design, { overwriteExisting = false, sizeLabels } = {}) {
   if (!design.collectionId) {
     throw new ValidationError('Collection is required before SKU generation');
   }
@@ -126,14 +131,19 @@ export async function autoFillSkusForDesign(design, { overwriteExisting = false 
   const config = await getActiveSkuFormulaConfig();
   if (!config) throw new ValidationError('No active SKU formula configuration');
 
-  ensureSizeMatrix(design);
+  ensureSizeMatrix(design, { sizeLabels });
   await syncSkuCodeInputs(design);
 
   for (let vi = 0; vi < (design.colorVariants || []).length; vi += 1) {
     const variant = design.colorVariants[vi];
     for (let si = 0; si < (variant.sizes || []).length; si += 1) {
       const sizeRow = variant.sizes[si];
-      if (sizeRow.sku && !overwriteExisting) continue;
+      if (sizeRow.sku) {
+        const replace = typeof overwriteExisting === 'function'
+          ? overwriteExisting(sizeRow.sku)
+          : overwriteExisting;
+        if (!replace) continue;
+      }
       sizeRow.sku = await generateSkuForSize(design, vi, si, config);
     }
   }

@@ -12,6 +12,7 @@ import { Organization } from '../modules/organization/organization.model.js';
 import { UserRoleAssignment } from '../modules/user/userRoleAssignment.model.js';
 import { createFactory } from '../modules/organization/organization.service.js';
 import { getFactoryAdminPermissions } from '../config/systemRoles.js';
+import { seedSkuFormulaConfig } from '../modules/inventoryCode/inventoryCode.service.js';
 
 const ALL_PERMS = getFactoryAdminPermissions();
 
@@ -61,6 +62,8 @@ async function advanceBatchToCompletion(base, batchId, opts) {
 async function smokeTest() {
   const mongod = await MongoMemoryServer.create({ instance: { launchTimeout: 120000 } });
   await mongoose.connect(mongod.getUri());
+  // SKU codes come from the active formula — there is no fallback code any more.
+  await seedSkuFormulaConfig();
 
   for (const code of ALL_PERMS) {
     const [module, action] = code.split('.');
@@ -246,6 +249,11 @@ async function smokeTest() {
       body: {
         title: 'Summer Shirt',
         collectionId,
+        // Style number + category + fit feed the SKU formula; submit requires style number + colour.
+        styleNumber: 'SMK101',
+        gender: 'MEN',
+        category: 'SHIRT',
+        fit: 'REGULAR',
         sizeChartData: { unit: 'INCHES', sizeLabels: ['S', 'M', 'L'] },
         colorVariants: [{ name: 'Navy', code: 'NVY' }],
       },
@@ -263,7 +271,7 @@ async function smokeTest() {
     }));
 
     assertApi('Design submit', await api(base, `/api/v1/designs/${designId}/submit`, { method: 'POST', ...opts }));
-    const approvedDesign = assertApi('Design approve', await api(base, `/api/v1/designs/${designId}/approve`, { method: 'POST', ...opts }));
+    const approvedDesign = assertApi('Design approve', await api(base, `/api/v1/designs/${designId}/approve`, { method: 'POST', ...approverOpts }));
     if (approvedDesign.status !== 'APPROVED') throw new Error('Design approve failed');
 
     const releasedDesign = assertApi('Design release', await api(base, `/api/v1/designs/${designId}/release`, { method: 'POST', ...opts }));
@@ -352,7 +360,7 @@ async function smokeTest() {
     }));
     if (fitDone.status !== 'PENDING_APPROVAL') throw new Error('Complete fit trial failed');
 
-    const approvedSample = assertApi('Approve sample', await api(base, `/api/v1/samples/${sampleId}/approve`, { method: 'POST', ...opts }));
+    const approvedSample = assertApi('Approve sample', await api(base, `/api/v1/samples/${sampleId}/approve`, { method: 'POST', ...approverOpts }));
     if (approvedSample.status !== 'APPROVED') throw new Error('Sample approve failed');
 
     // SKU
@@ -376,7 +384,7 @@ async function smokeTest() {
     if (!bomData.success) throw new Error('Create BOM failed');
     const bomId = bomData.data._id;
 
-    await api(base, `/api/v1/boms/${bomId}/approve`, { method: 'POST', ...opts });
+    await api(base, `/api/v1/boms/${bomId}/approve`, { method: 'POST', ...approverOpts });
     const { data: finalized } = await api(base, `/api/v1/boms/${bomId}/finalize`, { method: 'POST', ...opts });
     if (finalized.data.bom?.status !== 'ACTIVE') throw new Error('BOM finalize failed');
     if (!finalized.data.mrp) throw new Error('MRP preview missing');
@@ -488,7 +496,7 @@ async function smokeTest() {
 
     console.log('Smoke test passed: Phase 1–4 (full ERP + reports + notifications)');
 
-    // Phase 5: waste, RFQ, warehouse ops
+    // Phase 5: waste, agreed-price payment, warehouse ops
     const { data: wasteData } = await api(base, '/api/v1/waste-records', {
       method: 'POST', ...opts,
       body: {
@@ -541,34 +549,22 @@ async function smokeTest() {
     await api(base, `/api/v1/purchase-requisitions/${pr2Id}/submit`, { method: 'POST', ...opts });
     await api(base, `/api/v1/purchase-requisitions/${pr2Id}/approve`, { method: 'POST', ...approverOpts });
 
-    const { data: rfqData } = await api(base, '/api/v1/rfqs/from-pr', {
-      method: 'POST', ...opts,
-      body: { prId: pr2Id, supplierIds: [supplierId] },
-    });
-    if (!rfqData.success) throw new Error('Create RFQ failed');
-    const rfqId = rfqData.data._id;
-    await api(base, `/api/v1/rfqs/${rfqId}/send`, { method: 'POST', ...opts });
-
-    const { data: quoteData } = await api(base, `/api/v1/rfqs/${rfqId}/quotations`, {
+    // Supplier price is agreed on a call, then recorded as the payment (PO) at that price.
+    const { data: agreedPo } = await api(base, '/api/v1/purchase-orders', {
       method: 'POST', ...opts,
       body: {
         supplierId,
+        prId: pr2Id,
         lines: [{ materialId: buttonId, quantity: 100, unit: 'PIECES', unitPrice: 1.8 }],
       },
     });
-    if (!quoteData.success) throw new Error('Add quotation failed');
-    const quoteId = quoteData.data._id;
-
-    const { data: compareData } = await api(base, `/api/v1/rfqs/${rfqId}/quotations/compare`, opts);
-    if (!compareData.success || !compareData.data.length) throw new Error('Compare quotations failed');
-
-    const { data: selectData } = await api(base, `/api/v1/quotations/${quoteId}/select`, { method: 'POST', ...opts });
-    if (!selectData.success || !selectData.data.purchaseOrder) throw new Error('Select quotation failed');
+    if (!agreedPo.success) throw new Error(`Create payment at agreed price failed: ${agreedPo.error?.message}`);
+    if (Math.round(agreedPo.data.totalAmount) !== 180) throw new Error(`Agreed-price total wrong: ${agreedPo.data.totalAmount}`);
 
     const { data: wasteReport } = await api(base, '/api/v1/reports/waste', opts);
     if (!wasteReport.success) throw new Error('Waste report failed');
 
-    console.log('Smoke test passed: Phase 1–5 (waste + RFQ + warehouse ops + email log)');
+    console.log('Smoke test passed: Phase 1–5 (waste + agreed-price payment + warehouse ops + email log)');
 
     // Gap plan: hardening + extended modules
     const { data: factorySettings } = await api(base, `/api/v1/factories/${factoryId}/settings`, opts);
@@ -579,6 +575,37 @@ async function smokeTest() {
       body: { machineCode: 'MC-01', name: 'Cutting Table 1', machineType: 'CUTTING', capacityPerHour: 50 },
     });
     if (!machineData.success) throw new Error('Create machine failed');
+
+    // Lines and shifts are edited / switched off in place (Machines & capacity).
+    const { data: lineData } = await api(base, '/api/v1/production-lines', {
+      method: 'POST', ...opts, body: { lineCode: 'SMK-L1', name: 'Smoke line', capacityPerDay: 300 },
+    });
+    if (!lineData.success) throw new Error(`Create line failed: ${lineData.error?.message}`);
+    const { data: lineEdit } = await api(base, `/api/v1/production-lines/${lineData.data._id}`, {
+      method: 'PATCH', ...opts, body: { name: 'Smoke line A', status: 'INACTIVE' },
+    });
+    if (!lineEdit.success || lineEdit.data.name !== 'Smoke line A' || lineEdit.data.status !== 'INACTIVE' || lineEdit.data.lineCode !== 'SMK-L1') {
+      throw new Error(`Edit line failed: ${JSON.stringify(lineEdit.error || lineEdit.data)}`);
+    }
+    const { data: lineCodeEdit } = await api(base, `/api/v1/production-lines/${lineData.data._id}`, {
+      method: 'PATCH', ...opts, body: { lineCode: 'HACK' },
+    });
+    if (lineCodeEdit.success && lineCodeEdit.data.lineCode === 'HACK') throw new Error('Line code must not be editable');
+
+    const { data: shiftData } = await api(base, '/api/v1/shifts', {
+      method: 'POST', ...opts, body: { name: 'Smoke shift', startTime: '07:00', endTime: '15:00' },
+    });
+    if (!shiftData.success) throw new Error(`Create shift failed: ${shiftData.error?.message}`);
+    const { data: shiftEdit } = await api(base, `/api/v1/shifts/${shiftData.data._id}`, {
+      method: 'PATCH', ...opts, body: { endTime: '15:30', isActive: false },
+    });
+    if (!shiftEdit.success || shiftEdit.data.endTime !== '15:30' || shiftEdit.data.isActive !== false) {
+      throw new Error(`Edit shift failed: ${JSON.stringify(shiftEdit.error || shiftEdit.data)}`);
+    }
+    const { data: badShift } = await api(base, `/api/v1/shifts/${shiftData.data._id}`, {
+      method: 'PATCH', ...opts, body: { startTime: '25:99' },
+    });
+    if (badShift.success) throw new Error('Shift time must be HH:MM');
 
     const { data: machineReport } = await api(base, '/api/v1/reports/machine', opts);
     if (!machineReport.success) throw new Error('Machine report failed');

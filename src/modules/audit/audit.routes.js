@@ -3,6 +3,9 @@ import { authMiddleware } from '../../middleware/auth.js';
 import { rbac } from '../../middleware/rbac.js';
 import { AuditLog } from './audit.model.js';
 import { success, paginate, buildMeta } from '../../shared/utils/response.js';
+import { escapeRegex, queryString } from '../../shared/utils/schema.js';
+import { UserRoleAssignment } from '../user/userRoleAssignment.model.js';
+import { ForbiddenError } from '../../shared/errors/AppError.js';
 
 const router = Router();
 
@@ -13,10 +16,22 @@ router.get('/audit-logs', rbac('audit.read'), async (req, res, next) => {
     const { page, limit, skip } = paginate(req.query);
     const filter = {};
     if (req.user.organizationId) filter.organizationId = req.user.organizationId;
-    if (req.query.module) filter.module = req.query.module;
-    if (req.query.factoryId) filter.factoryId = req.query.factoryId;
-    if (req.query.action) filter.action = new RegExp(req.query.action, 'i');
-    if (req.query.userEmail) filter.userEmail = new RegExp(req.query.userEmail, 'i');
+    const moduleName = queryString(req.query.module);
+    const factoryId = queryString(req.query.factoryId);
+    const action = queryString(req.query.action);
+    const userEmail = queryString(req.query.userEmail);
+    if (moduleName) filter.module = moduleName;
+    if (!req.user.isSuperAdmin) {
+      // Auditors only see logs for factories they are assigned to.
+      const assigned = (await UserRoleAssignment.find({ userId: req.user._id }).distinct('factoryId'))
+        .map(String);
+      if (factoryId && !assigned.includes(factoryId)) throw new ForbiddenError('Factory access denied');
+      filter.factoryId = factoryId || { $in: [...assigned, null] }; // null = org-level events
+    } else if (factoryId) {
+      filter.factoryId = factoryId;
+    }
+    if (action) filter.action = new RegExp(escapeRegex(action), 'i');
+    if (userEmail) filter.userEmail = new RegExp(escapeRegex(userEmail), 'i');
     if (req.query.from || req.query.to) {
       filter.timestamp = {};
       if (req.query.from) filter.timestamp.$gte = new Date(req.query.from);

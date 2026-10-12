@@ -1,7 +1,6 @@
 import { Permission } from '../user/permission.model.js';
 import { Role } from '../user/role.model.js';
 import { ApprovalWorkflow } from '../approval/approvalWorkflow.model.js';
-import { ApprovalInstance } from '../approval/approvalInstance.model.js';
 import { PurchaseOrder } from './purchaseOrder.model.js';
 import { getFactoryAdminPermissions } from '../../config/systemRoles.js';
 
@@ -38,8 +37,15 @@ export async function ensurePurchaseProcess() {
     { $addToSet: { permissions: { $each: ['purchase.authorize', 'purchase.pay'] } } },
   );
 
+  // Runs on every boot, so it must be idempotent: only upgrade legacy PR workflows that have
+  // no approver roles configured. Admin-configured workflows (and in-flight approvals at
+  // level 2+) are left alone.
   const wfResult = await ApprovalWorkflow.updateMany(
-    { documentType: 'PURCHASE_REQUISITION', isActive: true },
+    {
+      documentType: 'PURCHASE_REQUISITION',
+      isActive: true,
+      levels: { $not: { $elemMatch: { 'approverRoles.0': { $exists: true } } } },
+    },
     {
       $set: {
         name: 'Purchase Requisition Approval',
@@ -48,18 +54,11 @@ export async function ensurePurchaseProcess() {
     },
   );
 
-  const pendingResult = await ApprovalInstance.updateMany(
-    { documentType: 'PURCHASE_REQUISITION', status: 'PENDING' },
-    { $set: { currentLevel: 1 } },
-  );
-
   const unpaidResult = await PurchaseOrder.updateMany(
     { $or: [{ paymentStatus: { $exists: false } }, { paymentStatus: null }] },
     { $set: { paymentStatus: 'UNPAID' } },
   );
 
-  const changed = (wfResult.modifiedCount || 0)
-    + (pendingResult.modifiedCount || 0)
-    + (unpaidResult.modifiedCount || 0);
+  const changed = (wfResult.modifiedCount || 0) + (unpaidResult.modifiedCount || 0);
   return changed;
 }

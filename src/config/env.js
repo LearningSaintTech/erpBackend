@@ -29,6 +29,7 @@ export const env = {
   ),
   appleReviewPhone: String(process.env.APPLE_REVIEW_PHONE || '').trim(),
   appleReviewOtp: String(process.env.APPLE_REVIEW_OTP || '').trim(),
+  staticOtpPhones: String(process.env.STATIC_OTP_PHONES || '').trim(),
   otpRegisterEnabled: !['false', '0', 'no', 'off'].includes(
     String(process.env.AUTH_OTP_REGISTER_ENABLED ?? 'false').toLowerCase(),
   ),

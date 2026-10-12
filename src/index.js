@@ -7,9 +7,12 @@ import { User } from './modules/user/user.model.js';
 import { runSeed } from './scripts/seed.js';
 import { initRealtime } from './shared/services/realtime.js';
 import { initChatSocket } from './modules/chat/chat.socket.js';
+import { getRedis } from './shared/services/redis.service.js';
 
 async function start() {
   await connectDatabase();
+  // OTP sessions, rate limits and refresh tokens check isRedisReady(); open the connection up front.
+  if (process.env.REDIS_URL) getRedis();
 
   const userCount = await User.countDocuments();
   const shouldSeed = userCount === 0 || process.env.SEED_ON_START === 'true';

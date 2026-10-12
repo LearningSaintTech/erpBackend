@@ -1,0 +1,57 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Every test here runs against an in-memory MongoDB (mongodb-memory-server).
+# Nothing in CI may reach a real database: MONGODB_URI is a dead address on purpose.
+env:
+  NODE_ENV: test
+  MONGODB_URI: mongodb://127.0.0.1:1/ci-must-not-connect
+  REDIS_URL: ''
+  EMAIL_NOTIFICATIONS: 'false'
+  AUTH_PHONE_OTP_ONLY: 'false'
+  TWOFACTOR_API_KEY: ''
+  DISABLE_RATE_LIMIT: 'true'
+  JWT_SECRET: ci-only-access-secret
+  JWT_REFRESH_SECRET: ci-only-refresh-secret
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Syntax check
+        run: find src -name '*.js' -print0 | xargs -0 -n1 node --check
+
+      - name: Cache MongoDB binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: mongodb-binaries-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Unit tests (business rules)
+        run: npm run test:unit --if-present
+
+      - name: Concurrency tests
+        run: npm run test:concurrency --if-present
+
+      - name: API smoke test
+        run: npm run smoke-test
+
+      - name: RBAC test
+        run: npm run rbac-test
+
+      - name: Security regression test
+        run: npm run security-test

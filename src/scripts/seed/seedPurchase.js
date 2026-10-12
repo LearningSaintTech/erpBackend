@@ -2,7 +2,6 @@ import { Supplier } from '../../modules/purchase/supplier.model.js';
 import { PurchaseRequisition } from '../../modules/purchase/purchaseRequisition.model.js';
 import { PurchaseOrder } from '../../modules/purchase/purchaseOrder.model.js';
 import { GoodsReceipt } from '../../modules/purchase/goodsReceipt.model.js';
-import { Rfq } from '../../modules/purchase/rfq.model.js';
 import { loadSeedJson, isHeavy, isConditionsSeed, isFixtureSeed, seedLimit, logAudit, safeSeed } from './seedHelpers.js';
 
 async function seedSuppliers(ctx) {
@@ -68,11 +67,14 @@ async function seedPurchaseRequisitions(ctx) {
         pr.status = 'APPROVED';
         pr.approvedBy = admin._id;
         pr.approvedAt = new Date();
-      } else if (spec.status === 'SUBMITTED') {
-        pr.status = 'SUBMITTED';
-        pr.submittedAt = new Date();
       }
       await pr.save();
+      if (spec.status === 'SUBMITTED') {
+        // Submit through the service so a real approval instance exists (the store keeper raises
+        // PRs; submitting as admin would make admin's own approve hit the self-approval rule).
+        const submitter = ctx.roleUsers?.store?._id || admin._id;
+        pr = await purchaseService.submitPurchaseRequisition(pr._id, factory._id, submitter);
+      }
       console.log(`Seeded PR ${spec.key} (${spec.status})`);
     }
     ctx.purchaseRequisitions.push(pr);
@@ -125,45 +127,6 @@ async function seedPoGrnChain(ctx, pr, supplier) {
   ctx.purchaseOrders = ctx.purchaseOrders || [];
   ctx.purchaseOrders.push(po);
   return { po, grn };
-}
-
-async function seedRfqChain(ctx, pr) {
-  const { factory, org, admin } = ctx;
-  if (ctx.suppliers.length < 2) return null;
-
-  const rfqService = await import('../../modules/purchase/rfq.service.js');
-  const existing = await Rfq.findOne({ factoryId: factory._id, prId: pr._id });
-  if (existing) return existing;
-
-  const rfq = await rfqService.createRfqFromPr({
-    factoryId: factory._id,
-    organizationId: org._id,
-    prId: pr._id,
-    supplierIds: ctx.suppliers.slice(0, 2).map((s) => s._id),
-  }, admin._id);
-  await rfqService.sendRfq(rfq._id, factory._id, admin._id);
-
-  const mat = pr.lines[0]?.materialId;
-  const quotes = [];
-  for (const supplier of ctx.suppliers.slice(0, 2)) {
-    const quote = await rfqService.addQuotation({
-      rfqId: rfq._id,
-      factoryId: factory._id,
-      supplierId: supplier._id,
-      lines: [{
-        materialId: mat,
-        quantity: pr.lines[0]?.requiredQty || 100,
-        unit: pr.lines[0]?.unit || 'PIECES',
-        unitPrice: (pr.lines[0]?.estimatedUnitCost || 2) * (supplier.supplierCode === 'SUP-002' ? 0.9 : 1),
-      }],
-    }, admin._id);
-    quotes.push(quote);
-  }
-
-  const selected = quotes[0];
-  await rfqService.selectQuotation(selected._id, factory._id, admin._id);
-  console.log(`Seeded RFQ ${rfq.rfqNumber} with ${quotes.length} quotations`);
-  return rfq;
 }
 
 async function seedStandalonePoGrn(ctx, supplier, material) {
@@ -221,10 +184,6 @@ export async function seedPurchase(ctx) {
     const prForGrn2 = ctx.purchaseRequisitions.find((p) => p.prNumber === 'PR-F01-APP-005' && p.status === 'APPROVED');
     if (prForGrn2) {
       await safeSeed('po-grn-secondary', () => seedPoGrnChain(ctx, prForGrn2, ctx.suppliers[1]));
-    }
-    const prForRfq = ctx.purchaseRequisitions.find((p) => p.prNumber === 'PR-F01-APP-004' && p.status === 'APPROVED');
-    if (prForRfq) {
-      await safeSeed('rfq-chain', () => seedRfqChain(ctx, prForRfq));
     }
     if (ctx.buttons && ctx.suppliers[1]) {
       await safeSeed('po-grn-standalone', () => seedStandalonePoGrn(ctx, ctx.suppliers[1], ctx.buttons));

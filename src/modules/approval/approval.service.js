@@ -6,9 +6,12 @@ import { ProductionOrder } from '../production/productionOrder.model.js';
 import { PurchaseRequisition } from '../purchase/purchaseRequisition.model.js';
 import { PurchaseOrder } from '../purchase/purchaseOrder.model.js';
 import { Bom } from '../bom/bom.model.js';
+import { InventoryCode } from '../inventoryCode/inventoryCode.model.js';
 import { NotFoundError, ConflictError, ForbiddenError, ValidationError } from '../../shared/errors/AppError.js';
 import { applyApprovalResult } from '../../shared/services/approvalBridge.js';
 import { APPROVAL_DOCUMENT_TYPES, defaultApproverPermission } from './approval.defaults.js';
+import { notify } from '../notification/notification.service.js';
+import { findUserIdsWithFactoryPermission } from '../user/user.service.js';
 
 function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -35,6 +38,18 @@ function assertCanAct(instance, approverId, permissions, workflow) {
   if (String(instance.submittedBy) === String(approverId) && (instance.currentLevel ?? 1) <= 1) {
     throw new ForbiddenError('Submitter cannot approve their own request at the first level');
   }
+  // Segregation of duties in multi-level chains: whoever approved an earlier level cannot also
+  // decide a later one (otherwise one Factory Admin holding both permissions clears every level).
+  if (!permissions?.includes('*')) {
+    const earlier = (instance.steps || []).find((s) => s.action === 'APPROVED'
+      && String(s.approverId?._id || s.approverId) === String(approverId)
+      && s.level < (instance.currentLevel ?? 1));
+    if (earlier) {
+      throw new ForbiddenError(
+        `You approved level ${earlier.level} of this request — a different approver must decide level ${instance.currentLevel}`,
+      );
+    }
+  }
   // Pure design authors must not act on DESIGN approvals (even via stray delegation)
   if (instance.documentType === 'DESIGN' && !permissions?.includes('*')) {
     const isAuthor = permissions?.includes('design.create') || permissions?.includes('design.update');
@@ -56,9 +71,15 @@ function assertCanAct(instance, approverId, permissions, workflow) {
     : [defaultApproverPermission(instance.documentType)];
 
   if (hasPermission(permissions, required)) return;
-  // Factory admin / delegated general approvers may act at any level, except PR:
-  // only Super Admin or Factory Admin (purchase.authorize) may approve requisitions.
-  if (instance.documentType !== 'PURCHASE_REQUISITION' && hasPermission(permissions, ['approval.approve'])) return;
+  // General approval authority (approval.approve) fills in only where the workflow level
+  // names no roles, and still needs the document's domain approve permission — otherwise a
+  // Quality sub-admin could approve designs the design module itself would deny them.
+  if (
+    instance.documentType !== 'PURCHASE_REQUISITION'
+    && !levelConfig?.approverRoles?.length
+    && hasPermission(permissions, ['approval.approve'])
+    && hasPermission(permissions, [defaultApproverPermission(instance.documentType)])
+  ) return;
 
   throw new ForbiddenError('You are not authorized to act at the current approval level');
 }
@@ -74,17 +95,69 @@ function maxWorkflowLevel(workflow) {
   return Math.max(...levels.map((l) => l.level));
 }
 
-async function resolveDocumentSummary(documentType, documentId) {
+/**
+ * Per document type: model + the fields the summary needs. Used to batch-load documents for a
+ * page of approval rows (one query per type instead of one per row — perf audit).
+ */
+const SUMMARY_LOADERS = {
+  DESIGN: { model: () => Design, select: 'title styleNumber status category revisionComments rejectionComments colorVariants sizeChartData targetPrice' },
+  SAMPLE: { model: () => Sample, select: 'sampleCode status sampleType designId', populate: ['designId', 'designCode title'] },
+  SAMPLE_MATERIAL: {
+    model: () => Sample,
+    select: 'sampleCode status sampleType designId materialRequirements',
+    populate: ['designId materialRequirements.materialId', 'designCode title materialCode name unit'],
+  },
+  PRODUCTION_ORDER: {
+    model: () => ProductionOrder,
+    select: 'orderNumber status priority plannedQuantity deliveryDate skuId',
+    populate: ['skuId', 'skuCode name'],
+  },
+  PURCHASE_REQUISITION: {
+    model: () => PurchaseRequisition,
+    select: 'prNumber status sourceType lines',
+    populate: ['lines.materialId', 'materialCode name'],
+  },
+  PURCHASE_ORDER: { model: () => PurchaseOrder, select: 'poNumber status totalAmount' },
+  BOM: { model: () => Bom, select: 'bomCode status version skuId totalCostPerPiece lines', populate: ['skuId', 'skuCode name'] },
+};
+
+function loadSummaryDocs(documentType, ids) {
+  const l = SUMMARY_LOADERS[documentType];
+  if (!l) return null;
+  const q = l.model().find({ _id: ids.length === 1 ? ids[0] : { $in: ids } }).select(l.select);
+  return l.populate ? q.populate(...l.populate) : q;
+}
+
+/** `preloaded`: the document already fetched by enrichInstances (null = not found). */
+async function resolveDocumentSummary(documentType, documentId, preloaded) {
   const id = documentId;
+  const load = async () => {
+    if (preloaded !== undefined) return preloaded;
+    const q = loadSummaryDocs(documentType, [id]);
+    return q ? (await q)[0] || null : null;
+  };
   switch (documentType) {
     case 'DESIGN': {
-      const doc = await Design.findById(id).select('title styleNumber status category revisionComments rejectionComments');
+      const doc = await load();
       if (!doc) return null;
+      // Category is a catalogue code (e.g. "TW-SH") — show its name ("Shirt").
+      const cat = doc.category
+        ? await InventoryCode.findOne({ type: 'CATEGORY', code: doc.category }).select('name').lean()
+        : null;
+      const { listThumbnailUrls } = await import('../design/design.service.js');
+      const thumbs = await listThumbnailUrls([doc._id]);
       return {
         code: doc.styleNumber || String(id).slice(-8),
         title: doc.title,
         status: doc.status,
-        subtitle: doc.category,
+        subtitle: cat?.name || (doc.category ? doc.category.charAt(0) + doc.category.slice(1).toLowerCase().replace(/_/g, ' ') : undefined),
+        // Enough for the reviewer to decide from the approval drawer.
+        preview: {
+          imageUrl: thumbs.get(String(doc._id)),
+          colors: (doc.colorVariants || []).map((c) => ({ name: c.name || c.code, hexCode: c.hexCode })).filter((c) => c.name),
+          sizes: doc.sizeChartData?.sizeLabels || [],
+          targetPrice: doc.targetPrice,
+        },
         revisionComments: doc.revisionComments || undefined,
         rejectionComments: doc.rejectionComments || undefined,
         route: `/designs/${id}/edit`,
@@ -92,38 +165,60 @@ async function resolveDocumentSummary(documentType, documentId) {
     }
     case 'SAMPLE':
     case 'SAMPLE_MATERIAL': {
-      const doc = await Sample.findById(id).select('sampleCode status sampleType designId');
+      const doc = await load();
       if (!doc) return null;
+      // "Fit sample" for "Printed Resort Shirt", plus the fabric & trims being approved.
+      const st = doc.sampleType || '';
+      const type = !st ? 'Sample' : st.length <= 3 ? st : st.charAt(0) + st.slice(1).toLowerCase().replace(/_/g, ' ');
+      const design = doc.designId && typeof doc.designId === 'object' ? doc.designId : null;
+      const lines = documentType === 'SAMPLE_MATERIAL'
+        ? (doc.materialRequirements || []).map((l) => {
+          const m = l.materialId && typeof l.materialId === 'object' ? l.materialId : null;
+          return `${m?.name || m?.materialCode || 'Material'} ${l.requiredQty ?? ''} ${(l.unit || m?.unit || '').toLowerCase()}`.trim();
+        })
+        : [];
       return {
         code: doc.sampleCode,
-        title: doc.sampleType?.replace(/_/g, ' '),
+        title: `${type} sample${design?.title ? ` · ${design.title}` : ''}`,
+        subtitle: lines.length ? lines.join(', ') : undefined,
         status: doc.status,
         route: `/samples?sampleId=${id}`,
       };
     }
     case 'PRODUCTION_ORDER': {
-      const doc = await ProductionOrder.findById(id).select('orderNumber status priority');
+      const doc = await load();
       if (!doc) return null;
+      const sku = doc.skuId?.skuCode || doc.skuId?.name;
+      const due = doc.deliveryDate ? new Date(doc.deliveryDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : null;
       return {
         code: doc.orderNumber,
-        title: 'Production order',
+        // e.g. "100 pcs of STY-0001…-M" — what the approver is committing the factory to.
+        title: sku ? `${doc.plannedQuantity ?? ''} pcs of ${sku}`.trim() : 'Production order',
         status: doc.status,
-        subtitle: doc.priority,
+        subtitle: [doc.priority && `${doc.priority.charAt(0)}${doc.priority.slice(1).toLowerCase()} priority`, due && `due ${due}`]
+          .filter(Boolean).join(' · ') || undefined,
         route: '/production/orders',
       };
     }
     case 'PURCHASE_REQUISITION': {
-      const doc = await PurchaseRequisition.findById(id).select('prNumber status sourceType');
+      const doc = await load();
       if (!doc) return null;
+      const lines = doc.lines || [];
+      const first = lines[0];
+      const firstLabel = first
+        ? `${first.materialId?.name || first.materialId?.materialCode || 'Material'} · ${first.requiredQty ?? ''} ${String(first.unit || '').toLowerCase()}`.trim()
+        : 'Purchase requisition';
+      const estimate = lines.reduce((sum, l) => sum + (Number(l.requiredQty) || 0) * (Number(l.estimatedUnitCost) || 0), 0);
       return {
         code: doc.prNumber,
-        title: doc.sourceType?.replace(/_/g, ' ') || 'Purchase requisition',
+        title: lines.length > 1 ? `${firstLabel} +${lines.length - 1} more` : firstLabel,
         status: doc.status,
+        subtitle: estimate > 0 ? `≈ ₹${Math.round(estimate).toLocaleString('en-IN')}` : undefined,
         route: '/purchase',
       };
     }
     case 'PURCHASE_ORDER': {
-      const doc = await PurchaseOrder.findById(id).select('poNumber status totalAmount');
+      const doc = await load();
       if (!doc) return null;
       return {
         code: doc.poNumber,
@@ -134,11 +229,18 @@ async function resolveDocumentSummary(documentType, documentId) {
       };
     }
     case 'BOM': {
-      const doc = await Bom.findById(id).select('bomCode status version');
+      const doc = await load();
       if (!doc) return null;
+      // What is being approved: the product, the version and the standard cost it freezes.
+      const sku = doc.skuId && typeof doc.skuId === 'object' ? doc.skuId : null;
+      const cost = Number(doc.totalCostPerPiece) || 0;
       return {
         code: doc.bomCode,
-        title: `BOM v${doc.version}`,
+        title: `${sku?.name || sku?.skuCode || 'BOM'} · v${doc.version}`,
+        subtitle: [
+          `${(doc.lines || []).length} material${(doc.lines || []).length === 1 ? '' : 's'}`,
+          cost > 0 ? `₹${cost.toLocaleString('en-IN', { maximumFractionDigits: 2 })} per piece` : null,
+        ].filter(Boolean).join(' · '),
         status: doc.status,
         route: '/products/boms',
       };
@@ -150,10 +252,93 @@ async function resolveDocumentSummary(documentType, documentId) {
 
 async function enrichInstances(instances) {
   const rows = instances.map((i) => (i.toObject ? i.toObject() : i));
+  // Batch-load the referenced documents: one query per document type, not one per row.
+  const idsByType = new Map();
+  for (const row of rows) {
+    if (!SUMMARY_LOADERS[row.documentType] || !row.documentId) continue;
+    if (!idsByType.has(row.documentType)) idsByType.set(row.documentType, []);
+    idsByType.get(row.documentType).push(row.documentId);
+  }
+  const docsById = new Map();
+  await Promise.all([...idsByType].map(async ([type, ids]) => {
+    const docs = await loadSummaryDocs(type, ids);
+    for (const d of docs) docsById.set(`${type}:${d._id}`, d);
+  }));
   await Promise.all(rows.map(async (row) => {
-    row.documentSummary = await resolveDocumentSummary(row.documentType, row.documentId);
+    const preloaded = SUMMARY_LOADERS[row.documentType]
+      ? docsById.get(`${row.documentType}:${row.documentId}`) || null
+      : undefined;
+    row.documentSummary = await resolveDocumentSummary(row.documentType, row.documentId, preloaded);
   }));
   return rows;
+}
+
+
+/**
+ * Document types whose own module does not notify approvers / submitters — the engine
+ * does it for them (DESIGN, SAMPLE* and BOM modules send their own domain notifications).
+ */
+const ENGINE_NOTIFIED_TYPES = new Set(['PURCHASE_REQUISITION', 'PRODUCTION_ORDER']);
+
+const DOCUMENT_LABELS = {
+  PURCHASE_REQUISITION: 'Purchase requisition',
+  PRODUCTION_ORDER: 'Production order',
+};
+
+async function notifyApproversOfPending(instance, workflow) {
+  if (!ENGINE_NOTIFIED_TYPES.has(instance.documentType)) return;
+  try {
+    const level = workflow?.levels?.find((l) => l.level === instance.currentLevel);
+    const roles = level?.approverRoles?.length
+      ? level.approverRoles
+      : [defaultApproverPermission(instance.documentType)];
+    const ids = await findUserIdsWithFactoryPermission(instance.factoryId, roles, {
+      excludeUserId: instance.submittedBy,
+    });
+    const label = DOCUMENT_LABELS[instance.documentType] || instance.documentType;
+    await Promise.all(ids.map((userId) => notify({
+      organizationId: instance.organizationId,
+      factoryId: instance.factoryId,
+      userId,
+      eventType: 'approval.pending',
+      title: `${label} awaiting approval`,
+      message: `A ${label.toLowerCase()} is waiting for your approval (level ${instance.currentLevel}).`,
+      referenceType: 'APPROVAL',
+      referenceId: instance._id,
+    })));
+  } catch (err) {
+    console.warn('[APPROVAL] pending notification failed:', err.message);
+  }
+}
+
+const OUTCOME_EVENTS = {
+  APPROVED: ['approval.approved', 'approved'],
+  REJECTED: ['approval.rejected', 'rejected'],
+  CHANGES_REQUESTED: ['approval.changes_requested', 'sent back for changes'],
+};
+
+export async function notifySubmitterOfOutcome(instance) {
+  if (!instance || !ENGINE_NOTIFIED_TYPES.has(instance.documentType)) return;
+  // The purchase module already sends pr.approved / pr.rejected / changes notices to the requester.
+  if (instance.documentType === 'PURCHASE_REQUISITION') return;
+  const outcome = OUTCOME_EVENTS[instance.status];
+  if (!outcome) return;
+  try {
+    const label = DOCUMENT_LABELS[instance.documentType] || instance.documentType;
+    const comments = instance.steps?.at(-1)?.comments;
+    await notify({
+      organizationId: instance.organizationId,
+      factoryId: instance.factoryId,
+      userId: instance.submittedBy,
+      eventType: outcome[0],
+      title: `${label} ${outcome[1]}`,
+      message: comments ? `${label} ${outcome[1]}: ${comments}` : `Your ${label.toLowerCase()} was ${outcome[1]}.`,
+      referenceType: instance.documentType,
+      referenceId: instance.documentId,
+    });
+  } catch (err) {
+    console.warn('[APPROVAL] outcome notification failed:', err.message);
+  }
 }
 
 export async function submitForApproval({
@@ -170,7 +355,7 @@ export async function submitForApproval({
     ? await ApprovalWorkflow.findById(workflowId)
     : await ApprovalWorkflow.findOne({ organizationId, factoryId, documentType, isActive: true });
 
-  return ApprovalInstance.create({
+  const instance = await ApprovalInstance.create({
     organizationId,
     factoryId,
     workflowId: workflow?._id,
@@ -181,6 +366,58 @@ export async function submitForApproval({
     currentLevel: 1,
     steps: [],
   });
+  await notifyApproversOfPending(instance, workflow);
+  return instance;
+}
+
+const DOCUMENT_MODELS = {
+  DESIGN: Design,
+  SAMPLE: Sample,
+  SAMPLE_MATERIAL: Sample,
+  PRODUCTION_ORDER: ProductionOrder,
+  PURCHASE_REQUISITION: PurchaseRequisition,
+  PURCHASE_ORDER: PurchaseOrder,
+  BOM: Bom,
+};
+
+/** API entry point: the document and workflow must belong to the caller's factory. */
+export async function submitDocumentForApproval({
+  organizationId, factoryId, documentType, documentId, submittedBy, workflowId,
+}) {
+  const Model = DOCUMENT_MODELS[documentType];
+  if (!Model) throw new ValidationError(`Unsupported document type: ${documentType}`);
+  const doc = await Model.exists({ _id: documentId, factoryId, isDeleted: { $ne: true } });
+  if (!doc) throw new NotFoundError('Document not found in this factory');
+  if (workflowId) {
+    const wf = await ApprovalWorkflow.exists({ _id: workflowId, factoryId, documentType });
+    if (!wf) throw new NotFoundError('Workflow not found in this factory');
+  }
+  return submitForApproval({ organizationId, factoryId, documentType, documentId, submittedBy, workflowId });
+}
+
+/**
+ * Atomically move a PENDING instance to its final state so two concurrent actions cannot both
+ * succeed, then apply the document change; if that fails, put the instance back to PENDING.
+ */
+async function finalizeInstance(instance, step, finalStatus, approverId) {
+  const completedAt = new Date();
+  const claimed = await ApprovalInstance.findOneAndUpdate(
+    { _id: instance._id, status: 'PENDING', currentLevel: instance.currentLevel },
+    { $set: { status: finalStatus, completedAt }, $push: { steps: step } },
+    { new: true },
+  );
+  if (!claimed) throw new ConflictError('Approval was already actioned');
+  try {
+    await applyApprovalResult(claimed, approverId);
+  } catch (err) {
+    await ApprovalInstance.updateOne(
+      { _id: claimed._id, status: finalStatus },
+      { $set: { status: 'PENDING', completedAt: null }, $pull: { steps: { _id: claimed.steps[claimed.steps.length - 1]?._id } } },
+    );
+    throw err;
+  }
+  await notifySubmitterOfOutcome(claimed);
+  return claimed;
 }
 
 export async function approveInstance(instanceId, approverId, comments, { factoryId, permissions } = {}) {
@@ -190,26 +427,27 @@ export async function approveInstance(instanceId, approverId, comments, { factor
   const workflow = await loadWorkflow(instance);
   assertCanAct(instance, approverId, permissions, workflow);
 
-  instance.steps.push({
+  const step = {
     level: instance.currentLevel,
     approverId,
     action: 'APPROVED',
     comments: comments || '',
     actionAt: new Date(),
-  });
+  };
 
   const maxLevel = maxWorkflowLevel(workflow);
   if (workflow?.levels?.length && instance.currentLevel < maxLevel) {
-    instance.currentLevel += 1;
-    await instance.save();
-    return instance;
+    const advanced = await ApprovalInstance.findOneAndUpdate(
+      { _id: instance._id, status: 'PENDING', currentLevel: instance.currentLevel },
+      { $inc: { currentLevel: 1 }, $push: { steps: step } },
+      { new: true },
+    );
+    if (!advanced) throw new ConflictError('Approval was already actioned');
+    await notifyApproversOfPending(advanced, workflow);
+    return advanced;
   }
 
-  instance.status = 'APPROVED';
-  instance.completedAt = new Date();
-  await instance.save();
-  await applyApprovalResult(instance, approverId);
-  return instance;
+  return finalizeInstance(instance, step, 'APPROVED', approverId);
 }
 
 export async function rejectInstance(instanceId, approverId, comments, { factoryId, permissions } = {}) {
@@ -220,18 +458,13 @@ export async function rejectInstance(instanceId, approverId, comments, { factory
   const workflow = await loadWorkflow(instance);
   assertCanAct(instance, approverId, permissions, workflow);
 
-  instance.steps.push({
+  return finalizeInstance(instance, {
     level: instance.currentLevel,
     approverId,
     action: 'REJECTED',
     comments: comments.trim(),
     actionAt: new Date(),
-  });
-  instance.status = 'REJECTED';
-  instance.completedAt = new Date();
-  await instance.save();
-  await applyApprovalResult(instance, approverId);
-  return instance;
+  }, 'REJECTED', approverId);
 }
 
 export async function requestChangesInstance(instanceId, approverId, comments, { factoryId, permissions } = {}) {
@@ -242,18 +475,13 @@ export async function requestChangesInstance(instanceId, approverId, comments, {
   const workflow = await loadWorkflow(instance);
   assertCanAct(instance, approverId, permissions, workflow);
 
-  instance.steps.push({
+  return finalizeInstance(instance, {
     level: instance.currentLevel,
     approverId,
     action: 'CHANGES_REQUESTED',
     comments: comments.trim(),
     actionAt: new Date(),
-  });
-  instance.status = 'CHANGES_REQUESTED';
-  instance.completedAt = new Date();
-  await instance.save();
-  await applyApprovalResult(instance, approverId);
-  return instance;
+  }, 'CHANGES_REQUESTED', approverId);
 }
 
 export async function listApprovals(factoryId, {

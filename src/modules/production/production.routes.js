@@ -12,6 +12,7 @@ router.get('/production/catalog', rbac('production.read'), ctrl.catalog);
 router.get('/production/stats', rbac('production.read'), ctrl.stats);
 router.get('/production/capacity', rbac('production.read'), ctrl.capacity);
 router.get('/production/stages', rbac('production.read'), ctrl.listStages);
+router.get('/production/workers', rbac('batch.read'), ctrl.listWorkers);
 
 router.post('/production-orders', rbac('production.create'), validate(ctrl.createOrderSchema), ctrl.createOrder);
 router.get('/production-orders', rbac('production.read'), ctrl.listOrders);

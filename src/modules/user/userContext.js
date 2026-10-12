@@ -9,7 +9,10 @@ export function resolveOrganizationId(req, { required = true, fromBody = false }
     const orgId =
       (fromBody ? req.body?.organizationId : null) ||
       req.query.organizationId ||
-      req.body?.organizationId;
+      req.body?.organizationId ||
+      req.user.organizationId ||
+      // Set by tenantMiddleware from the selected factory (X-Factory-Id).
+      req.organizationId;
     if (!orgId && required) {
       throw new ValidationError('organizationId is required for super admin operations');
     }

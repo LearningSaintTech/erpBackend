@@ -58,15 +58,21 @@ async function addMembersToRoom(room, memberIds, adminUserId, { adminUserIds = [
   for (const uid of uniqueIds) {
     await assertUserInFactory(uid, room.factoryId);
     const isAdmin = adminUserIds.map(String).includes(uid) || uid === adminUserId.toString();
+    // Re-adding an existing member must not demote an ADMIN or reset joinedAt.
     await ChatRoomMember.findOneAndUpdate(
       { roomId: room._id, userId: uid },
       {
-        roomId: room._id,
-        userId: uid,
-        factoryId: room.factoryId,
-        organizationId: room.organizationId,
-        role: isAdmin ? 'ADMIN' : 'MEMBER',
-        joinedAt: new Date(),
+        $set: {
+          factoryId: room.factoryId,
+          organizationId: room.organizationId,
+          ...(isAdmin ? { role: 'ADMIN' } : {}),
+        },
+        $setOnInsert: {
+          roomId: room._id,
+          userId: uid,
+          joinedAt: new Date(),
+          ...(isAdmin ? {} : { role: 'MEMBER' }),
+        },
       },
       { upsert: true, new: true },
     );
@@ -143,9 +149,9 @@ async function populateRoom(roomId, userId, factoryId) {
       roomId,
       isDeleted: false,
       createdAt: { $gt: myMember.lastReadAt },
-      senderId: { $ne: userId },
+      senderId: { $ne: userId }, messageType: { $ne: 'SYSTEM' },
     })
-    : await ChatMessage.countDocuments({ roomId, isDeleted: false, senderId: { $ne: userId } });
+    : await ChatMessage.countDocuments({ roomId, isDeleted: false, senderId: { $ne: userId }, messageType: { $ne: 'SYSTEM' } });
 
   return {
     ...room.toObject(),
@@ -332,12 +338,12 @@ export async function getChatStats(userId, factoryId) {
         roomId: m.roomId,
         isDeleted: false,
         createdAt: { $gt: m.lastReadAt },
-        senderId: { $ne: userId },
+        senderId: { $ne: userId }, messageType: { $ne: 'SYSTEM' },
       })
       : await ChatMessage.countDocuments({
         roomId: m.roomId,
         isDeleted: false,
-        senderId: { $ne: userId },
+        senderId: { $ne: userId }, messageType: { $ne: 'SYSTEM' },
       });
     unreadTotal += count;
   }

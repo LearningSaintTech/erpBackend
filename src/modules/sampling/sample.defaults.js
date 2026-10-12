@@ -64,9 +64,9 @@ export const SAMPLE_WORKFLOW_PHASES = [
 export const SAMPLE_STATUS_LABELS = {
   CREATED: 'Tech pack received',
   REVISION_REQUESTED: 'Revision requested',
-  MATERIAL_REQUEST_PENDING: 'Trims approval pending',
-  MATERIAL_REQUEST_APPROVED: 'Trims approved',
-  MATERIAL_RESERVED: 'Fabric reserved',
+  MATERIAL_REQUEST_PENDING: 'Materials pending approval',
+  MATERIAL_REQUEST_APPROVED: 'Materials approved',
+  MATERIAL_RESERVED: 'Materials reserved',
   CUTTING: 'Cutting in progress',
   IN_PROGRESS: 'Sample stitching',
   QC_PENDING: 'Quality inspection',

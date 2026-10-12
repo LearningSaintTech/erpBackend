@@ -11,6 +11,17 @@ export function emitToUser(userId, event, payload) {
   ioRef.to(`user:${userId}`).emit(event, payload);
 }
 
+export function emitToRoom(roomId, event, payload) {
+  if (!ioRef || !roomId) return;
+  ioRef.to(`room:${roomId}`).emit(event, payload);
+}
+
+/** Drop every socket of a user out of a chat room (e.g. after removal from the room). */
+export function removeUserFromRoom(userId, roomId) {
+  if (!ioRef || !userId || !roomId) return;
+  ioRef.in(`user:${userId}`).socketsLeave(`room:${roomId}`);
+}
+
 export function emitToFactory(factoryId, event, payload) {
   if (!ioRef || !factoryId) return;
   ioRef.to(`factory:${factoryId}`).emit(event, payload);

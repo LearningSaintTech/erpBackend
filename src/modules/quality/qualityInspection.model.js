@@ -34,8 +34,29 @@ const qualityInspectionSchema = new mongoose.Schema({
   storageBinId: { type: mongoose.Schema.Types.ObjectId, ref: 'StorageBin' },
   autoDispatchReady: { type: Boolean, default: false },
   defects: [defectSchema],
+  /** Incoming QC: per GRN line decision (accepted + rejected <= received). */
+  lineResults: [{
+    _id: false,
+    grnLineId: mongoose.Schema.Types.ObjectId,
+    materialId: { type: mongoose.Schema.Types.ObjectId, ref: 'Material' },
+    unit: String,
+    receivedQty: Number,
+    acceptedQty: Number,
+    rejectedQty: Number,
+  }],
+  /**
+   * Incoming QC idempotency: accepted qty already receipted into stock per GRN line. Written right
+   * after each receipt, so a retry after a mid-way failure skips (or tops up) posted lines.
+   */
+  postedLines: [{
+    _id: false,
+    grnLineId: mongoose.Schema.Types.ObjectId,
+    postedQty: Number,
+  }],
   inspectedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   completedAt: Date,
+  /** Set while completeInspection applies side effects — atomic claim against double completes. */
+  completingAt: Date,
   ...auditFields,
 });
 

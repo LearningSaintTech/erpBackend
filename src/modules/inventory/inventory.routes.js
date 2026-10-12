@@ -16,6 +16,7 @@ router.post('/inventory/receipt', rbac('inventory.update'), validate(ctrl.receip
 router.post('/inventory/reserve', rbac('inventory.update'), validate(ctrl.reserveSchema), ctrl.reserve);
 router.post('/inventory/issue', rbac('inventory.update'), validate(ctrl.issueSchema), ctrl.issue);
 router.post('/inventory/release-reservations', rbac('inventory.update'), validate(ctrl.releaseSchema), ctrl.releaseReservations);
+router.get('/inventory/reservations/manual', rbac('inventory.read'), ctrl.manualReservations);
 router.get('/inventory/availability', rbac('inventory.read'), ctrl.availability);
 
 router.post('/materials', rbac('inventory.create'), validate(ctrl.createMaterialSchema), ctrl.createMaterial);

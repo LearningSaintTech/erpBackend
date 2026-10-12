@@ -27,6 +27,16 @@ const bomSchema = new mongoose.Schema({
   totalCostPerPiece: { type: Number, default: 0 },
   approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   approvedAt: Date,
+  submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  submittedAt: Date,
+  rejectionComments: String,
+  revisionComments: String,
+  /** Pattern tech pack this BOM was built from, and its last edit at that moment. */
+  patternDevelopmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'PatternDevelopment' },
+  patternUpdatedAt: Date,
+  /** Set when the source pattern is reopened after this BOM was frozen. */
+  needsReview: { type: Boolean, default: false },
+  reviewReason: String,
   ...auditFields,
 });
 
@@ -43,5 +53,7 @@ bomSchema.pre('save', function (next) {
 
 bomSchema.index({ factoryId: 1, bomCode: 1 }, { unique: true });
 bomSchema.index({ skuId: 1, status: 1 });
+// Perf (large-dataset audit): list/stats queries filter by factory + soft-delete + status and sort by date.
+bomSchema.index({ factoryId: 1, isDeleted: 1, status: 1, createdAt: -1 });
 
 export const Bom = mongoose.model('Bom', bomSchema);

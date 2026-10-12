@@ -15,9 +15,11 @@ router.patch('/machines/:id', rbac('production.configure'), validate(ctrl.update
 
 router.post('/production-lines', rbac('production.configure'), validate(ctrl.createLineSchema), ctrl.createLine);
 router.get('/production-lines', rbac('production.read'), ctrl.listLines);
+router.patch('/production-lines/:id', rbac('production.configure'), validate(ctrl.updateLineSchema), ctrl.updateLine);
 
 router.post('/shifts', rbac('production.configure'), validate(ctrl.createShiftSchema), ctrl.createShift);
 router.get('/shifts', rbac('production.read'), ctrl.listShifts);
+router.patch('/shifts/:id', rbac('production.configure'), validate(ctrl.updateShiftSchema), ctrl.updateShift);
 
 router.post('/batches/:id/assign-machine', rbac('batch.update'), ctrl.assignMachineToBatch);
 

@@ -37,7 +37,7 @@ async function seedAppSettings(ctx) {
       factoryId: category === 'INTEGRATIONS' ? null : factory._id,
       category,
       settings: category === 'FEATURE_FLAGS'
-        ? { rfqModule: true, wasteTracking: true, advancedQuality: true }
+        ? { wasteTracking: true, advancedQuality: true }
         : category === 'GENERAL'
           ? { timezone: 'Asia/Kolkata', currency: 'INR' }
           : {},

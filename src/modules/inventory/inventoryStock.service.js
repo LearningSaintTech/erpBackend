@@ -28,26 +28,34 @@ export async function aggregateRmTotals(factoryId, materialId) {
  */
 export async function getOrCreateRmBalance(factoryId, organizationId, materialId, unit, storageBinId = null) {
   const binKey = storageBinId || null;
-  let balance = await InventoryBalance.findOne({
+  const filter = {
     factoryId,
     materialId,
     inventoryType: 'RAW_MATERIAL',
     isDeleted: false,
     storageBinId: binKey,
-  });
+  };
+  let balance = await InventoryBalance.findOne(filter);
   if (!balance) {
-    balance = await InventoryBalance.create({
-      organizationId,
-      factoryId,
-      inventoryType: 'RAW_MATERIAL',
-      materialId,
-      storageBinId: binKey,
-      locationId: binKey,
-      unit,
-      onHand: 0,
-      reserved: 0,
-      available: 0,
-    });
+    try {
+      balance = await InventoryBalance.create({
+        organizationId,
+        factoryId,
+        inventoryType: 'RAW_MATERIAL',
+        materialId,
+        storageBinId: binKey,
+        locationId: binKey,
+        unit,
+        onHand: 0,
+        reserved: 0,
+        available: 0,
+      });
+    } catch (err) {
+      // Concurrent request created the same row (unique partial index) — use theirs
+      if (err?.code !== 11000) throw err;
+      balance = await InventoryBalance.findOne(filter);
+      if (!balance) throw err;
+    }
   }
   return balance;
 }

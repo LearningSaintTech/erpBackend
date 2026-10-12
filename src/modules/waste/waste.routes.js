@@ -10,6 +10,7 @@ router.use(authMiddleware, tenantMiddleware, requireFactory);
 
 router.get('/waste/catalog', rbac('waste.read'), ctrl.catalog);
 router.get('/waste/stats', rbac('waste.read'), ctrl.stats);
+router.get('/waste/form-options', rbac('waste.create'), ctrl.formOptions);
 router.get('/waste-records/export', rbac('waste.export'), ctrl.exportCsv);
 router.get('/waste-records/summary', rbac('waste.read'), ctrl.summary);
 router.post('/waste-records', rbac('waste.create'), validate(ctrl.createSchema), ctrl.create);

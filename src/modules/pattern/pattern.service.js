@@ -6,8 +6,12 @@ import { UserRoleAssignment } from '../user/userRoleAssignment.model.js';
 import { Role } from '../user/role.model.js';
 import { Factory } from '../organization/factory.model.js';
 import { Material } from '../inventory/material.model.js';
+import { Sample } from '../sampling/sample.model.js';
+import { Sku } from '../sku/sku.model.js';
+import { Bom } from '../bom/bom.model.js';
+import mongoose from 'mongoose';
 import { NotFoundError, ConflictError, ValidationError, ForbiddenError } from '../../shared/errors/AppError.js';
-import { applySoftDeleteFilter } from '../../shared/utils/schema.js';
+import { applySoftDeleteFilter, queryString } from '../../shared/utils/schema.js';
 import { notify } from '../notification/notification.service.js';
 import { nextDocumentNumber } from '../../shared/utils/numbering.js';
 import { uploadFile } from '../../shared/services/s3.service.js';
@@ -131,7 +135,8 @@ export async function getDesignVerificationEvidence(designId, factoryId) {
     techPack.sizeChartData?.sizeLabels?.length && techPack.sizeChartData?.rows?.length
   );
   const hasConsumption = !!(techPack.fabricConsumption?.length);
-  const hasBom = !!(techPack.bomLines?.length);
+  // Sample BOM = fabric lines + trim lines; fabric is no longer mirrored into bomLines.
+  const hasBom = !!(techPack.bomLines?.length || techPack.fabricConsumption?.length);
 
   return {
     designId: design._id,
@@ -220,13 +225,20 @@ export async function getTechPackForPattern(designId, factoryId) {
   };
 }
 
+/** Meters per garment including cutting wastage (what the marker summary shows). */
 export function calculateConsumptionFromMarker(marker, wastagePercent = 0) {
+  const base = calculateBaseConsumptionFromMarker(marker);
+  if (base == null) return null;
+  const wastage = Number(wastagePercent) || 0;
+  return Math.round(base * (1 + wastage / 100) * 1000) / 1000;
+}
+
+/** Pre-wastage meters per garment (marker length / pieces) — what fabric lines store. */
+export function calculateBaseConsumptionFromMarker(marker) {
   const length = Number(marker?.length);
   const pieces = Number(marker?.piecesPerMarker);
   if (!length || !pieces || pieces <= 0) return null;
-  const base = length / pieces;
-  const wastage = Number(wastagePercent) || 0;
-  return Math.round(base * (1 + wastage / 100) * 1000) / 1000;
+  return Math.round((length / pieces) * 1000) / 1000;
 }
 
 function assertAssignedPatternMaster(pd, userId, { isSuperAdmin = false } = {}) {
@@ -274,8 +286,27 @@ export async function uploadPatternMarker(
   return populatePattern(pd);
 }
 
-async function assertVerificationEvidence(designId, factoryId, data) {
-  const evidence = await getDesignVerificationEvidence(designId, factoryId);
+/**
+ * Evidence from the in-memory pattern record (request edits already applied), falling back
+ * to the legacy design tech pack exactly like getPatternTechPack does.
+ */
+async function evidenceFromPatternDoc(pd, designId, factoryId) {
+  let src = pd;
+  if (!(pd.sizeChartData?.rows?.length || pd.fabricConsumption?.length || pd.bomLines?.length)) {
+    src = await Design.findOne(applySoftDeleteFilter({ _id: designId, factoryId }))
+      .select('sizeChartData fabricConsumption bomLines') || {};
+  }
+  return {
+    hasSizeChart: !!(src.sizeChartData?.sizeLabels?.length && src.sizeChartData?.rows?.length),
+    hasConsumption: !!(src.fabricConsumption?.length),
+    hasBom: !!(src.bomLines?.length || src.fabricConsumption?.length),
+  };
+}
+
+async function assertVerificationEvidence(designId, factoryId, data, pd) {
+  const evidence = pd
+    ? await evidenceFromPatternDoc(pd, designId, factoryId)
+    : await getDesignVerificationEvidence(designId, factoryId);
   if (data.sizeChartVerified && !evidence.hasSizeChart) {
     throw new ValidationError('No graded size chart yet — fill the Size chart step first');
   }
@@ -357,10 +388,14 @@ function recomputePatternCosting(pd) {
   pd.costing = costing;
 }
 
-async function assertAssignee(patternMasterId) {
+async function assertAssignee(patternMasterId, { factoryId, organizationId } = {}) {
   const user = await User.findById(patternMasterId).select('firstName lastName email status');
   if (!user) throw new NotFoundError('Pattern master user not found');
   if (user.status !== 'ACTIVE') throw new ConflictError('Pattern master must be an active user');
+  const masters = await listPatternMasters({ factoryId, organizationId });
+  if (!masters.some((u) => String(u._id) === String(patternMasterId))) {
+    throw new ValidationError('Selected user is not a pattern master for this factory');
+  }
   return user;
 }
 
@@ -384,7 +419,8 @@ export async function listPatternMasters({ factoryId, organizationId }) {
   const users = [];
   for (const a of assignments) {
     const u = a.userId;
-    if (!u || typeof u === 'string' || u.status === 'INACTIVE') continue;
+    // Only ACTIVE users — locked / suspended / inactive accounts cannot pick up pattern work.
+    if (!u || typeof u === 'string' || u.status !== 'ACTIVE') continue;
     const id = String(u._id);
     if (seen.has(id)) continue;
     seen.add(id);
@@ -393,26 +429,32 @@ export async function listPatternMasters({ factoryId, organizationId }) {
   return users;
 }
 
-export async function assignPatternMaster({ designId, factoryId, patternMasterId }, userId) {
+export async function assignPatternMaster({
+  designId, factoryId, patternMasterId, reassign = false,
+}, userId) {
   const design = await Design.findOne(applySoftDeleteFilter({ _id: designId, factoryId }));
   if (!design) throw new NotFoundError('Design not found');
   if (design.status !== 'RELEASED') {
     throw new ConflictError('Design must be RELEASED before pattern assignment');
   }
-  await assertAssignee(patternMasterId);
+  await assertAssignee(patternMasterId, { factoryId, organizationId: design.organizationId });
 
   let pd = await PatternDevelopment.findOne({ designId, factoryId, isDeleted: false });
-  if (pd?.status === 'COMPLETED') {
-    throw new ConflictError('Pattern development is complete — reopen before reassigning');
-  }
 
   if (pd) {
+    const currentId = pd.patternMasterId ? String(pd.patternMasterId) : '';
+    if (currentId === String(patternMasterId)) {
+      return populatePattern(pd);
+    }
+    if (currentId && reassign !== true) {
+      throw new ConflictError(
+        `Pattern development is already ${pd.status.replace(/_/g, ' ').toLowerCase()} with another pattern master — `
+        + 'confirm reassignment (reassign: true) to hand it over',
+      );
+    }
+    // Hand-over keeps the work: status, tech pack, marker, grading and sign-offs stay as they are.
     pd.patternMasterId = patternMasterId;
-    pd.status = 'ASSIGNED';
     pd.assignedAt = new Date();
-    pd.sizeChartVerified = false;
-    pd.consumptionVerified = false;
-    pd.sampleBomVerified = false;
     pd.updatedBy = userId;
     await pd.save();
   } else {
@@ -462,7 +504,11 @@ export async function listPatternDevelopments(factoryId, {
   status, patternMasterId, search, page, limit, skip,
 }) {
   const filter = applySoftDeleteFilter({ factoryId });
-  if (status) filter.status = status;
+  status = queryString(status);
+  patternMasterId = queryString(patternMasterId);
+  search = queryString(search);
+  // Comma-separated statuses ("A,B") so role queues can page on the server.
+  if (status) filter.status = status.includes(',') ? { $in: status.split(',').map((v) => v.trim()).filter(Boolean) } : status;
   if (patternMasterId) filter.patternMasterId = patternMasterId;
 
   if (search?.trim()) {
@@ -498,6 +544,51 @@ export async function getPatternStats(factoryId) {
   return { total, assigned, inProgress, completed };
 }
 
+const plainLine = (l) => l?.toObject?.() ?? { ...l };
+
+/**
+ * Marker save drives the main fabric line: consumption = marker length / pieces (pre-wastage),
+ * wastage stays in wastagePercent so sample/BOM apply it exactly once. A legacy bomLines mirror
+ * of that fabric is dropped, and sign-offs on consumption / sample BOM reset when it changes.
+ */
+function applyMarkerConsumption(pd, data) {
+  const marker = pd.marker?.toObject?.() ?? pd.marker;
+  const base = calculateBaseConsumptionFromMarker(marker);
+  if (base == null) return;
+  const wastage = Number(
+    data.calculatedConsumption?.wastagePercent ?? pd.calculatedConsumption?.wastagePercent,
+  ) || 0;
+
+  pd.calculatedConsumption = {
+    ...(pd.calculatedConsumption?.toObject?.() ?? pd.calculatedConsumption ?? {}),
+    ...data.calculatedConsumption,
+    wastagePercent: wastage,
+    metersPerGarment: calculateConsumptionFromMarker(marker, wastage),
+    derivedFromMarker: true,
+  };
+
+  const fabrics = (pd.fabricConsumption || []).map(plainLine);
+  if (!fabrics.length) return;
+  const main = fabrics[0];
+  const changed = Number(main.consumption || 0) !== base || Number(main.wastagePercent || 0) !== wastage;
+  main.consumption = base;
+  main.wastagePercent = wastage;
+  if (!main.unit || main.unit === 'm') main.unit = 'M';
+  pd.fabricConsumption = fabrics;
+
+  if (main.materialId) {
+    const lines = (pd.bomLines || []).map(plainLine);
+    const kept = lines.filter((l) => String(l.materialId || '') !== String(main.materialId));
+    if (kept.length !== lines.length) pd.bomLines = kept;
+  }
+  recomputePatternCosting(pd);
+
+  if (changed) {
+    if (data.consumptionVerified === undefined) pd.consumptionVerified = false;
+    if (data.sampleBomVerified === undefined) pd.sampleBomVerified = false;
+  }
+}
+
 export async function updatePatternDevelopment(designId, factoryId, data, userId, { isSuperAdmin = false } = {}) {
   const pd = await PatternDevelopment.findOne(applySoftDeleteFilter({ designId, factoryId }));
   if (!pd) throw new NotFoundError('Pattern development record not found');
@@ -508,9 +599,6 @@ export async function updatePatternDevelopment(designId, factoryId, data, userId
   if (data.sizeChartVerified !== undefined) verificationPatch.sizeChartVerified = data.sizeChartVerified;
   if (data.consumptionVerified !== undefined) verificationPatch.consumptionVerified = data.consumptionVerified;
   if (data.sampleBomVerified !== undefined) verificationPatch.sampleBomVerified = data.sampleBomVerified;
-  if (Object.keys(verificationPatch).length) {
-    await assertVerificationEvidence(designId, factoryId, verificationPatch);
-  }
 
   const allowed = [
     'marker', 'patternNotes', 'grading', 'calculatedConsumption',
@@ -518,8 +606,15 @@ export async function updatePatternDevelopment(designId, factoryId, data, userId
     'fabricSpecs', 'qualityNotes', 'manufacturingNotes', 'costing', 'productionInfo',
     'sizeChartVerified', 'consumptionVerified', 'sampleBomVerified',
   ];
+  const previousMarker = pd.marker?.toObject?.() ?? pd.marker ?? {};
   for (const key of allowed) {
-    if (data[key] !== undefined) pd[key] = data[key];
+    if (data[key] === undefined) continue;
+    if (key === 'marker') {
+      // Dimension saves only send numbers — keep the uploaded file (fileName / url / mimeType).
+      pd.marker = { ...previousMarker, ...data.marker };
+      continue;
+    }
+    pd[key] = data[key];
   }
 
   if (data.costing !== undefined || data.accessories !== undefined || data.fabricConsumption !== undefined) {
@@ -527,25 +622,11 @@ export async function updatePatternDevelopment(designId, factoryId, data, userId
   }
 
   if (data.marker && data.calculatedConsumption?.derivedFromMarker) {
-    const meters = calculateConsumptionFromMarker(
-      { ...pd.marker?.toObject?.(), ...data.marker },
-      data.calculatedConsumption?.wastagePercent ?? pd.calculatedConsumption?.wastagePercent,
-    );
-    if (meters != null) {
-      pd.calculatedConsumption = {
-        ...(pd.calculatedConsumption?.toObject?.() ?? pd.calculatedConsumption ?? {}),
-        ...data.calculatedConsumption,
-        metersPerGarment: meters,
-        derivedFromMarker: true,
-      };
-      const fabrics = (pd.fabricConsumption || []).map((l) => l.toObject?.() ?? l);
-      if (fabrics.length) {
-        fabrics[0].consumption = meters;
-        if (!fabrics[0].unit) fabrics[0].unit = 'm';
-        pd.fabricConsumption = fabrics;
-        recomputePatternCosting(pd);
-      }
-    }
+    applyMarkerConsumption(pd, data);
+  }
+  // Check evidence against this request's tech-pack edits, not the previously saved state.
+  if (Object.keys(verificationPatch).length) {
+    await assertVerificationEvidence(designId, factoryId, verificationPatch, pd);
   }
   if (pd.status === 'ASSIGNED') pd.status = 'IN_PROGRESS';
   pd.updatedBy = userId;
@@ -567,6 +648,16 @@ export async function completePatternDevelopment(designId, factoryId, userId, { 
       !evidence.hasBom && 'BOM',
     ].filter(Boolean);
     throw new ConflictError(`Pattern tech pack incomplete — fill ${missing.join(', ')} before completion`);
+  }
+  // A costed trim with no inventory material never reaches the sample RM request or the BOM.
+  const unlinkedTrim = (pd.accessories || []).find(
+    (a) => !a.materialId && ((a.unitCost || 0) > 0 || (a.consumption || 0) > 0),
+  ) || (pd.bomLines || []).find((l) => !l.materialId && (l.quantity || 0) > 0);
+  if (unlinkedTrim) {
+    const name = unlinkedTrim.accessoryType || unlinkedTrim.materialName || unlinkedTrim.category || 'A trim';
+    throw new ConflictError(
+      `${name} has a quantity/cost but no inventory material — pick the store material for every trim before completion`,
+    );
   }
   if (!pd.sizeChartVerified || !pd.consumptionVerified || !pd.sampleBomVerified) {
     throw new ConflictError('Size chart, consumption, and sample BOM must be verified before completion');
@@ -621,6 +712,10 @@ export async function reopenPatternDevelopment(designId, factoryId, userId, { re
   pd.updatedBy = userId;
   await pd.save();
 
+  await flagActiveBomsForReview(designId, factoryId, userId, reason
+    ? `Pattern reopened: ${reason}`
+    : 'Pattern reopened — consumption or trims may change');
+
   if (fromFitSampleId && pd.patternMasterId) {
     await notify({
       organizationId: pd.organizationId,
@@ -637,8 +732,21 @@ export async function reopenPatternDevelopment(designId, factoryId, userId, { re
   return populatePattern(pd);
 }
 
+/** Frozen (ACTIVE) BOMs of this design's SKUs were built from the pattern now being changed. */
+async function flagActiveBomsForReview(designId, factoryId, userId, reviewReason) {
+  const skuIds = await Sku.find(applySoftDeleteFilter({ designId, factoryId })).distinct('_id');
+  if (!skuIds.length) return;
+  await Bom.updateMany(
+    { skuId: { $in: skuIds }, factoryId, status: 'ACTIVE', isDeleted: false },
+    { $set: { needsReview: true, reviewReason, updatedBy: userId } },
+  );
+}
+
 export async function reopenPatternForFit(designId, factoryId, userId, { sampleId, reason }) {
   if (!reason?.trim()) throw new ValidationError('Reason is required');
+  if (!mongoose.isValidObjectId(sampleId)) throw new ValidationError('Invalid sampleId');
+  const sample = await Sample.exists(applySoftDeleteFilter({ _id: sampleId, designId, factoryId }));
+  if (!sample) throw new ValidationError('Sample does not belong to this design');
   return reopenPatternDevelopment(designId, factoryId, userId, {
     reason: reason.trim(),
     fromFitSampleId: sampleId,

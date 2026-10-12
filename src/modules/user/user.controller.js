@@ -118,7 +118,7 @@ export async function updateUser(req, res, next) {
   try {
     const orgId = resolveOrganizationId(req);
     const user = await userService.updateUser(
-      req.params.id, orgId, req.body, req.user._id, req.user.email,
+      req.params.id, orgId, req.body, req.user._id, req.user.email, req.user,
     );
     return success(res, user);
   } catch (err) {
@@ -142,7 +142,7 @@ export async function resetPassword(req, res, next) {
   try {
     const orgId = resolveOrganizationId(req);
     const result = await userService.resetPassword(
-      req.params.id, orgId, req.body.newPassword, req.user._id, req.user.email,
+      req.params.id, orgId, req.body.newPassword, req.user._id, req.user.email, req.user,
     );
     return success(res, result);
   } catch (err) {
@@ -154,7 +154,7 @@ export async function unlockUser(req, res, next) {
   try {
     const orgId = resolveOrganizationId(req);
     const user = await userService.unlockUser(
-      req.params.id, orgId, req.user._id, req.user.email,
+      req.params.id, orgId, req.user._id, req.user.email, req.user,
     );
     return success(res, user);
   } catch (err) {
@@ -184,6 +184,7 @@ export async function assignRole(req, res, next) {
       assignedBy: req.user._id,
       expiresAt: req.body.expiresAt,
       actorEmail: req.user.email,
+      actor: req.user,
     });
     return success(res, assignment, null, 201);
   } catch (err) {
@@ -216,7 +217,7 @@ export async function revokeAssignment(req, res, next) {
   try {
     const orgId = resolveOrganizationId(req);
     const result = await userService.revokeAssignment(
-      req.params.assignmentId, orgId, req.user._id, req.user.email,
+      req.params.assignmentId, orgId, req.user._id, req.user.email, req.user,
     );
     return success(res, result);
   } catch (err) {

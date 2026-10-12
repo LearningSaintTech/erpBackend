@@ -9,7 +9,6 @@ import { env } from './config/env.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
 import { auditMiddleware } from './middleware/audit.js';
 import { errorHandler } from './middleware/errorHandler.js';
-import { tenantMiddleware } from './middleware/tenant.js';
 
 import authRoutes from './modules/auth/auth.routes.js';
 import orgRoutes from './modules/organization/organization.routes.js';
@@ -83,7 +82,6 @@ app.use(express.json({ limit: '15mb' }));
 app.use(cookieParser());
 app.use('/uploads', express.static(path.join(path.dirname(fileURLToPath(import.meta.url)), '../uploads')));
 app.use(apiLimiter);
-app.use(tenantMiddleware);
 app.use(auditMiddleware);
 
 app.get('/health', (req, res) => {
@@ -100,28 +98,44 @@ app.get('/api/v1/docs/openapi.json', (req, res) => {
   res.json(openApiSpec);
 });
 
+/**
+ * Feature routers share the `/api/v1` mount and each starts with `router.use(auth, tenant[, requireFactory])`.
+ * Without this gate those path-less middlewares run for every request that walks past the router, so
+ * e.g. design's `requireFactory` blocked /settings and auth/tenant lookups repeated ~20× per request.
+ * Only enter a router when one of its own routes matches the request.
+ */
+function scoped(router) {
+  return (req, res, next) => {
+    const method = req.method === 'HEAD' ? 'get' : req.method.toLowerCase();
+    const owns = router.stack.some(
+      (layer) => layer.route && layer.match(req.path) && layer.route._handles_method(method),
+    );
+    return owns ? router(req, res, next) : next();
+  };
+}
+
 app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1', orgRoutes);
-app.use('/api/v1', userRoutes);
-app.use('/api/v1', approvalRoutes);
-app.use('/api/v1', auditRoutes);
-app.use('/api/v1', designRoutes);
-app.use('/api/v1', patternRoutes);
-app.use('/api/v1', sampleRoutes);
-app.use('/api/v1', skuRoutes);
-app.use('/api/v1', bomRoutes);
-app.use('/api/v1', inventoryRoutes);
-app.use('/api/v1', purchaseRoutes);
-app.use('/api/v1', productionRoutes);
-app.use('/api/v1', warehouseRoutes);
-app.use('/api/v1', qualityRoutes);
-app.use('/api/v1', notificationRoutes);
-app.use('/api/v1', reportRoutes);
-app.use('/api/v1', wasteRoutes);
-app.use('/api/v1', machineRoutes);
-app.use('/api/v1', settingsRoutes);
-app.use('/api/v1', inventoryCodeRoutes);
-app.use('/api/v1', chatRoutes);
+app.use('/api/v1', scoped(orgRoutes));
+app.use('/api/v1', scoped(userRoutes));
+app.use('/api/v1', scoped(approvalRoutes));
+app.use('/api/v1', scoped(auditRoutes));
+app.use('/api/v1', scoped(designRoutes));
+app.use('/api/v1', scoped(patternRoutes));
+app.use('/api/v1', scoped(sampleRoutes));
+app.use('/api/v1', scoped(skuRoutes));
+app.use('/api/v1', scoped(bomRoutes));
+app.use('/api/v1', scoped(inventoryRoutes));
+app.use('/api/v1', scoped(purchaseRoutes));
+app.use('/api/v1', scoped(productionRoutes));
+app.use('/api/v1', scoped(warehouseRoutes));
+app.use('/api/v1', scoped(qualityRoutes));
+app.use('/api/v1', scoped(notificationRoutes));
+app.use('/api/v1', scoped(reportRoutes));
+app.use('/api/v1', scoped(wasteRoutes));
+app.use('/api/v1', scoped(machineRoutes));
+app.use('/api/v1', scoped(settingsRoutes));
+app.use('/api/v1', scoped(inventoryCodeRoutes));
+app.use('/api/v1', scoped(chatRoutes));
 
 app.use(errorHandler);
 

@@ -8,7 +8,7 @@ import { NotFoundError, ConflictError, ValidationError } from '../../shared/erro
 import { applySoftDeleteFilter } from '../../shared/utils/schema.js';
 import { nextDocumentNumber } from '../../shared/utils/numbering.js';
 import { notify } from '../notification/notification.service.js';
-import { createMaterial } from './inventory.service.js';
+import { createMaterial, findMaterialByNormalizedName } from './inventory.service.js';
 import { MATERIAL_CATEGORIES, MATERIAL_UNITS } from './inventory.defaults.js';
 
 const PATTERN_UNIT = {
@@ -44,7 +44,8 @@ async function populateRequest(doc) {
     .populate('materialId', 'materialCode name unit category unitCost');
 }
 
-async function notifyUsersWithPermission({
+/** Notify every user in the factory whose role grants `permission` (or '*'). */
+export async function notifyUsersWithPermission({
   organizationId,
   factoryId,
   permission,
@@ -223,40 +224,66 @@ export async function listMaterialMasterRequests(factoryId, {
 }
 
 export async function approveMaterialMasterRequest(id, factoryId, body, userId) {
-  const request = await MaterialMasterRequest.findOne(applySoftDeleteFilter({ _id: id, factoryId }));
-  if (!request) throw new NotFoundError('Material master request not found');
-  if (request.status !== 'PENDING') throw new ConflictError('Request is no longer pending');
-
-  const name = String(body.name || request.name).trim();
-  const category = MATERIAL_CATEGORIES.includes(body.category) ? body.category : request.category;
-  const unit = MATERIAL_UNITS.includes(body.unit) ? body.unit : request.unit;
-  const unitCost = body.unitCost !== undefined ? Number(body.unitCost) || 0 : (request.unitCost || 0);
-  const materialCode = await uniqueMaterialCode(
-    factoryId,
-    body.materialCode || request.proposedCode,
-    name,
-    category,
+  // Claim PENDING → APPROVING atomically so two approvers can't create two materials
+  const request = await MaterialMasterRequest.findOneAndUpdate(
+    { _id: id, factoryId, status: 'PENDING', isDeleted: false },
+    { $set: { status: 'APPROVING', updatedBy: userId, updatedAt: new Date() } },
+    { new: true },
   );
+  if (!request) {
+    const exists = await MaterialMasterRequest.exists(applySoftDeleteFilter({ _id: id, factoryId }));
+    if (!exists) throw new NotFoundError('Material master request not found');
+    throw new ConflictError('Request is no longer pending');
+  }
+  const revertClaim = () => MaterialMasterRequest.updateOne(
+    { _id: request._id, status: 'APPROVING' },
+    { $set: { status: 'PENDING', updatedBy: userId, updatedAt: new Date() } },
+  ).catch(() => {});
 
-  const material = await createMaterial({
-    factoryId,
-    organizationId: request.organizationId,
-    materialCode,
-    name,
-    category,
-    unit,
-    unitCost,
-  }, userId);
+  let material;
+  try {
+    const name = String(body.name || request.name).trim();
+    const category = MATERIAL_CATEGORIES.includes(body.category) ? body.category : request.category;
+    const unit = MATERIAL_UNITS.includes(body.unit) ? body.unit : request.unit;
+    const unitCost = body.unitCost !== undefined ? Number(body.unitCost) || 0 : (request.unitCost || 0);
+
+    const duplicate = await findMaterialByNormalizedName(factoryId, name, category);
+    if (duplicate) {
+      throw new ConflictError(
+        `${duplicate.materialCode} — ${duplicate.name} already exists in ${category}; reject this request and use it instead`,
+      );
+    }
+
+    const materialCode = await uniqueMaterialCode(
+      factoryId,
+      body.materialCode || request.proposedCode,
+      name,
+      category,
+    );
+
+    material = await createMaterial({
+      factoryId,
+      organizationId: request.organizationId,
+      materialCode,
+      name,
+      category,
+      unit,
+      unitCost,
+    }, userId);
+    request.name = name;
+    request.category = category;
+    request.unit = unit;
+    request.unitCost = unitCost;
+  } catch (err) {
+    await revertClaim();
+    throw err;
+  }
 
   request.status = 'APPROVED';
   request.reviewedBy = userId;
   request.reviewedAt = new Date();
   request.reviewNotes = String(body.reviewNotes || '').trim();
   request.materialId = material._id;
-  request.name = name;
-  request.category = category;
-  request.unit = unit;
-  request.unitCost = unitCost;
   request.updatedBy = userId;
   await request.save();
 
@@ -280,16 +307,26 @@ export async function approveMaterialMasterRequest(id, factoryId, body, userId) 
 }
 
 export async function rejectMaterialMasterRequest(id, factoryId, body, userId) {
-  const request = await MaterialMasterRequest.findOne(applySoftDeleteFilter({ _id: id, factoryId }));
-  if (!request) throw new NotFoundError('Material master request not found');
-  if (request.status !== 'PENDING') throw new ConflictError('Request is no longer pending');
-
-  request.status = 'REJECTED';
-  request.reviewedBy = userId;
-  request.reviewedAt = new Date();
-  request.reviewNotes = String(body.reviewNotes || '').trim();
-  request.updatedBy = userId;
-  await request.save();
+  // Atomic PENDING → REJECTED (an in-flight approval holds APPROVING and wins)
+  const request = await MaterialMasterRequest.findOneAndUpdate(
+    { _id: id, factoryId, status: 'PENDING', isDeleted: false },
+    {
+      $set: {
+        status: 'REJECTED',
+        reviewedBy: userId,
+        reviewedAt: new Date(),
+        reviewNotes: String(body.reviewNotes || '').trim(),
+        updatedBy: userId,
+        updatedAt: new Date(),
+      },
+    },
+    { new: true },
+  );
+  if (!request) {
+    const exists = await MaterialMasterRequest.exists(applySoftDeleteFilter({ _id: id, factoryId }));
+    if (!exists) throw new NotFoundError('Material master request not found');
+    throw new ConflictError('Request is no longer pending');
+  }
 
   await notify({
     organizationId: request.organizationId,

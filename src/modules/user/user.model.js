@@ -17,6 +17,8 @@ const userSchema = new mongoose.Schema({
   phone: { type: String, trim: true },
   countryCode: { type: String, default: '+91' },
   isNumberVerified: { type: Boolean, default: false },
+  // Self-registered via phone OTP and not yet verified — the only state OTP verify may auto-activate.
+  registrationPending: { type: Boolean, default: false },
   employeeId: String,
   avatarUrl: String,
   status: { type: String, enum: ['ACTIVE', 'INACTIVE', 'LOCKED'], default: 'ACTIVE' },
@@ -32,7 +34,9 @@ userSchema.index({ organizationId: 1, email: 1 }, { unique: true, sparse: true }
 userSchema.index({ email: 1 }, { unique: true, partialFilterExpression: { isSuperAdmin: true } });
 userSchema.index(
   { phone: 1 },
-  { unique: true, sparse: true, partialFilterExpression: { phone: { $type: 'string', $gt: '' } } },
+  // MongoDB refuses to build an index that mixes `sparse` with `partialFilterExpression`
+  // (CannotCreateIndex) — the partial filter alone already skips missing / empty phones.
+  { unique: true, partialFilterExpression: { phone: { $type: 'string', $gt: '' } } },
 );
 
 userSchema.pre('save', function normalizePhone(next) {

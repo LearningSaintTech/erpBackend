@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { tenantFields, auditFields } from '../../shared/utils/schema.js';
 import { SAMPLE_TYPE_LIST } from './sample.defaults.js';
+import { FIT_EVALUATION_MODES } from '../pattern/pattern.defaults.js';
 
 const sampleSchema = new mongoose.Schema({
   ...tenantFields,
@@ -56,7 +57,7 @@ const sampleSchema = new mongoose.Schema({
     pass: Boolean,
   }],
   fitAnalysis: {
-    evaluatedOn: { type: String, enum: ['MANNEQUIN', 'LIVE_MODEL', 'FLAT_MEASURE', 'DRESS_FORM', 'CUSTOMER_REP'] },
+    evaluatedOn: { type: String, enum: FIT_EVALUATION_MODES },
     overallResult: { type: String, enum: ['PASS', 'MINOR_ISSUES', 'MAJOR_ISSUES', 'FAIL'] },
     issues: [{
       area: String,

@@ -28,6 +28,34 @@ export function errorHandler(err, req, res, next) {
     });
   }
 
+  if (err.name === 'CastError') {
+    return res.status(400).json({
+      success: false,
+      error: { code: 'BAD_REQUEST', message: `Invalid ${err.path || 'value'}` },
+    });
+  }
+
+  if (err.code === 11000) {
+    return res.status(409).json({
+      success: false,
+      error: { code: 'CONFLICT', message: 'Duplicate value', details: err.keyValue },
+    });
+  }
+
+  if (err.name === 'VersionError') {
+    return res.status(409).json({
+      success: false,
+      error: { code: 'CONFLICT', message: 'Record was modified concurrently — please retry' },
+    });
+  }
+
+  if (err.type === 'entity.parse.failed' || err.type === 'entity.too.large') {
+    return res.status(err.status || 400).json({
+      success: false,
+      error: { code: 'BAD_REQUEST', message: err.message },
+    });
+  }
+
   if (err instanceof AppError) {
     return res.status(status).json({
       success: false,

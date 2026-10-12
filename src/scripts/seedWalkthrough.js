@@ -96,7 +96,7 @@ export async function printSeedWalkthrough(factoryId) {
     `${counts.designs} designs across DRAFT / SUBMITTED / APPROVED / RELEASED`);
   step(9, 'Approve designer submission', 'design-manager@demo.local', '/approvals',
     'Pending design approvals');
-  step(10, 'Purchase — PR, PO, RFQ', 'purchase@demo.local', '/purchase',
+  step(10, 'Purchase — PR, PO', 'purchase@demo.local', '/purchase',
     demoPr ? `${demoPr.prNumber} (${demoPr.status})` : 'purchase requisitions');
   if (po) console.log(`   Note:   PO ${po.poNumber} (${po.status})`);
   step(11, 'Incoming QC on GRN (pre-seeded)', 'qc@demo.local', '/quality',

@@ -6,6 +6,7 @@ import {
   ORDER_STATUS_LIST, BATCH_STATUS_LIST, SCHEDULE_STATUS_LIST,
   PRIORITY_LIST, MACHINE_TYPE_LIST,
 } from './production.defaults.js';
+import { WASTE_TYPES } from '../waste/waste.defaults.js';
 
 export const createOrderSchema = Joi.object({
   body: Joi.object({
@@ -52,7 +53,7 @@ export const completeStageSchema = Joi.object({
     scrapMaterialId: Joi.string(),
     scrapQuantity: Joi.number().min(0),
     scrapUnit: Joi.string(),
-    wasteType: Joi.string(),
+    wasteType: Joi.string().valid(...WASTE_TYPES),
   }),
 });
 
@@ -107,6 +108,12 @@ export async function catalog(req, res, next) {
   } catch (e) { next(e); }
 }
 
+export async function listWorkers(req, res, next) {
+  try {
+    success(res, await productionService.listAssignableWorkers(req.factoryId));
+  } catch (e) { next(e); }
+}
+
 export async function stats(req, res, next) {
   try {
     success(res, await productionService.getProductionStats(req.factoryId));
@@ -144,6 +151,7 @@ export async function listOrders(req, res, next) {
       status: req.query.status,
       priority: req.query.priority,
       search: req.query.search,
+      overdue: req.query.overdue,
     });
     success(res, items, buildMeta(page, limit, total));
   } catch (e) { next(e); }
@@ -151,7 +159,13 @@ export async function listOrders(req, res, next) {
 
 export async function getOrder(req, res, next) {
   try {
-    success(res, await productionService.getProductionOrder(req.params.id, req.factoryId));
+    const order = await productionService.getProductionOrder(req.params.id, req.factoryId);
+    // Detail view: include the MRP snapshot (material codes) and shortage PR number.
+    await order.populate([
+      { path: 'mrpId', select: 'lines hasShortage totalCost', populate: { path: 'lines.materialId', select: 'materialCode name unit' } },
+      { path: 'suggestedPrId', select: 'prNumber status' },
+    ]);
+    success(res, order);
   } catch (e) { next(e); }
 }
 
@@ -229,7 +243,7 @@ export async function batchBoard(req, res, next) {
 
 export async function getBatch(req, res, next) {
   try {
-    success(res, await productionService.getBatch(req.params.id, req.factoryId));
+    success(res, await productionService.getBatchDetail(req.params.id, req.factoryId));
   } catch (e) { next(e); }
 }
 
@@ -266,7 +280,7 @@ export async function rollbackStage(req, res, next) {
 
 export async function createSchedule(req, res, next) {
   try {
-    success(res, await productionService.createSchedule(req.body, req.user._id), null, 201);
+    success(res, await productionService.createSchedule(req.body, req.user._id, req.factoryId), null, 201);
   } catch (e) { next(e); }
 }
 

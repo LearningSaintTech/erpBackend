@@ -28,8 +28,8 @@ router.post('/warehouse-operations/mark-dispatch-ready', rbac('warehouse.update'
 router.get('/warehouse/dispatch-ready', rbac('warehouse.read'), ctrl.listDispatchReady);
 router.post('/warehouse-operations/dispatch', rbac('warehouse.update'), validate(ctrl.dispatchSchema), ctrl.dispatch);
 router.get('/warehouse/sku-lookup/:barcode', rbac('warehouse.read'), ctrl.skuLookup);
-router.post('/warehouse-operations/transfer', rbac('warehouse.update'), validate(ctrl.materialOpSchema), ctrl.transfer);
-router.post('/warehouse-operations/pick', rbac('warehouse.update'), validate(ctrl.materialOpSchema), ctrl.pick);
+router.post('/warehouse-operations/transfer', rbac('warehouse.update'), validate(ctrl.stockOpSchema), ctrl.transfer);
+router.post('/warehouse-operations/pick', rbac('warehouse.update'), validate(ctrl.stockOpSchema), ctrl.pick);
 
 router.post('/warehouses/:warehouseId/zones', rbac('warehouse.configure'), validate(ctrl.createZoneSchema), ctrl.createZone);
 router.get('/warehouses/:warehouseId/zones', rbac('warehouse.read'), ctrl.listZones);

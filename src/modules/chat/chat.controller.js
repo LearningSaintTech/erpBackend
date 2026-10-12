@@ -1,4 +1,6 @@
 import Joi from 'joi';
+import { removeUserFromRoom } from '../../shared/services/realtime.js';
+import { emitChatMessage } from './chat.socket.js';
 import * as chatService from './chat.service.js';
 import { success, paginate, buildMeta } from '../../shared/utils/response.js';
 import { AuditLog } from '../audit/audit.model.js';
@@ -156,6 +158,7 @@ export async function removeMember(req, res, next) {
       req.user._id,
       req.params.userId,
     );
+    removeUserFromRoom(req.params.userId, req.params.id);
     success(res, room);
   } catch (e) { next(e); }
 }
@@ -183,6 +186,9 @@ export async function sendMessage(req, res, next) {
       req.permissions || [],
       { ...req.body, organizationId: req.organizationId },
     );
+    // The web client sends over REST; push to everyone in the room like the socket path does.
+    // Members who have not opened the room still get it live (badge / toast) via their user channel.
+    await emitChatMessage(req.params.id, message).catch(() => {});
     success(res, message, undefined, 201);
   } catch (e) { next(e); }
 }

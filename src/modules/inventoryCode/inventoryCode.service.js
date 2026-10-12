@@ -4,6 +4,7 @@ import { dirname, join } from 'path';
 import { InventoryCode } from './inventoryCode.model.js';
 import { SkuFormulaConfig, DEFAULT_SKU_SEGMENT_ORDER } from './skuFormulaConfig.model.js';
 import { ConflictError, NotFoundError } from '../../shared/errors/AppError.js';
+import { queryString, pickFields } from '../../shared/utils/schema.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -11,6 +12,8 @@ export async function listInventoryCodes({
   type, activeOnly = true, inactiveOnly = false, search, skip = 0, limit = 20,
 } = {}) {
   const filter = {};
+  type = queryString(type);
+  search = queryString(search);
   if (type) filter.type = type;
   if (inactiveOnly) filter.isActive = false;
   else if (activeOnly) filter.isActive = true;
@@ -46,7 +49,7 @@ export async function createInventoryCode(data) {
   const name = data.name?.trim();
   try {
     return await InventoryCode.create({
-      ...data,
+      ...pickFields(data, ['type', 'sortOrder', 'isActive', 'remarks']),
       code,
       name,
       updatedAt: new Date(),
@@ -68,7 +71,14 @@ export async function updateInventoryCode(id, data) {
   if (data.isActive !== undefined) doc.isActive = data.isActive;
   if (data.remarks !== undefined) doc.remarks = data.remarks;
   doc.updatedAt = new Date();
-  await doc.save();
+  try {
+    await doc.save();
+  } catch (err) {
+    if (err?.code === 11000) {
+      throw new ConflictError(`Code "${doc.code}" already exists for this type`);
+    }
+    throw err;
+  }
   return doc;
 }
 

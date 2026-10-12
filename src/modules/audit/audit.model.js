@@ -14,5 +14,8 @@ const auditLogSchema = new mongoose.Schema({
   metadata: mongoose.Schema.Types.Mixed,
   timestamp: { type: Date, default: Date.now, index: true },
 });
+// Perf (large-dataset audit): list/stats queries filter by factory + soft-delete + status and sort by date.
+auditLogSchema.index({ factoryId: 1, timestamp: -1 });
+auditLogSchema.index({ factoryId: 1, module: 1, timestamp: -1 });
 
 export const AuditLog = mongoose.model('AuditLog', auditLogSchema);

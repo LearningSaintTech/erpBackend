@@ -7,7 +7,8 @@ const materialMasterRequestSchema = new mongoose.Schema({
   requestNumber: { type: String, required: true },
   status: {
     type: String,
-    enum: ['PENDING', 'APPROVED', 'REJECTED'],
+    // APPROVING = transient claim while the material is being created (reverted on failure)
+    enum: ['PENDING', 'APPROVING', 'APPROVED', 'REJECTED'],
     default: 'PENDING',
     index: true,
   },

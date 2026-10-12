@@ -2,6 +2,7 @@ import Joi from 'joi';
 import * as qualityService from './quality.service.js';
 import * as qualityExtended from './qualityExtended.service.js';
 import { success, paginate, buildMeta } from '../../shared/utils/response.js';
+import { queryString } from '../../shared/utils/schema.js';
 import {
   INSPECTION_TYPES, TEMPLATE_TYPES, DISPOSITION_LIST, CAPA_TYPES,
   DEFECT_SEVERITY_LIST,
@@ -11,8 +12,17 @@ export const completeInspectionSchema = Joi.object({
   body: Joi.object({
     passedQuantity: Joi.number().min(0),
     failedQuantity: Joi.number().min(0),
-    result: Joi.string().valid('PASS', 'FAIL', 'PARTIAL', 'REWORK', 'REJECT'),
-    disposition: Joi.string().valid(...DISPOSITION_LIST),
+    // Per-line incoming QC (GRN): accepted + rejected <= received is checked in the service.
+    lines: Joi.array().items(Joi.object({
+      materialId: Joi.string().required(),
+      acceptedQty: Joi.number().min(0).required(),
+      rejectedQty: Joi.number().min(0).required(),
+    })).min(1),
+    // REWORK is not a valid incoming (per-line) outcome; the service also rejects it for any GRN.
+    result: Joi.string().valid('PASS', 'FAIL', 'PARTIAL', 'REWORK', 'REJECT')
+      .when('lines', { is: Joi.exist(), then: Joi.invalid('REWORK') }),
+    disposition: Joi.string().valid(...DISPOSITION_LIST)
+      .when('lines', { is: Joi.exist(), then: Joi.invalid('REWORK') }),
     storageBinId: Joi.string(),
     autoDispatchReady: Joi.boolean(),
     notes: Joi.string().allow(''),
@@ -106,9 +116,10 @@ export async function listInspections(req, res, next) {
     const { page, limit, skip } = paginate(req.query);
     const { items, total } = await qualityService.listInspections(req.factoryId, {
       page, limit, skip,
-      status: req.query.status,
-      inspectionType: req.query.inspectionType,
-      search: req.query.search,
+      status: queryString(req.query.status),
+      inspectionType: queryString(req.query.inspectionType),
+      search: queryString(req.query.search),
+      referenceId: queryString(req.query.referenceId),
     });
     success(res, items, buildMeta(page, limit, total));
   } catch (e) { next(e); }
@@ -128,19 +139,19 @@ export async function incomingQcContext(req, res, next) {
 
 export async function createIncoming(req, res, next) {
   try {
-    success(res, await qualityService.createIncomingInspection(req.params.id, req.user._id), null, 201);
+    success(res, await qualityService.createIncomingInspection(req.params.id, req.user._id, req.factoryId), null, 201);
   } catch (e) { next(e); }
 }
 
 export async function createFinal(req, res, next) {
   try {
-    success(res, await qualityService.createFinalInspection(req.params.id, req.user._id, req.body), null, 201);
+    success(res, await qualityService.createFinalInspection(req.params.id, req.user._id, req.body, req.factoryId), null, 201);
   } catch (e) { next(e); }
 }
 
 export async function createInProcess(req, res, next) {
   try {
-    success(res, await qualityExtended.createInProcessInspection(req.params.id, req.user._id), null, 201);
+    success(res, await qualityExtended.createInProcessInspection(req.params.id, req.user._id, req.factoryId), null, 201);
   } catch (e) { next(e); }
 }
 
@@ -174,7 +185,7 @@ export async function createDefectCategory(req, res, next) {
 
 export async function listTemplates(req, res, next) {
   try {
-    success(res, await qualityExtended.listInspectionTemplates(req.factoryId, req.query.type));
+    success(res, await qualityExtended.listInspectionTemplates(req.factoryId, queryString(req.query.type)));
   } catch (e) { next(e); }
 }
 
@@ -208,7 +219,7 @@ export async function listCapa(req, res, next) {
     const { page, limit, skip } = paginate(req.query);
     const { items, total } = await qualityExtended.listCapaRecords(req.factoryId, {
       page, limit, skip,
-      status: req.query.status,
+      status: queryString(req.query.status),
     });
     success(res, items, buildMeta(page, limit, total));
   } catch (e) { next(e); }

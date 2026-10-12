@@ -1,7 +1,7 @@
 import { Notification } from './notification.model.js';
 import { User } from '../user/user.model.js';
 import { NotFoundError } from '../../shared/errors/AppError.js';
-import { applySoftDeleteFilter } from '../../shared/utils/schema.js';
+import { applySoftDeleteFilter, asObjectId } from '../../shared/utils/schema.js';
 import { sendEmail } from '../../shared/services/email.service.js';
 import { enqueueJob } from '../../shared/services/queue.service.js';
 import { env } from '../../config/env.js';
@@ -11,10 +11,25 @@ function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function buildListFilter(userId, factoryId, { status, eventType, search } = {}) {
+function parseDay(value, endOfDay = false) {
+  if (typeof value !== 'string' || !value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  if (endOfDay && /^\d{4}-\d{2}-\d{2}$/.test(value)) d.setHours(23, 59, 59, 999);
+  return d;
+}
+
+function buildListFilter(userId, factoryId, { status, eventType, search, from, to } = {}) {
   const filter = applySoftDeleteFilter({ userId, factoryId });
   if (status) filter.status = status;
   if (eventType) filter.eventType = eventType;
+  const fromDate = parseDay(from);
+  const toDate = parseDay(to, true);
+  if (fromDate || toDate) {
+    filter.createdAt = {};
+    if (fromDate) filter.createdAt.$gte = fromDate;
+    if (toDate) filter.createdAt.$lte = toDate;
+  }
   if (search?.trim()) {
     const re = new RegExp(escapeRegex(search.trim()), 'i');
     filter.$or = [{ title: re }, { message: re }, { eventType: re }];
@@ -74,8 +89,8 @@ export async function notifyUserByEmail(userId, { subject, text, html }) {
   return sendEmail({ to: user.email, subject, text, html });
 }
 
-export async function listForUser(userId, factoryId, { page, limit, skip, status, eventType, search }) {
-  const filter = buildListFilter(userId, factoryId, { status, eventType, search });
+export async function listForUser(userId, factoryId, { page, limit, skip, status, eventType, search, from, to }) {
+  const filter = buildListFilter(userId, factoryId, { status, eventType, search, from, to });
   const [items, total] = await Promise.all([
     Notification.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 }),
     Notification.countDocuments(filter),
@@ -99,7 +114,7 @@ export async function getNotificationStats(userId, factoryId) {
       createdAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) },
     }),
     Notification.aggregate([
-      { $match: { ...base, status: 'UNREAD' } },
+      { $match: { ...base, userId: asObjectId(userId), factoryId: asObjectId(factoryId), status: 'UNREAD' } },
       { $group: { _id: '$eventType', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $limit: 5 },
