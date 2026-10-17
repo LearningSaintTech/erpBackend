@@ -107,6 +107,8 @@ export const createShelfSchema = Joi.object({
   body: Joi.object({
     shelfCode: Joi.string().trim().min(1).required(),
     name: Joi.string().trim().min(1),
+    // Also create the bin that stands for the whole shelf (default on).
+    createShelfBin: Joi.boolean().default(true),
   }),
 });
 

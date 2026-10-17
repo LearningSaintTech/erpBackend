@@ -88,7 +88,7 @@ export async function createShelf(data, userId) {
     shelfCode: data.shelfCode,
   }));
   if (existing) throw new ConflictError('Shelf code already exists on this rack');
-  return Shelf.create({
+  const shelf = await Shelf.create({
     factoryId: data.factoryId,
     organizationId: data.organizationId,
     rackId: data.rackId,
@@ -96,6 +96,47 @@ export async function createShelf(data, userId) {
     createdBy: userId,
     updatedBy: userId,
   });
+  const shelfBin = data.createShelfBin === false
+    ? null
+    : await ensureShelfBin(shelf, rack, userId);
+  return { ...shelf.toObject(), shelfBin };
+}
+
+/** Bin code for a shelf's whole-shelf bin: the shelf code, prefixed with the rack code unless it already is. */
+export function shelfBinCode(rackCode, shelfCode) {
+  return shelfCode.toUpperCase().startsWith(`${rackCode}-`.toUpperCase()) ? shelfCode : `${rackCode}-${shelfCode}`;
+}
+
+/**
+ * The bin that stands for the whole shelf, so stock can be placed "on the shelf" as well as in its sub-bins.
+ * Returns the existing one when the shelf already has it; skips (returns null) when the code is taken by another bin.
+ */
+export async function ensureShelfBin(shelf, rack, userId) {
+  const zone = await Zone.findOne(applySoftDeleteFilter({ _id: rack.zoneId, factoryId: shelf.factoryId }));
+  if (!zone) throw new NotFoundError('Zone not found');
+  const already = await StorageBin.findOne(applySoftDeleteFilter({ factoryId: shelf.factoryId, shelfId: shelf._id, isShelfBin: true }));
+  if (already) return already;
+
+  const binCode = shelfBinCode(rack.rackCode, shelf.shelfCode);
+  const codeTaken = await StorageBin.exists(applySoftDeleteFilter({ factoryId: shelf.factoryId, warehouseId: zone.warehouseId, binCode }));
+  if (codeTaken) return null;
+  // Barcodes are unique across the factory — with the same rack codes in two warehouses, add the warehouse code.
+  let barcode = `BIN-${binCode}`;
+  if (await StorageBin.exists(applySoftDeleteFilter({ factoryId: shelf.factoryId, barcode }))) {
+    const wh = await Warehouse.findById(zone.warehouseId).select('warehouseCode');
+    barcode = `BIN-${wh?.warehouseCode || zone.warehouseId}-${binCode}`;
+  }
+  const bin = await warehouseService.createStorageBin({
+    organizationId: shelf.organizationId,
+    factoryId: shelf.factoryId,
+    warehouseId: zone.warehouseId,
+    shelfId: shelf._id,
+    binCode,
+    barcode,
+  }, userId);
+  bin.isShelfBin = true;
+  await bin.save();
+  return bin;
 }
 
 export async function listRacks(factoryId, zoneId) {

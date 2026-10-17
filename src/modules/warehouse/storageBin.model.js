@@ -11,6 +11,8 @@ const storageBinSchema = new mongoose.Schema({
   binCode: { type: String, required: true },
   barcode: String,
   capacity: Number,
+  /** Stands for the whole shelf (created with the shelf) — stock placed here is "on the shelf", not in a sub-bin. */
+  isShelfBin: { type: Boolean, default: false },
   status: { type: String, enum: ['ACTIVE', 'FROZEN', 'INACTIVE'], default: 'ACTIVE' },
   ...auditFields,
 });

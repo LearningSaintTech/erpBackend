@@ -27,7 +27,8 @@
     "test": "npm run test:unit && npm run test:concurrency && npm run test:scripts",
     "walkthrough": "node src/scripts/print-walkthrough.js",
     "deploy:check-phones": "node src/scripts/check-duplicate-phones.js",
-    "deploy:backfill-qc": "node src/scripts/backfill-qc-quantities.js"
+    "deploy:backfill-qc": "node src/scripts/backfill-qc-quantities.js",
+    "deploy:setup-shelves": "node src/scripts/setup-shelf-layout.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
