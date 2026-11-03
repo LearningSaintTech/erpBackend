@@ -111,6 +111,7 @@ export const SYSTEM_ROLES = [
       'approval.read', 'approval.approve',
       'quality.create', 'quality.read', 'quality.update', 'quality.approve', 'quality.configure',
       'waste.read',
+      'warehouse.read',
       ...notify,
     ),
   },
@@ -253,6 +254,8 @@ export const SYSTEM_ROLES = [
       'sampling.read',
       'waste.create', 'waste.read',
       'batch.read',
+      // Incoming QC can post accepted stock straight into a bin — the bin picker lists warehouses/bins.
+      'warehouse.read',
       ...notify,
     ),
   },

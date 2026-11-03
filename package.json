@@ -28,7 +28,9 @@
     "walkthrough": "node src/scripts/print-walkthrough.js",
     "deploy:check-phones": "node src/scripts/check-duplicate-phones.js",
     "deploy:backfill-qc": "node src/scripts/backfill-qc-quantities.js",
-    "deploy:setup-shelves": "node src/scripts/setup-shelf-layout.js"
+    "deploy:setup-shelves": "node src/scripts/setup-shelf-layout.js",
+    "deploy:sync-roles": "node src/scripts/sync-role-permissions.js",
+    "deploy:import-fg": "node src/scripts/import-fg-stock.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1157.0",
