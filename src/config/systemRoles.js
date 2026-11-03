@@ -233,6 +233,8 @@ export const SYSTEM_ROLES = [
       ...factoryRead,
       'warehouse.create', 'warehouse.read', 'warehouse.update', 'warehouse.configure',
       'inventory.read',
+      // Finished goods: the SKU picker and Inventory → Finished goods list SKUs
+      'sku.read',
       ...notify,
     ),
   },
