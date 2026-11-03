@@ -351,20 +351,11 @@ async function transferFgStock({
   const toBin = await getBin(resolvedTo, factoryId);
   await assertBinWarehouseType(toBin, 'FINISHED_GOODS');
 
-  const filter = {
-    factoryId,
-    skuId,
-    inventoryType: 'FINISHED_GOODS',
-    isDeleted: false,
-    onHand: { $gt: 0 },
-  };
-  if (fromBinId) filter.storageBinId = fromBinId;
-
-  const fromBalance = await InventoryBalance.findOne(filter);
+  if (fromBinId && String(fromBinId) === String(toBin._id)) throw new ConflictError('Source and destination bins must differ');
+  const fromBalance = await fgSourceRow({
+    factoryId, skuId, binId: fromBinId, extra: fromBinId ? {} : { storageBinId: { $ne: toBin._id } },
+  });
   if (!fromBalance || fromBalance.onHand <= 0) throw new ConflictError('No finished-goods stock to transfer');
-  if (fromBinId && String(fromBalance.storageBinId || '') !== String(fromBinId)) {
-    throw new ConflictError('Finished goods are not in the selected source bin');
-  }
   if (fromBalance.storageBinId && String(fromBalance.storageBinId) === String(toBin._id)) {
     throw new ConflictError('Source and destination bins must differ');
   }
@@ -374,14 +365,22 @@ async function transferFgStock({
   if (transferQty <= 0 || maxTransfer < transferQty) {
     throw new ConflictError('Cannot transfer reserved stock or zero quantity');
   }
-  if (transferQty < fromBalance.onHand) {
-    throw new ConflictError('Partial FG bin transfers are not supported — transfer full on-hand qty');
-  }
 
-  fromBalance.storageBinId = toBin._id;
-  fromBalance.locationId = toBin.warehouseId;
+  // Partial moves are fine: the destination bin gets its own row (merged if the SKU is already there).
+  const toBalance = await fgRowAt({ factoryId, organizationId, skuId, binId: toBin._id, locationId: toBin.warehouseId, unit: fromBalance.unit });
+  const toWasEmpty = (toBalance.onHand || 0) <= 0;
+  fromBalance.onHand -= transferQty;
+  fromBalance.available = fromBalance.onHand - (fromBalance.reserved || 0);
   fromBalance.updatedBy = userId;
   await fromBalance.save();
+  toBalance.onHand += transferQty;
+  toBalance.available = toBalance.onHand - (toBalance.reserved || 0);
+  toBalance.locationId = toBin.warehouseId;
+  // Moved stock keeps its dispatch status; mixing with different stock already in the bin restarts staging.
+  if (toWasEmpty) toBalance.dispatchStatus = fromBalance.dispatchStatus || 'STAGED';
+  else if (toBalance.dispatchStatus !== fromBalance.dispatchStatus) toBalance.dispatchStatus = 'STAGED';
+  toBalance.updatedBy = userId;
+  await toBalance.save();
 
   await InventoryTransaction.create({
     organizationId,
@@ -389,15 +388,16 @@ async function transferFgStock({
     type: 'TRANSFER',
     skuId,
     quantity: transferQty,
-    unit: fromBalance.unit,
+    unit: toBalance.unit,
     referenceType: 'BIN_TRANSFER',
     referenceId: toBin._id,
+    storageBinId: toBin._id,
     performedBy: userId,
     createdBy: userId,
     updatedBy: userId,
   });
 
-  return { fromBalance, toBalance: fromBalance, bin: toBin, quantity: transferQty };
+  return { fromBalance, toBalance, bin: toBin, quantity: transferQty };
 }
 
 export async function transferStock({
@@ -489,25 +489,74 @@ export async function assignRmToBin({ factoryId, organizationId, materialId, bin
   return putAway({ factoryId, organizationId, materialId, binId, quantity, userId });
 }
 
-export async function putAwayFinishedGoods({ factoryId, organizationId, skuId, binId, storageBinId, quantity, userId }) {
+/** A SKU's FG row in one bin (or on the dock when binId is null), created empty if missing. */
+async function fgRowAt({ factoryId, organizationId, skuId, binId = null, locationId = null, unit = 'PIECES' }) {
+  const where = { factoryId, skuId, inventoryType: 'FINISHED_GOODS', storageBinId: binId || null, isDeleted: false };
+  let row = await InventoryBalance.findOne(where);
+  if (!row) {
+    try {
+      row = await InventoryBalance.create({
+        organizationId, factoryId, inventoryType: 'FINISHED_GOODS', skuId, storageBinId: binId || null,
+        locationId, unit, onHand: 0, reserved: 0, available: 0, dispatchStatus: 'STAGED',
+      });
+    } catch (err) {
+      if (err?.code !== 11000) throw err; // concurrent create — re-read the winner's row
+      row = await InventoryBalance.findOne(where);
+      if (!row) throw err;
+    }
+  }
+  return row;
+}
+
+/**
+ * The FG row an operation draws from. With a bin: that bin's row. Without: the only row of this SKU
+ * that has stock — when the SKU sits in several places the caller must say which bin.
+ */
+async function fgSourceRow({ factoryId, skuId, binId, extra = {}, what = 'Finished goods' }) {
+  if (binId) {
+    return InventoryBalance.findOne({ factoryId, skuId, inventoryType: 'FINISHED_GOODS', storageBinId: binId, isDeleted: false, ...extra });
+  }
+  const rows = await InventoryBalance.find({ factoryId, skuId, inventoryType: 'FINISHED_GOODS', isDeleted: false, onHand: { $gt: 0 }, ...extra });
+  if (rows.length > 1) throw new ConflictError(`${what} for this SKU sit in ${rows.length} places — choose the bin`);
+  return rows[0] || null;
+}
+
+/**
+ * Move finished goods into a bin. Draws from the unallocated dock by default (or from fromBinId).
+ * Partial quantities are fine — the rest stays where it was. A SKU can be put away into several bins.
+ */
+export async function putAwayFinishedGoods({ factoryId, organizationId, skuId, binId, storageBinId, fromBinId, quantity, userId }) {
   const resolvedBinId = binId || storageBinId;
   const bin = await getBin(resolvedBinId, factoryId);
   await assertBinWarehouseType(bin, 'FINISHED_GOODS');
-  const balance = await InventoryBalance.findOne({
-    factoryId, skuId, inventoryType: 'FINISHED_GOODS', isDeleted: false,
-  });
-  if (!balance || balance.onHand <= 0 || (quantity != null && balance.onHand < quantity)) {
-    throw new ConflictError('Insufficient finished goods to put away');
-  }
-  // One FG balance row per SKU — the whole row moves to the bin, so log the full on-hand actually moved
-  // (QC completion and the UI pass partial quantities, so rejecting quantity !== onHand would break them)
-  const moveQty = balance.onHand;
+  if (fromBinId && String(fromBinId) === String(bin._id)) throw new ConflictError('Source and destination bins must differ');
 
-  balance.storageBinId = bin._id;
-  balance.locationId = bin.warehouseId;
-  balance.dispatchStatus = 'STAGED';
-  balance.updatedBy = userId;
-  await balance.save();
+  let source = await InventoryBalance.findOne({
+    factoryId, skuId, inventoryType: 'FINISHED_GOODS', storageBinId: fromBinId || null, isDeleted: false,
+  });
+  if (!fromBinId && (!source || source.onHand - (source.reserved || 0) <= 0)) {
+    // Nothing on the dock: older stock may sit in exactly one other bin — move from there.
+    const others = await InventoryBalance.find({
+      factoryId, skuId, inventoryType: 'FINISHED_GOODS', isDeleted: false, onHand: { $gt: 0 }, storageBinId: { $ne: bin._id },
+    });
+    if (others.length === 1) source = others[0];
+    else if (others.length > 1) throw new ConflictError('This SKU sits in several bins — use a bin transfer and choose the source bin');
+  }
+  const free = source ? source.onHand - (source.reserved || 0) : 0;
+  const moveQty = quantity ?? free;
+  if (!source || moveQty <= 0 || free < moveQty) throw new ConflictError('Insufficient finished goods to put away');
+
+  const target = await fgRowAt({ factoryId, organizationId, skuId, binId: bin._id, locationId: bin.warehouseId, unit: source.unit });
+  source.onHand -= moveQty;
+  source.available = source.onHand - (source.reserved || 0);
+  source.updatedBy = userId;
+  await source.save();
+  target.onHand += moveQty;
+  target.available = target.onHand - (target.reserved || 0);
+  target.locationId = bin.warehouseId;
+  target.dispatchStatus = 'STAGED';
+  target.updatedBy = userId;
+  await target.save();
 
   await InventoryTransaction.create({
     organizationId,
@@ -515,21 +564,22 @@ export async function putAwayFinishedGoods({ factoryId, organizationId, skuId, b
     type: 'TRANSFER',
     skuId,
     quantity: moveQty,
-    unit: balance.unit,
+    unit: target.unit,
     referenceType: 'FG_PUT_AWAY',
     referenceId: bin._id,
+    storageBinId: bin._id,
     performedBy: userId,
     createdBy: userId,
     updatedBy: userId,
   });
 
-  return { balance, bin };
+  return { balance: target, bin, quantity: moveQty };
 }
 
 export async function markReadyForDispatch({ factoryId, skuId, storageBinId, userId }) {
-  const filter = { factoryId, skuId, inventoryType: 'FINISHED_GOODS', isDeleted: false };
-  if (storageBinId) filter.storageBinId = storageBinId;
-  const balance = await InventoryBalance.findOne(filter);
+  const balance = await fgSourceRow({
+    factoryId, skuId, binId: storageBinId, extra: storageBinId ? {} : { storageBinId: { $type: 'objectId' } },
+  });
   if (!balance) throw new NotFoundError('Finished goods inventory not found');
   if (!balance.storageBinId) throw new ConflictError('FG must be put away to a bin before dispatch readiness');
   balance.dispatchStatus = 'READY_FOR_DISPATCH';
@@ -550,9 +600,9 @@ export async function listDispatchReady(factoryId) {
 }
 
 export async function markDispatched({ factoryId, skuId, storageBinId, quantity, userId }) {
-  const filter = { factoryId, skuId, inventoryType: 'FINISHED_GOODS', isDeleted: false };
-  if (storageBinId) filter.storageBinId = storageBinId;
-  const balance = await InventoryBalance.findOne(filter);
+  const balance = await fgSourceRow({
+    factoryId, skuId, binId: storageBinId, extra: storageBinId ? {} : { dispatchStatus: 'READY_FOR_DISPATCH' }, what: 'Ready-to-ship units',
+  });
   if (!balance) throw new NotFoundError('Finished goods inventory not found');
   if (balance.dispatchStatus !== 'READY_FOR_DISPATCH') {
     throw new ConflictError('Inventory must be READY_FOR_DISPATCH before dispatch');

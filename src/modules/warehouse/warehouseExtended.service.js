@@ -215,7 +215,11 @@ export async function pickStock({ factoryId, organizationId, materialId, skuId, 
       onHand: { $gt: 0 },
     };
     if (binId) filter.storageBinId = binId;
-    const balance = await InventoryBalance.findOne(filter);
+    else filter.dispatchStatus = 'READY_FOR_DISPATCH';
+    // A SKU can sit in several bins — without a bin, only an unambiguous ready row may be picked.
+    const candidates = await InventoryBalance.find(filter).limit(2);
+    if (!binId && candidates.length > 1) throw new ConflictError('This SKU is ready to ship from several bins — choose the bin');
+    const balance = candidates[0];
     if (!balance) throw new ConflictError('Finished goods not found in the selected location');
     // FG leaves the warehouse only through the dispatch flow (staged → ready → picked/dispatched).
     if (balance.dispatchStatus !== 'READY_FOR_DISPATCH') {

@@ -1009,13 +1009,13 @@ async function withReferenceNumbers(items) {
   });
 }
 
-export async function getOrCreateFgBalance(factoryId, organizationId, skuId, unit = 'PIECES', locationId = null) {
-  let balance = await InventoryBalance.findOne({
-    factoryId,
-    skuId,
-    inventoryType: 'FINISHED_GOODS',
-    isDeleted: false,
-  });
+/**
+ * The FG balance row for a SKU in one place: a bin, or the unallocated dock when storageBinId is null.
+ * A SKU can have one dock row plus one row per bin it sits in.
+ */
+export async function getOrCreateFgBalance(factoryId, organizationId, skuId, unit = 'PIECES', locationId = null, storageBinId = null) {
+  const where = { factoryId, skuId, inventoryType: 'FINISHED_GOODS', storageBinId: storageBinId || null, isDeleted: false };
+  let balance = await InventoryBalance.findOne(where);
   if (!balance) {
     try {
       balance = await InventoryBalance.create({
@@ -1023,6 +1023,7 @@ export async function getOrCreateFgBalance(factoryId, organizationId, skuId, uni
         factoryId,
         inventoryType: 'FINISHED_GOODS',
         skuId,
+        storageBinId: storageBinId || null,
         locationId,
         unit,
         onHand: 0,
@@ -1032,21 +1033,20 @@ export async function getOrCreateFgBalance(factoryId, organizationId, skuId, uni
     } catch (err) {
       // Concurrent create hit the unique FG index — re-read the winner's row
       if (err?.code !== 11000) throw err;
-      balance = await InventoryBalance.findOne({
-        factoryId, skuId, inventoryType: 'FINISHED_GOODS', isDeleted: false,
-      });
+      balance = await InventoryBalance.findOne(where);
       if (!balance) throw err;
     }
   }
   return balance;
 }
 
-export async function receiptFinishedGoods({ factoryId, organizationId, skuId, quantity, locationId, storageBinId, userId }) {
-  const balance = await getOrCreateFgBalance(factoryId, organizationId, skuId, 'PIECES', locationId);
+export async function receiptFinishedGoods({
+  factoryId, organizationId, skuId, quantity, locationId, storageBinId, userId, referenceType, referenceId,
+}) {
+  const balance = await getOrCreateFgBalance(factoryId, organizationId, skuId, 'PIECES', locationId, storageBinId);
   balance.onHand += quantity;
   balance.available = balance.onHand - balance.reserved;
   if (locationId) balance.locationId = locationId;
-  if (storageBinId) balance.storageBinId = storageBinId;
   balance.dispatchStatus = balance.dispatchStatus || 'STAGED';
   await balance.save();
 
@@ -1057,6 +1057,9 @@ export async function receiptFinishedGoods({ factoryId, organizationId, skuId, q
     skuId,
     quantity,
     unit: balance.unit,
+    ...(referenceType ? { referenceType } : {}),
+    ...(referenceId ? { referenceId } : {}),
+    storageBinId: storageBinId || null,
     performedBy: userId,
     createdBy: userId,
   });

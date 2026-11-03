@@ -57,11 +57,13 @@ inventoryBalanceSchema.index(
   },
 );
 
-// Finished goods — one balance row per SKU per factory
+// Finished goods — one balance row per SKU per bin, plus one unallocated (dock) row with storageBinId null.
+// A SKU can sit on several shelves. (Replaces the old one-row-per-SKU index; syncIndexes drops that on startup.)
 inventoryBalanceSchema.index(
-  { factoryId: 1, skuId: 1 },
+  { factoryId: 1, skuId: 1, storageBinId: 1 },
   {
     unique: true,
+    name: 'fg_sku_bin_unique',
     partialFilterExpression: {
       inventoryType: 'FINISHED_GOODS',
       skuId: { $exists: true },
